@@ -262,9 +262,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-**Your Name** - [@yourusername](https://github.com/yourusername)
+**Your Name** - [@syeduzaif](https://github.com/syeduzaif)
 
-Project Link: [https://github.com/yourusername/budget-buddy](https://github.com/yourusername/budget-buddy)
+Project Link: [https://github.com/syeduzaif/Budget-buddy](https://github.com/syeduzaif/Budget-buddy)
 
 ---
 
