@@ -8,5 +8,5 @@ class AppRoutes {
   static const String allTransactions = '/all-transactions';
   static const String currencySelection = '/currency-selection';
   static const String editIncome = '/edit-income';
+  static const String aiChat = '/ai-chat';
 }
-

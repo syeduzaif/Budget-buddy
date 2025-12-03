@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 import '../models/category.dart';
 import '../models/transaction_item.dart';
+import '../models/chat_message_model.dart';
 
 /// Central place to manage Hive box names and access
 class HiveBoxes {
@@ -15,6 +16,8 @@ class HiveBoxes {
   static const String currencySymbolKey = 'currency_symbol';
   static const String hasSelectedCurrencyKey = 'has_selected_currency';
 
+  static const String chatBox = 'chat_messages';
+
   /// Get Categories Box
   static Box<Category> getCategoriesBox() {
     return Hive.box<Category>(categoriesBox);
@@ -23,6 +26,11 @@ class HiveBoxes {
   /// Get Transactions Box
   static Box<TransactionItem> getTransactionsBox() {
     return Hive.box<TransactionItem>(transactionsBox);
+  }
+
+  /// Get Chat Box
+  static Box<ChatMessageModel> getChatBox() {
+    return Hive.box<ChatMessageModel>(chatBox);
   }
 
   /// Get Settings Box
@@ -34,7 +42,7 @@ class HiveBoxes {
   static bool isInitialized() {
     return Hive.isBoxOpen(categoriesBox) &&
         Hive.isBoxOpen(transactionsBox) &&
+        Hive.isBoxOpen(chatBox) &&
         Hive.isBoxOpen(settingsBox);
   }
 }
-

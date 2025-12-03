@@ -1,0 +1,110 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:uuid/uuid.dart';
+import '../../data/models/chat_message_model.dart';
+import '../../data/storage/hive_boxes.dart';
+import '../../services/ai_insights_service.dart';
+
+class AiChatController extends GetxController {
+  final AiInsightsService _insightsService = Get.find<AiInsightsService>();
+
+  final messages = <ChatMessageModel>[].obs;
+  final textController = TextEditingController();
+  final scrollController = ScrollController();
+  final isLoading = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadMessages();
+    // Add initial greeting if empty
+    if (messages.isEmpty) {
+      _addAiMessage(
+          "Hello! I'm your AI Budget Assistant. How can I help you manage your finances today?");
+    }
+  }
+
+  void loadMessages() {
+    final box = HiveBoxes.getChatBox();
+    messages.assignAll(box.values.toList()
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp)));
+  }
+
+  Future<void> sendMessage() async {
+    final text = textController.text.trim();
+    if (text.isEmpty) return;
+
+    textController.clear();
+
+    // Add user message
+    final userMsg = ChatMessageModel(
+      id: const Uuid().v4(),
+      message: text,
+      isUser: true,
+      timestamp: DateTime.now(),
+    );
+    await _saveMessage(userMsg);
+
+    isLoading.value = true;
+    _scrollToBottom();
+
+    // Simulate AI delay
+    await Future.delayed(const Duration(seconds: 1));
+
+    // Generate response
+    final response = _generateResponse(text);
+
+    await _addAiMessage(response);
+    isLoading.value = false;
+    _scrollToBottom();
+  }
+
+  String _generateResponse(String userMessage) {
+    final lowerMsg = userMessage.toLowerCase();
+
+    if (lowerMsg.contains("analyze") || lowerMsg.contains("insight")) {
+      final insights = _insightsService.analyzeMonthlySpending();
+      if (insights.isEmpty) {
+        return "Your spending looks normal so far. Keep it up!";
+      }
+      return insights.join("\n\n");
+    }
+
+    return _insightsService.getAdviceForQuery(userMessage);
+  }
+
+  Future<void> _addAiMessage(String text) async {
+    final aiMsg = ChatMessageModel(
+      id: const Uuid().v4(),
+      message: text,
+      isUser: false,
+      timestamp: DateTime.now(),
+    );
+    await _saveMessage(aiMsg);
+  }
+
+  Future<void> _saveMessage(ChatMessageModel msg) async {
+    final box = HiveBoxes.getChatBox();
+    await box.put(msg.id, msg);
+    messages.add(msg);
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (scrollController.hasClients) {
+        scrollController.animateTo(
+          scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
+  void onClose() {
+    textController.dispose();
+    scrollController.dispose();
+    super.onClose();
+  }
+}

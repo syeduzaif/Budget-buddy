@@ -33,10 +33,9 @@ class Category extends HiveObject {
 
   // Calculate total spent from transactions
   double calculateTotalSpent(List<dynamic> allTransactions) {
-    final categoryTransactions = allTransactions
-        .where((t) => t.categoryId == id)
-        .toList();
-    
+    final categoryTransactions =
+        allTransactions.where((t) => t.categoryId == id).toList();
+
     return categoryTransactions.fold(
       0.0,
       (sum, transaction) => sum + transaction.amount,
@@ -53,21 +52,20 @@ class Category extends HiveObject {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'budgetLimit': budgetLimit,
-    'colorValue': colorValue,
-    'month': month,
-    'createdAt': createdAt.toIso8601String(),
-  };
+        'id': id,
+        'name': name,
+        'budgetLimit': budgetLimit,
+        'colorValue': colorValue,
+        'month': month,
+        'createdAt': createdAt.toIso8601String(),
+      };
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
-    id: json['id'],
-    name: json['name'],
-    budgetLimit: json['budgetLimit'],
-    colorValue: json['colorValue'],
-    month: json['month'],
-    createdAt: DateTime.parse(json['createdAt']),
-  );
+        id: json['id'],
+        name: json['name'],
+        budgetLimit: json['budgetLimit'],
+        colorValue: json['colorValue'],
+        month: json['month'],
+        createdAt: DateTime.parse(json['createdAt']),
+      );
 }
-
