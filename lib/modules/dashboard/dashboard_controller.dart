@@ -53,6 +53,11 @@ class DashboardController extends GetxController {
     Get.toNamed(AppRoutes.allTransactions);
   }
 
+  /// Navigate to AI Chat view
+  void goToAiChat() {
+    Get.toNamed(AppRoutes.aiChat);
+  }
+
   /// Navigate to set income dialog
   void showSetIncomeDialog() {
     Get.dialog(
@@ -66,4 +71,3 @@ class DashboardController extends GetxController {
     });
   }
 }
-

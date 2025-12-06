@@ -32,21 +32,21 @@ class TransactionItem extends HiveObject {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'categoryId': categoryId,
-    'amount': amount,
-    'note': note,
-    'date': date.toIso8601String(),
-    'createdAt': createdAt.toIso8601String(),
-  };
+        'id': id,
+        'categoryId': categoryId,
+        'amount': amount,
+        'note': note,
+        'date': date.toIso8601String(),
+        'createdAt': createdAt.toIso8601String(),
+      };
 
-  factory TransactionItem.fromJson(Map<String, dynamic> json) => TransactionItem(
-    id: json['id'],
-    categoryId: json['categoryId'],
-    amount: json['amount'],
-    note: json['note'],
-    date: DateTime.parse(json['date']),
-    createdAt: DateTime.parse(json['createdAt']),
-  );
+  factory TransactionItem.fromJson(Map<String, dynamic> json) =>
+      TransactionItem(
+        id: json['id'],
+        categoryId: json['categoryId'],
+        amount: json['amount'],
+        note: json['note'],
+        date: DateTime.parse(json['date']),
+        createdAt: DateTime.parse(json['createdAt']),
+      );
 }
-

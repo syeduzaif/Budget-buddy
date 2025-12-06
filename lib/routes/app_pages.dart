@@ -10,6 +10,8 @@ import '../modules/transactions/transactions_controller.dart';
 import '../modules/transactions/transactions_view.dart';
 import '../modules/currency_selection/currency_selection_controller.dart';
 import '../modules/currency_selection/currency_selection_view.dart';
+import '../modules/ai_chat/ai_chat_view.dart';
+import '../modules/ai_chat/ai_chat_controller.dart';
 import 'app_routes.dart';
 
 /// App route pages configuration
@@ -64,6 +66,12 @@ class AppPages {
         Get.lazyPut(() => CurrencySelectionController());
       }),
     ),
+    GetPage(
+      name: AppRoutes.aiChat,
+      page: () => const AiChatView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => AiChatController());
+      }),
+    ),
   ];
 }
-

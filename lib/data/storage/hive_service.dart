@@ -1,6 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/category.dart';
 import '../models/transaction_item.dart';
+import '../models/chat_message_model.dart';
 import 'hive_boxes.dart';
 import '../../utils/helpers.dart';
 
@@ -17,10 +18,14 @@ class HiveService {
     if (!Hive.isAdapterRegistered(1)) {
       Hive.registerAdapter(TransactionItemAdapter());
     }
+    if (!Hive.isAdapterRegistered(7)) {
+      Hive.registerAdapter(ChatMessageModelAdapter());
+    }
 
     // Open boxes
     await Hive.openBox<Category>(HiveBoxes.categoriesBox);
     await Hive.openBox<TransactionItem>(HiveBoxes.transactionsBox);
+    await Hive.openBox<ChatMessageModel>(HiveBoxes.chatBox);
     await Hive.openBox(HiveBoxes.settingsBox);
   }
 
@@ -63,7 +68,8 @@ class HiveService {
   static Future<void> setSelectedCurrency(String currencyCode) async {
     final box = HiveBoxes.getSettingsBox();
     await box.put(HiveBoxes.currencyKey, currencyCode);
-    await box.put(HiveBoxes.currencySymbolKey, _getCurrencySymbol(currencyCode));
+    await box.put(
+        HiveBoxes.currencySymbolKey, _getCurrencySymbol(currencyCode));
     await box.put(HiveBoxes.hasSelectedCurrencyKey, true);
   }
 
@@ -80,7 +86,8 @@ class HiveService {
   /// Check if user has selected currency
   static bool hasSelectedCurrency() {
     final box = HiveBoxes.getSettingsBox();
-    return box.get(HiveBoxes.hasSelectedCurrencyKey, defaultValue: false) as bool;
+    return box.get(HiveBoxes.hasSelectedCurrencyKey, defaultValue: false)
+        as bool;
   }
 
   /// Get currency symbol for currency code
@@ -206,4 +213,3 @@ class HiveService {
     await Hive.close();
   }
 }
-
