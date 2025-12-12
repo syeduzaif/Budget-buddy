@@ -1,14 +1,15 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:get/get.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Service for Google Gemini AI integration
 class GeminiService extends GetxService {
   late GenerativeModel _model;
   late ChatSession _chatSession;
 
-  // TODO: Replace with your actual API key
-  // Get your free API key from: https://makersuite.google.com/app/apikey
-  static const String _apiKey = 'AIzaSyD_xIpjL0VAI5yUmOrW5hviQDDYdhjMOJk';
+  // Load API key from environment variables (.env file)
+  // This keeps the key secure and out of version control
+  String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
   final isInitialized = false.obs;
   final lastError = ''.obs;
