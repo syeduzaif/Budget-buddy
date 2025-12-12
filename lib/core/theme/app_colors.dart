@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // Primary Brand Colors
-  static const Color primary = Color(0xFF6C63FF);
-  static const Color primaryDark = Color(0xFF5548E8);
-  static const Color primaryLight = Color(0xFF8B85FF);
+  // Primary Brand Colors - Modern Teal/Green
+  static const Color primary = Color(0xFF00897B); // Teal 600
+  static const Color primaryDark = Color(0xFF00695C); // Teal 800
+  static const Color primaryLight = Color(0xFF4DB6AC); // Teal 300
 
-  // Secondary/Accent Colors
-  static const Color accent = Color(0xFF00D9A3);
-  static const Color accentDark = Color(0xFF00B386);
-  static const Color accentLight = Color(0xFF33E3B8);
+  // Secondary/Accent Colors - Vibrant Green
+  static const Color accent = Color(0xFF66BB6A); // Green 400
+  static const Color accentDark = Color(0xFF388E3C); // Green 700
+  static const Color accentLight = Color(0xFF81C784); // Green 300
 
   // Background Colors
   static const Color background = Color(0xFFF8F9FA);

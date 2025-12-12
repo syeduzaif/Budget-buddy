@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 import 'app_fonts.dart';
 import 'app_spacing.dart';
@@ -172,23 +173,25 @@ class AppTheme {
         space: 1,
       ),
 
-      // Text theme
-      textTheme: const TextTheme(
-        displayLarge: AppFonts.h1,
-        displayMedium: AppFonts.h2,
-        displaySmall: AppFonts.h3,
-        headlineLarge: AppFonts.h3,
-        headlineMedium: AppFonts.h4,
-        headlineSmall: AppFonts.h5,
-        titleLarge: AppFonts.h4,
-        titleMedium: AppFonts.h5,
-        titleSmall: AppFonts.h6,
-        bodyLarge: AppFonts.bodyLarge,
-        bodyMedium: AppFonts.bodyMedium,
-        bodySmall: AppFonts.bodySmall,
-        labelLarge: AppFonts.labelLarge,
-        labelMedium: AppFonts.labelMedium,
-        labelSmall: AppFonts.labelSmall,
+      // Text theme - Using Google Fonts Poppins
+      textTheme: GoogleFonts.poppinsTextTheme(
+        const TextTheme(
+          displayLarge: AppFonts.h1,
+          displayMedium: AppFonts.h2,
+          displaySmall: AppFonts.h3,
+          headlineLarge: AppFonts.h3,
+          headlineMedium: AppFonts.h4,
+          headlineSmall: AppFonts.h5,
+          titleLarge: AppFonts.h4,
+          titleMedium: AppFonts.h5,
+          titleSmall: AppFonts.h6,
+          bodyLarge: AppFonts.bodyLarge,
+          bodyMedium: AppFonts.bodyMedium,
+          bodySmall: AppFonts.bodySmall,
+          labelLarge: AppFonts.labelLarge,
+          labelMedium: AppFonts.labelMedium,
+          labelSmall: AppFonts.labelSmall,
+        ),
       ),
 
       // Snackbar theme

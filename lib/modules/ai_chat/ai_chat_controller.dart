@@ -4,9 +4,11 @@ import 'package:uuid/uuid.dart';
 import '../../data/models/chat_message_model.dart';
 import '../../data/storage/hive_boxes.dart';
 import '../../services/ai_insights_service.dart';
+import '../../services/gemini_service.dart';
 
 class AiChatController extends GetxController {
   final AiInsightsService _insightsService = Get.find<AiInsightsService>();
+  final GeminiService _geminiService = Get.find<GeminiService>();
 
   final messages = <ChatMessageModel>[].obs;
   final textController = TextEditingController();
@@ -48,29 +50,37 @@ class AiChatController extends GetxController {
     isLoading.value = true;
     _scrollToBottom();
 
-    // Simulate AI delay
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Generate response
-    final response = _generateResponse(text);
+    // Generate AI response
+    final response = await _generateResponse(text);
 
     await _addAiMessage(response);
     isLoading.value = false;
     _scrollToBottom();
   }
 
-  String _generateResponse(String userMessage) {
+  Future<String> _generateResponse(String userMessage) async {
     final lowerMsg = userMessage.toLowerCase();
 
-    if (lowerMsg.contains("analyze") || lowerMsg.contains("insight")) {
+    // Check if user wants spending analysis
+    if (lowerMsg.contains("analyze") ||
+        lowerMsg.contains("insight") ||
+        lowerMsg.contains("spending") ||
+        lowerMsg.contains("budget overview")) {
+      // Use local insights service for data analysis
       final insights = _insightsService.analyzeMonthlySpending();
       if (insights.isEmpty) {
-        return "Your spending looks normal so far. Keep it up!";
+        return await _geminiService.generateResponse(
+            "The user asked for spending analysis but has no transactions yet. "
+            "Encourage them to start tracking expenses.");
       }
-      return insights.join("\n\n");
+
+      // Let Gemini provide insights based on the data
+      return await _geminiService.generateResponse(
+          "Provide financial insights based on this data: ${insights.join(', ')}");
     }
 
-    return _insightsService.getAdviceForQuery(userMessage);
+    // For all other queries, use Gemini AI
+    return await _geminiService.generateResponse(userMessage);
   }
 
   Future<void> _addAiMessage(String text) async {

@@ -5,8 +5,8 @@ import 'app_colors.dart';
 class AppFonts {
   AppFonts._();
 
-  // Font family
-  static const String fontFamily = 'Inter';
+  // Font family - Using Poppins for modern, friendly look
+  static const String fontFamily = 'Poppins';
 
   // Font weights
   static const FontWeight light = FontWeight.w300;

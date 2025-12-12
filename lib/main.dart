@@ -5,6 +5,7 @@ import 'services/budget_service.dart';
 import 'services/income_service.dart';
 import 'services/ai_insights_service.dart';
 import 'services/ai_alert_service.dart';
+import 'services/gemini_service.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
 import 'utils/currency_helper.dart';
@@ -21,6 +22,7 @@ void main() async {
   Get.put(IncomeService(), permanent: true);
   Get.put(AiInsightsService(), permanent: true);
   Get.put(AiAlertService(), permanent: true);
+  Get.put(GeminiService(), permanent: true); // Initialize Gemini AI
 
   runApp(const MyApp());
 }
