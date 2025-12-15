@@ -8,6 +8,7 @@ import '../../utils/helpers.dart';
 /// Service to handle all Hive database operations
 class HiveService {
   /// Initialize Hive and register adapters
+  /// Initialize Hive and register adapters
   static Future<void> init() async {
     await Hive.initFlutter();
 
@@ -22,11 +23,7 @@ class HiveService {
       Hive.registerAdapter(ChatMessageModelAdapter());
     }
 
-    // Open boxes
-    await Hive.openBox<Category>(HiveBoxes.categoriesBox);
-    await Hive.openBox<TransactionItem>(HiveBoxes.transactionsBox);
-    await Hive.openBox<ChatMessageModel>(HiveBoxes.chatBox);
-    await Hive.openBox(HiveBoxes.settingsBox);
+    // Boxes are now opened by UserSessionService based on authenticated user
   }
 
   // ============ SETTINGS ============
