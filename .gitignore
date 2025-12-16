@@ -100,3 +100,40 @@ lib/generated_plugin_registrant.dart
 # Hive database files (optional - remove if you want to track them)
 **/*.hive
 **/*.lock
+
+# ========================================
+# 🔒 SECURITY: Environment & API Keys
+# ========================================
+# NEVER commit these files!
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+
+# Environment variable backups
+*.env.backup
+*.env.old
+
+# API key files
+**/api_keys.dart
+**/secrets.dart
+**/config/keys.dart
+
+# Firebase config (if using)
+google-services.json
+GoogleService-Info.plist
+firebase_options.dart
+
+# Certificate files
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+
+# Sensitive logs
+**/logs/
+*.log
+

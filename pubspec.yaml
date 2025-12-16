@@ -14,6 +14,9 @@ dependencies:
   hive_flutter: ^1.1.0
   uuid: ^3.0.7
   intl: ^0.19.0
+  google_fonts: ^6.1.0
+  google_generative_ai: ^0.4.0
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -24,3 +27,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - .env
