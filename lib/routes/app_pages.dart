@@ -1,6 +1,9 @@
 import 'package:get/get.dart';
 import '../modules/dashboard/dashboard_controller.dart';
 import '../modules/dashboard/dashboard_view.dart';
+import '../modules/auth/login_view.dart';
+import '../modules/auth/signup_view.dart';
+import '../modules/auth/auth_binding.dart';
 import '../modules/category/category_controller.dart';
 import '../modules/category/category_view.dart';
 import '../modules/category/add_transaction_view.dart';
@@ -23,6 +26,16 @@ class AppPages {
       binding: BindingsBuilder(() {
         Get.lazyPut(() => DashboardController());
       }),
+    ),
+    GetPage(
+      name: AppRoutes.login,
+      page: () => const LoginView(),
+      binding: AuthBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.signup,
+      page: () => const SignupView(),
+      binding: AuthBinding(),
     ),
     GetPage(
       name: AppRoutes.categories,

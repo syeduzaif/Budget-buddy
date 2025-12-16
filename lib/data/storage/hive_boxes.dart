@@ -1,13 +1,14 @@
+import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import '../../services/user_session_service.dart';
 import '../models/category.dart';
 import '../models/transaction_item.dart';
 import '../models/chat_message_model.dart';
 
 /// Central place to manage Hive box names and access
 class HiveBoxes {
-  static const String categoriesBox = 'categories';
-  static const String transactionsBox = 'transactions';
-  static const String settingsBox = 'settings';
+  // Box names are now dynamic based on user ID, managed by UserSessionService
+  // Keeping keys for usage in UserSessionService and Settings
 
   // Settings keys
   static const String incomeKey = 'monthly_income';
@@ -16,33 +17,39 @@ class HiveBoxes {
   static const String currencySymbolKey = 'currency_symbol';
   static const String hasSelectedCurrencyKey = 'has_selected_currency';
 
-  static const String chatBox = 'chat_messages';
+  // These might act as prefixes now, but the actual box name includes the UID
+  static const String categoriesBoxPrefix = 'categories';
+  static const String transactionsBoxPrefix = 'transactions';
+  static const String settingsBoxPrefix = 'settings';
+  static const String chatBoxPrefix = 'chat';
 
-  /// Get Categories Box
+  /// Get Categories Box for current user
   static Box<Category> getCategoriesBox() {
-    return Hive.box<Category>(categoriesBox);
+    return Get.find<UserSessionService>().getCategoriesBox();
   }
 
-  /// Get Transactions Box
+  /// Get Transactions Box for current user
   static Box<TransactionItem> getTransactionsBox() {
-    return Hive.box<TransactionItem>(transactionsBox);
+    return Get.find<UserSessionService>().getTransactionsBox();
   }
 
-  /// Get Chat Box
+  /// Get Chat Box for current user
   static Box<ChatMessageModel> getChatBox() {
-    return Hive.box<ChatMessageModel>(chatBox);
+    return Get.find<UserSessionService>().getChatBox();
   }
 
-  /// Get Settings Box
+  /// Get Settings Box for current user
   static Box getSettingsBox() {
-    return Hive.box(settingsBox);
+    return Get.find<UserSessionService>().getSettingsBox();
   }
 
-  /// Check if all boxes are open
+  /// Check if user session and boxes are initialized
   static bool isInitialized() {
-    return Hive.isBoxOpen(categoriesBox) &&
-        Hive.isBoxOpen(transactionsBox) &&
-        Hive.isBoxOpen(chatBox) &&
-        Hive.isBoxOpen(settingsBox);
+    try {
+      final session = Get.find<UserSessionService>();
+      return session.isSessionActive;
+    } catch (_) {
+      return false;
+    }
   }
 }
