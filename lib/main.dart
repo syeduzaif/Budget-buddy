@@ -1,26 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'data/storage/hive_service.dart';
-import 'services/budget_service.dart';
-import 'services/income_service.dart';
-import 'services/ai_insights_service.dart';
-import 'services/ai_alert_service.dart';
+import 'services/auth_service.dart';
+import 'services/google_auth_service.dart';
+import 'services/user_session_service.dart';
+import 'services/user_service.dart';
+import 'modules/auth/auth_controller.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
-import 'utils/currency_helper.dart';
 import 'core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Initialize Hive
+  // Load environment variables
+  await dotenv.load(fileName: '.env');
+
+  // Initialize Hive (only registers adapters)
   await HiveService.init();
 
-  // Initialize GetX services
-  Get.put(BudgetService(), permanent: true);
-  Get.put(IncomeService(), permanent: true);
-  Get.put(AiInsightsService(), permanent: true);
-  Get.put(AiAlertService(), permanent: true);
+  // Initialize Core Services
+  Get.put(UserSessionService(), permanent: true);
+  Get.put(AuthService(), permanent: true);
+  Get.put(GoogleAuthService(), permanent: true);
+  Get.put(UserService(), permanent: true);
 
   runApp(const MyApp());
 }
@@ -30,16 +37,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Check if user has selected currency
-    final hasSelectedCurrency = CurrencyHelper.hasSelectedCurrency();
-
     return GetMaterialApp(
       title: 'Budget Buddy',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: hasSelectedCurrency
-          ? AppRoutes.dashboard
-          : AppRoutes.currencySelection,
+      // Bind AuthController here to ensure navigation context is ready
+      initialBinding: BindingsBuilder(() {
+        Get.put(AuthController(), permanent: true);
+      }),
+      initialRoute: AppRoutes.login,
       getPages: AppPages.pages,
     );
   }

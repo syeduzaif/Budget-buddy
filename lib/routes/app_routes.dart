@@ -1,6 +1,8 @@
 /// App route constants
 class AppRoutes {
   static const String dashboard = '/';
+  static const String login = '/login';
+  static const String signup = '/signup';
   static const String categories = '/categories';
   static const String categoryTransactions = '/category-transactions';
   static const String addCategory = '/add-category';

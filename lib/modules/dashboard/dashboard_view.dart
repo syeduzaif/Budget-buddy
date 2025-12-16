@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dashboard_controller.dart';
+import '../auth/auth_controller.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../core/theme/app_spacing.dart';
@@ -26,6 +27,15 @@ class DashboardView extends StatelessWidget {
             icon: const Icon(AppIcons.settings),
             onPressed: controller.showSetIncomeDialog,
             tooltip: 'Set Income',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              // Get AuthController and logout
+              final authController = Get.find<AuthController>();
+              authController.logout();
+            },
+            tooltip: 'Logout',
           ),
         ],
       ),

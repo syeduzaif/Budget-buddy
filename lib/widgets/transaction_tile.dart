@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../data/models/transaction_item.dart';
-import '../utils/constants.dart';
 import '../utils/helpers.dart';
 import '../utils/currency_helper.dart';
 
@@ -20,38 +19,34 @@ class TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: AppConstants.paddingS),
-      elevation: 1,
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shadowColor: const Color(0xFF00897B).withOpacity(0.1),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusS),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusS),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(AppConstants.paddingM),
+          padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Date indicator
+              // Icon indicator
               Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppConstants.primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppConstants.borderRadiusS),
+                  color: const Color(0xFF00897B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(
-                  child: Text(
-                    Helpers.formatDateShort(transaction.date),
-                    style: AppConstants.bodySmall.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppConstants.primaryColor,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                child: const Icon(
+                  Icons.receipt_long,
+                  color: Color(0xFF00897B),
+                  size: 24,
                 ),
               ),
-              const SizedBox(width: AppConstants.paddingM),
+              const SizedBox(width: 16),
               // Transaction details
               Expanded(
                 child: Column(
@@ -61,36 +56,51 @@ class TransactionTile extends StatelessWidget {
                       transaction.note.isNotEmpty
                           ? transaction.note
                           : 'No note',
-                      style: AppConstants.bodyLarge.copyWith(
+                      style: const TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
+                        color: Color(0xFF1A1A2E),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: AppConstants.paddingXS),
+                    const SizedBox(height: 4),
                     Text(
                       Helpers.formatDate(transaction.date),
-                      style: AppConstants.bodySmall,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF6B7280),
+                      ),
                     ),
                   ],
                 ),
               ),
-              // Amount
-              Text(
-                CurrencyHelper.formatAmount(transaction.amount, compact: true),
-                style: AppConstants.headingSmall.copyWith(
-                  color: AppConstants.errorColor,
-                ),
+              // Amount and delete button
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    CurrencyHelper.formatAmount(transaction.amount,
+                        compact: true),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFFF6B6B),
+                    ),
+                  ),
+                  if (onDelete != null) ...[
+                    const SizedBox(height: 4),
+                    InkWell(
+                      onTap: onDelete,
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: Color(0xFFFF6B6B),
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              // Delete button
-              if (onDelete != null) ...[
-                const SizedBox(width: AppConstants.paddingS),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: AppConstants.errorColor),
-                  onPressed: onDelete,
-                  tooltip: 'Delete',
-                ),
-              ],
             ],
           ),
         ),
@@ -98,4 +108,3 @@ class TransactionTile extends StatelessWidget {
     );
   }
 }
-
