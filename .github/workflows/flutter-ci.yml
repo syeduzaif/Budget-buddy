@@ -4,13 +4,13 @@ name: Flutter CI
 # TRIGGER CONFIGURATION
 # ────────────────────────────────────────────
 # This pipeline runs when:
-# 1. You push code to the 'main' branch
-# 2. You open a Pull Request (PR) against the 'main' branch
+# 1. You push code to the 'Master' branch
+# 2. You open a Pull Request (PR) against the 'Master' branch
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "Master" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "Master" ]
 
 jobs:
   build:
