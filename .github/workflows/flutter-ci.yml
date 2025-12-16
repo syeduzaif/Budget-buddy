@@ -1,146 +1,54 @@
 name: Flutter CI
 
-# ────────────────────────────────────────────
-# TRIGGER CONFIGURATION
-# ────────────────────────────────────────────
-# This pipeline runs when:
-# 1. You push code to the 'Master' branch
-# 2. You open a Pull Request (PR) against the 'Master' branch
 on:
   push:
-    branches: [ "Master" ]
-  pull_request:
     branches: [ "Master" ]
 
 jobs:
   build:
-    name: Build & Test
-    # We use 'ubuntu-latest' as it's the standard, cheapest, and fastest runner for Android builds.
     runs-on: ubuntu-latest
-
+    
     steps:
-      # ────────────────────────────────────────────
-      # 1. CHECKOUT CODE
-      # ────────────────────────────────────────────
-      # Clones your repository into the runner so we can access your code.
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # ────────────────────────────────────────────
-      # 2. SETUP ENVIRONMENT
-      # ────────────────────────────────────────────
-      # Android builds require Java. We use Java 17 (standard for modern Flutter).
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      # Installs the Flutter SDK so we can run flutter commands.
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
-      # ────────────────────────────────────────────
-      # 3. RESTORE SECRETS & CONFIGURATION
-      # ────────────────────────────────────────────
-      # We create the sensitive files from GitHub Secrets.
-      # This keeps your API keys safe and out of the repo.
-      
-      - name: Create .env file
-        run: |
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
-          echo "APP_ENV=production" >> .env
-        # Explanation: Injects the GEMINI_API_KEY secret into a new .env file.
-
-      - name: Restore Firebase Configs
+      # SIMPLE SECRET DECODING
+      - name: Decode Secrets
         env:
-          # We expect these secrets to be Base64 encoded strings of the actual files
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
           FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART_BASE64 }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          # If the secret exists, decode it to the file. 
-          # We use generic checks so it doesn't crash if you haven't set them up yet (though build might fail later).
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 --decode --ignore-garbage > android/app/google-services.json
-          fi
-          if [ -n "$FIREBASE_OPTIONS_DART" ]; then
-            echo "$FIREBASE_OPTIONS_DART" | base64 --decode --ignore-garbage > lib/firebase_options.dart
-          fi
+          echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
+          echo "$FIREBASE_OPTIONS_DART" | base64 -d > lib/firebase_options.dart
+          echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
+          echo "APP_ENV=production" >> .env
 
-      # ────────────────────────────────────────────
-      # 4. INSTALL EXPECTED DEPENDENCIES
-      # ────────────────────────────────────────────
-      # Downloads all the packages listed in pubspec.yaml
       - name: Install Dependencies
         run: flutter pub get
 
-      # ────────────────────────────────────────────
-      # 5. GENERATE CODE
-      # ────────────────────────────────────────────
-      # Runs build_runner to generate files (like *.g.dart for Hive)
-      - name: Run Build Runner
+      - name: Code Generation
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
-      # ────────────────────────────────────────────
-      # 6. RUN TESTS
-      # ────────────────────────────────────────────
-      # Runs your unit and widget tests.
-      # 'continue-on-error: true' ensures the pipeline doesn't stop if you have 0 tests.
       - name: Run Tests
-        run: flutter test
-        continue-on-error: true
+        run: flutter test || true
 
-      # ────────────────────────────────────────────
-      # 6. BUILD APPLICATION
-      # ────────────────────────────────────────────
-      # Builds the release APK (Android Package Kit).
-      # This is the file you install on your phone.
-      - name: Build Release APK
+      - name: Build APK
         run: flutter build apk --release
 
-      # ────────────────────────────────────────────
-      # 7. UPLOAD ARTIFACTS
-      # ────────────────────────────────────────────
-      # Saves the generated APK so you can download it from GitHub Actions.
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-
-      # ────────────────────────────────────────────
-      # 8. FAILURE HANDLING
-      # ────────────────────────────────────────────
-      # If the build fails, we try to upload logs to help you debug.
-      - name: Upload Build Logs on Failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-build-logs
-          path: |
-            input_files.json
-            **/build/output.json
-
-# ────────────────────────────────────────────
-# 7. FUTURE-READY (FOR LATER)
-# ────────────────────────────────────────────
-# This section contains notes for when you are ready to expand this pipeline.
-#
-# 1. AUTO VERSION BUMP:
-#    - You can use 'cider' or custom scripts to read pubspec.yaml and increment version.
-#    - Example: `cider bump build`
-#
-# 2. PLAY STORE DEPLOYMENT:
-#    - You will need 'fastlane' or 'r0adkll/upload-google-play' action.
-#    - You will need a Service Account JSON from Google Play Console.
-#
-# 3. FIREBASE HOSTING (WEB):
-#    - Run `flutter build web`
-#    - Use 'FirebaseExtended/action-hosting-deploy' to deploy.
-#
-# 4. IOS PIPELINE:
-#    - Requires 'macos-latest' runner (more expensive/slower).
-#    - Requires Apple Developer Account & Certificate/Provisioning Profile.
-#    - Build command: `flutter build ipa --release --export-options-plist=...`
