@@ -77,7 +77,14 @@ jobs:
         run: flutter pub get
 
       # ────────────────────────────────────────────
-      # 5. RUN TESTS
+      # 5. GENERATE CODE
+      # ────────────────────────────────────────────
+      # Runs build_runner to generate files (like *.g.dart for Hive)
+      - name: Run Build Runner
+        run: flutter pub run build_runner build --delete-conflicting-outputs
+
+      # ────────────────────────────────────────────
+      # 6. RUN TESTS
       # ────────────────────────────────────────────
       # Runs your unit and widget tests.
       # 'continue-on-error: true' ensures the pipeline doesn't stop if you have 0 tests.
