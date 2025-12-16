@@ -63,10 +63,10 @@ jobs:
           # If the secret exists, decode it to the file. 
           # We use generic checks so it doesn't crash if you haven't set them up yet (though build might fail later).
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 --decode > android/app/google-services.json
+            echo "$GOOGLE_SERVICES_JSON" | base64 --decode --ignore-garbage > android/app/google-services.json
           fi
           if [ -n "$FIREBASE_OPTIONS_DART" ]; then
-            echo "$FIREBASE_OPTIONS_DART" | base64 --decode > lib/firebase_options.dart
+            echo "$FIREBASE_OPTIONS_DART" | base64 --decode --ignore-garbage > lib/firebase_options.dart
           fi
 
       # ────────────────────────────────────────────
