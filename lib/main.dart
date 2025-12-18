@@ -8,6 +8,13 @@ import 'services/auth_service.dart';
 import 'services/google_auth_service.dart';
 import 'services/user_session_service.dart';
 import 'services/user_service.dart';
+import 'services/connectivity_service.dart';
+import 'services/firestore_service.dart';
+import 'services/sync_service.dart';
+import 'data/repositories/category_repository.dart';
+import 'data/repositories/income_repository.dart';
+import 'data/repositories/expense_repository.dart';
+import 'data/repositories/chat_repository.dart';
 import 'modules/auth/auth_controller.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
@@ -24,6 +31,16 @@ void main() async {
   await HiveService.init();
 
   // Initialize Core Services
+  Get.put(ConnectivityService(), permanent: true);
+  Get.put(FirestoreService(), permanent: true);
+  Get.put(SyncService(), permanent: true);
+
+  // Repositories
+  Get.put(CategoryRepository(), permanent: true);
+  Get.put(IncomeRepository(), permanent: true);
+  Get.put(ExpenseRepository(), permanent: true);
+  Get.put(ChatRepository(), permanent: true);
+
   Get.put(UserSessionService(), permanent: true);
   Get.put(AuthService(), permanent: true);
   Get.put(GoogleAuthService(), permanent: true);

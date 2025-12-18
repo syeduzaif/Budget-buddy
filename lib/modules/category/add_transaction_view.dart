@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/transaction_item.dart';
-import '../../data/storage/hive_service.dart';
 import '../../services/budget_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
@@ -21,7 +20,7 @@ class _AddTransactionViewState extends State<AddTransactionView> {
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   final _dateController = TextEditingController();
-  
+
   DateTime _selectedDate = DateTime.now();
   String? _categoryId;
 
@@ -59,7 +58,7 @@ class _AddTransactionViewState extends State<AddTransactionView> {
   Future<void> _saveTransaction() async {
     if (_formKey.currentState!.validate() && _categoryId != null) {
       final amount = Helpers.parseAmount(_amountController.text);
-      
+
       final transaction = TransactionItem(
         id: const Uuid().v4(),
         categoryId: _categoryId!,
@@ -67,13 +66,13 @@ class _AddTransactionViewState extends State<AddTransactionView> {
         note: _noteController.text.trim(),
         date: _selectedDate,
         createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       );
 
-      await HiveService.addTransaction(transaction);
       final budgetService = Get.find<BudgetService>();
-      budgetService.refreshCategories();
-      budgetService.notifyTransactionsChanged();
-      
+      await budgetService.addTransaction(transaction);
+      // Streams will update the UI, no manual refresh needed
+
       Get.back();
       Get.snackbar(
         'Success',
@@ -110,7 +109,8 @@ class _AddTransactionViewState extends State<AddTransactionView> {
                   border: const OutlineInputBorder(),
                   prefixIcon: const Icon(Icons.currency_exchange),
                 ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter amount';
@@ -165,4 +165,3 @@ class _AddTransactionViewState extends State<AddTransactionView> {
     );
   }
 }
-

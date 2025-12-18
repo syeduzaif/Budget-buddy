@@ -46,6 +46,7 @@ class AddCategoryController extends GetxController {
       colorValue: AppConstants.categoryColors[selectedColorIndex.value].value,
       month: budgetService.currentMonth.value,
       createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
 
     await budgetService.addCategory(category);
@@ -65,4 +66,3 @@ class AddCategoryController extends GetxController {
     selectedColorIndex.value = index;
   }
 }
-

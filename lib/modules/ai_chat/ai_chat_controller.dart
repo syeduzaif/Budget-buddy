@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/chat_message_model.dart';
-import '../../data/storage/hive_boxes.dart';
+import '../../data/repositories/chat_repository.dart';
 import '../../services/ai_insights_service.dart';
 import '../../services/gemini_service.dart';
 
 class AiChatController extends GetxController {
   final AiInsightsService _insightsService = Get.find<AiInsightsService>();
   final GeminiService _geminiService = Get.find<GeminiService>();
+  final ChatRepository _chatRepository = Get.find<ChatRepository>();
 
   final messages = <ChatMessageModel>[].obs;
   final textController = TextEditingController();
@@ -18,18 +19,27 @@ class AiChatController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadMessages();
-    // Add initial greeting if empty
-    if (messages.isEmpty) {
-      _addAiMessage(
-          "Hello! I'm your AI Budget Assistant. How can I help you manage your finances today?");
-    }
+    _bindMessages();
   }
 
-  void loadMessages() {
-    final box = HiveBoxes.getChatBox();
-    messages.assignAll(box.values.toList()
-      ..sort((a, b) => a.timestamp.compareTo(b.timestamp)));
+  void _bindMessages() {
+    _chatRepository.getMessages().listen((list) {
+      messages.assignAll(list);
+
+      // Add initial greeting if empty
+      if (messages.isEmpty) {
+        _saveMessage(ChatMessageModel(
+          id: const Uuid().v4(),
+          message:
+              "Hello! I'm your AI Budget Assistant. How can I help you manage your finances today?",
+          isUser: false,
+          timestamp: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ));
+      } else {
+        _scrollToBottom();
+      }
+    });
   }
 
   Future<void> sendMessage() async {
@@ -44,6 +54,7 @@ class AiChatController extends GetxController {
       message: text,
       isUser: true,
       timestamp: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
     await _saveMessage(userMsg);
 
@@ -51,11 +62,15 @@ class AiChatController extends GetxController {
     _scrollToBottom();
 
     // Generate AI response
-    final response = await _generateResponse(text);
-
-    await _addAiMessage(response);
-    isLoading.value = false;
-    _scrollToBottom();
+    try {
+      final response = await _generateResponse(text);
+      await _addAiMessage(response);
+    } catch (e) {
+      await _addAiMessage("Sorry, I encountered an error: $e");
+    } finally {
+      isLoading.value = false;
+      _scrollToBottom();
+    }
   }
 
   Future<String> _generateResponse(String userMessage) async {
@@ -89,14 +104,13 @@ class AiChatController extends GetxController {
       message: text,
       isUser: false,
       timestamp: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
     await _saveMessage(aiMsg);
   }
 
   Future<void> _saveMessage(ChatMessageModel msg) async {
-    final box = HiveBoxes.getChatBox();
-    await box.put(msg.id, msg);
-    messages.add(msg);
+    await _chatRepository.addMessage(msg);
   }
 
   void _scrollToBottom() {
