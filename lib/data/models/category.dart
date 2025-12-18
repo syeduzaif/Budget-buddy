@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 part 'category.g.dart';
 
@@ -22,6 +23,12 @@ class Category extends HiveObject {
   @HiveField(5)
   late DateTime createdAt;
 
+  @HiveField(6)
+  late DateTime updatedAt;
+
+  @HiveField(7)
+  late bool synced;
+
   Category({
     required this.id,
     required this.name,
@@ -29,6 +36,8 @@ class Category extends HiveObject {
     required this.colorValue,
     required this.month,
     required this.createdAt,
+    required this.updatedAt,
+    this.synced = false,
   });
 
   // Calculate total spent from transactions
@@ -58,6 +67,8 @@ class Category extends HiveObject {
         'colorValue': colorValue,
         'month': month,
         'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+        'synced': synced,
       };
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
@@ -67,5 +78,34 @@ class Category extends HiveObject {
         colorValue: json['colorValue'],
         month: json['month'],
         createdAt: DateTime.parse(json['createdAt']),
+        updatedAt: json['updatedAt'] != null
+            ? DateTime.parse(json['updatedAt'])
+            : DateTime.parse(json['createdAt']),
+        synced: json['synced'] ?? false,
       );
+
+  factory Category.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return Category(
+      id: doc.id,
+      name: data['name'] ?? '',
+      budgetLimit: (data['budgetLimit'] as num).toDouble(),
+      colorValue: data['colorValue'] ?? 0xFF000000,
+      month: data['month'] ?? '',
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      synced: true,
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'budgetLimit': budgetLimit,
+      'colorValue': colorValue,
+      'month': month,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
 }

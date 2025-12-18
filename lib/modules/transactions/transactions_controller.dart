@@ -1,6 +1,5 @@
 import 'package:get/get.dart';
 import '../../data/models/transaction_item.dart';
-import '../../data/storage/hive_service.dart';
 import '../../services/budget_service.dart';
 import '../../utils/helpers.dart';
 
@@ -25,31 +24,24 @@ class TransactionsController extends GetxController {
   /// Load all transactions
   void loadTransactions() {
     currentMonth.value = budgetService.currentMonth.value;
-    final transactions = HiveService.getAllTransactions();
-    
-    // Filter transactions for current month's categories
-    final monthCategories = budgetService.categories
-        .map((c) => c.id)
-        .toSet();
-    
-    // Filter and sort transactions
-    allTransactions.value = transactions
-        .where((t) => monthCategories.contains(t.categoryId))
-        .toList()
+    final transactions = budgetService.expensesForCurrentMonth;
+
+    // Sort transactions
+    allTransactions.value = transactions.toList()
       ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date descending
-    
+
     allTransactions.refresh();
   }
 
   /// Get category name for a transaction
   String getCategoryName(String categoryId) {
-    final category = HiveService.getCategoryById(categoryId);
+    final category = budgetService.getCategoryById(categoryId);
     return category?.name ?? 'Unknown';
   }
 
   /// Get category color for a transaction
   int getCategoryColor(String categoryId) {
-    final category = HiveService.getCategoryById(categoryId);
+    final category = budgetService.getCategoryById(categoryId);
     return category?.colorValue ?? 0xFF757575;
   }
 
@@ -60,8 +52,7 @@ class TransactionsController extends GetxController {
 
   /// Refresh transactions
   void refreshTransactions() {
-    budgetService.loadData();
+    // budgetService.loadData(); // No longer needed as streams handle it
     loadTransactions();
   }
 }
-
