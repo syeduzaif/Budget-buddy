@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'transactions_controller.dart';
-import '../../data/models/transaction_item.dart';
-import '../../utils/constants.dart';
-import '../../utils/helpers.dart';
 import '../../utils/currency_helper.dart';
+import '../../widgets/transaction_tile.dart';
+import '../../routes/app_routes.dart';
 
 /// View to display all transactions in a list
 class TransactionsView extends StatelessWidget {
@@ -13,12 +12,13 @@ class TransactionsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<TransactionsController>();
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppConstants.backgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('All Transactions'),
-        elevation: 0,
+        centerTitle: true,
       ),
       body: Obx(() {
         final transactions = controller.allTransactions;
@@ -29,131 +29,105 @@ class TransactionsView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.receipt_long,
-                  size: 64,
-                  color: AppConstants.textSecondary,
+                  Icons.receipt_long_outlined,
+                  size: 80,
+                  color: theme.disabledColor,
                 ),
-                const SizedBox(height: AppConstants.paddingL),
+                const SizedBox(height: 16),
                 Text(
                   'No Transactions Yet',
-                  style: AppConstants.headingMedium,
+                  style: theme.textTheme.titleLarge,
                 ),
-                const SizedBox(height: AppConstants.paddingM),
+                const SizedBox(height: 8),
                 Text(
-                  'Start adding transactions to see them here',
-                  style: AppConstants.bodyMedium,
-                  textAlign: TextAlign.center,
+                  'Start adding transactions to track expenses',
+                  style:
+                      theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
                 ),
               ],
             ),
           );
         }
 
-        return RefreshIndicator(
-          onRefresh: () async => controller.refreshTransactions(),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(AppConstants.paddingM),
-            itemCount: transactions.length,
-            itemBuilder: (context, index) {
-              final transaction = transactions[index];
-              final categoryName = controller.getCategoryName(transaction.categoryId);
-              final categoryColor = controller.getCategoryColor(transaction.categoryId);
+        // Calculate total spent for displayed transactions (simple summary)
+        final totalSpent =
+            transactions.fold(0.0, (sum, item) => sum + item.amount);
 
-              return _buildTransactionTile(
-                transaction: transaction,
-                categoryName: categoryName,
-                categoryColor: categoryColor,
-              );
-            },
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildTransactionTile({
-    required TransactionItem transaction,
-    required String categoryName,
-    required int categoryColor,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppConstants.paddingS),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusS),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.paddingM,
-          vertical: AppConstants.paddingS,
-        ),
-        child: Row(
+        return Column(
           children: [
-            // Category color indicator
+            // Summary Header
             Container(
-              width: 4,
-              height: 40,
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Color(categoryColor),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: AppConstants.paddingM),
-            // Transaction details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          categoryName,
-                          style: AppConstants.bodyLarge.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        CurrencyHelper.formatAmount(transaction.amount, compact: true),
-                        style: AppConstants.headingSmall.copyWith(
-                          color: AppConstants.errorColor,
-                        ),
-                      ),
-                    ],
+                color: theme.colorScheme.surface,
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(24)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.05),
+                    spreadRadius: 1,
+                    blurRadius: 10,
+                    offset: const Offset(0, 1),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          transaction.note.isNotEmpty
-                              ? transaction.note
-                              : 'No description',
-                          style: AppConstants.bodySmall.copyWith(
-                            color: AppConstants.textSecondary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        Helpers.formatDateShort(transaction.date),
-                        style: AppConstants.bodySmall.copyWith(
-                          color: AppConstants.textSecondary,
-                        ),
-                      ),
-                    ],
+                ],
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Total Spent',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    CurrencyHelper.formatAmount(totalSpent),
+                    style: theme.textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                 ],
               ),
             ),
+
+            // Transactions List
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async => controller.refreshTransactions(),
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: transactions.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final transaction = transactions[index];
+                    // We need category name/color which TransactionTile doesn't natively show yet.
+                    // But for now let's use the standard tile.
+                    // To show category info, we might need to customize TransactionTile or wrap it.
+                    // However, TransactionTile uses TransactionItem which has categoryId but not name.
+                    // The standard tile shows 'note' and date.
+                    // We'll stick to TransactionTile for consistency.
+
+                    return TransactionTile(
+                      transaction: transaction,
+                      // No delete on global view usually, or implemented via controller?
+                      // Controller doesn't expose delete easily here without category context?
+                      // TransactionsController usually has delete logic or one can add it.
+                      // Assuming tap to edit/view details if needed.
+                    );
+                  },
+                ),
+              ),
+            ),
           ],
-        ),
+        );
+      }),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Get.toNamed(AppRoutes.addTransaction),
+        label: const Text('Add Transaction'),
+        icon: const Icon(Icons.add),
       ),
     );
   }
 }
-

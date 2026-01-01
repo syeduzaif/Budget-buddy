@@ -13,7 +13,12 @@ class DashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // Verify current status immediately
     checkIncome();
+
+    // Listen for future updates (e.g. data loading from Firestore)
+    ever(budgetService.monthlyIncome, (_) => checkIncome());
+
     refreshData();
   }
 

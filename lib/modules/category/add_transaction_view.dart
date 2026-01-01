@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:uuid/uuid.dart';
 import '../../data/models/transaction_item.dart';
 import '../../services/budget_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../utils/currency_helper.dart';
-import 'package:uuid/uuid.dart';
 
 /// View to add a new transaction
 class AddTransactionView extends StatefulWidget {
@@ -24,11 +24,17 @@ class _AddTransactionViewState extends State<AddTransactionView> {
   DateTime _selectedDate = DateTime.now();
   String? _categoryId;
 
+  // To verify if we allow changing category or it's fixed
+  bool _isCategoryFixed = false;
+
   @override
   void initState() {
     super.initState();
     // Get category ID from arguments
     _categoryId = Get.arguments as String?;
+    if (_categoryId != null) {
+      _isCategoryFixed = true;
+    }
     _dateController.text = Helpers.formatDate(_selectedDate);
   }
 
@@ -46,6 +52,14 @@ class _AddTransactionViewState extends State<AddTransactionView> {
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme,
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -56,7 +70,18 @@ class _AddTransactionViewState extends State<AddTransactionView> {
   }
 
   Future<void> _saveTransaction() async {
-    if (_formKey.currentState!.validate() && _categoryId != null) {
+    if (_formKey.currentState!.validate()) {
+      if (_categoryId == null) {
+        Get.snackbar(
+          'Error',
+          'Please select a category',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
       final amount = Helpers.parseAmount(_amountController.text);
 
       final transaction = TransactionItem(
@@ -78,7 +103,7 @@ class _AddTransactionViewState extends State<AddTransactionView> {
         'Success',
         'Transaction added successfully',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: AppConstants.successColor,
+        backgroundColor: Colors.green, // Use standard colors or theme colors
         colorText: Colors.white,
       );
     }
@@ -86,81 +111,175 @@ class _AddTransactionViewState extends State<AddTransactionView> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final budgetService = Get.find<BudgetService>();
+
     return Scaffold(
-      backgroundColor: AppConstants.backgroundColor,
+      backgroundColor:
+          theme.colorScheme.primary, // Colored background for header
       appBar: AppBar(
-        title: const Text('Add Transaction'),
+        title: const Text('Add Transaction',
+            style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppConstants.paddingM),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Amount field
-              TextFormField(
-                controller: _amountController,
-                decoration: InputDecoration(
-                  labelText: 'Amount *',
-                  hintText: 'Enter amount',
-                  prefixText: CurrencyHelper.getCurrencySymbol(),
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.currency_exchange),
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter amount';
-                  }
-                  if (!Helpers.isValidAmount(value)) {
-                    return 'Please enter a valid amount';
-                  }
-                  return null;
-                },
+      body: Column(
+        children: [
+          // 1. Hero Amount Input Section
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'How much?',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  IntrinsicWidth(
+                    child: TextFormField(
+                      controller: _amountController,
+                      style: theme.textTheme.displayMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      cursorColor: Colors.white,
+                      decoration: InputDecoration(
+                        hintText: '0.00',
+                        hintStyle:
+                            TextStyle(color: Colors.white.withOpacity(0.5)),
+                        prefixText: '${CurrencyHelper.getCurrencySymbol()} ',
+                        prefixStyle: theme.textTheme.displayMedium?.copyWith(
+                          color: Colors.white.withOpacity(0.8),
+                          fontWeight: FontWeight.bold,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty)
+                          return ''; // Suppress inline error for visual cleanliness, validate on save
+                        if (!Helpers.isValidAmount(value)) return '';
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppConstants.paddingM),
-
-              // Note field
-              TextFormField(
-                controller: _noteController,
-                decoration: const InputDecoration(
-                  labelText: 'Note',
-                  hintText: 'Enter note (optional)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.note),
-                ),
-                maxLines: 3,
-                maxLength: AppConstants.maxTransactionNoteLength,
-              ),
-              const SizedBox(height: AppConstants.paddingM),
-
-              // Date field
-              TextFormField(
-                controller: _dateController,
-                decoration: const InputDecoration(
-                  labelText: 'Date *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.calendar_today),
-                ),
-                readOnly: true,
-                onTap: () => _selectDate(context),
-              ),
-              const SizedBox(height: AppConstants.paddingXL),
-
-              // Save button
-              ElevatedButton(
-                onPressed: _saveTransaction,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(AppConstants.paddingM),
-                ),
-                child: const Text('Add Transaction'),
-              ),
-            ],
+            ),
           ),
-        ),
+
+          // 2. Details Sheet Section
+          Expanded(
+            flex: 3,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: theme.scaffoldBackgroundColor,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(30)),
+              ),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 8),
+                      // Category Selection (if not fixed)
+                      if (!_isCategoryFixed) ...[
+                        DropdownButtonFormField<String>(
+                          value: _categoryId,
+                          decoration: const InputDecoration(
+                            labelText: 'Category',
+                            prefixIcon: Icon(Icons.category_outlined),
+                          ),
+                          items: budgetService.categories.map((category) {
+                            return DropdownMenuItem(
+                              value: category.id,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.circle,
+                                      color: Color(category.colorValue),
+                                      size: 12),
+                                  const SizedBox(width: 8),
+                                  Text(category.name),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _categoryId = value;
+                            });
+                          },
+                          validator: (value) =>
+                              value == null ? 'Please select a category' : null,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // Note field
+                      TextFormField(
+                        controller: _noteController,
+                        decoration: const InputDecoration(
+                          labelText: 'Note',
+                          hintText: 'What is this for?',
+                          prefixIcon: Icon(Icons.description_outlined),
+                        ),
+                        maxLines: 1,
+                        maxLength: AppConstants.maxTransactionNoteLength,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Date field
+                      TextFormField(
+                        controller: _dateController,
+                        decoration: const InputDecoration(
+                          labelText: 'Date',
+                          prefixIcon: Icon(Icons.calendar_today_outlined),
+                        ),
+                        readOnly: true,
+                        onTap: () => _selectDate(context),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Save button
+                      ElevatedButton(
+                        onPressed: _saveTransaction,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 4,
+                        ),
+                        child: const Text(
+                          'Save Transaction',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

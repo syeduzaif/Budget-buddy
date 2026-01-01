@@ -2,7 +2,7 @@ import 'package:get/get.dart';
 import '../../data/models/category.dart';
 import '../../data/models/transaction_item.dart';
 import '../../services/budget_service.dart';
-import '../../data/storage/hive_service.dart';
+
 import '../../routes/app_routes.dart';
 
 /// Controller for Category view
@@ -22,11 +22,18 @@ class CategoryController extends GetxController {
     if (categoryId != null) {
       loadCategory(categoryId);
     }
+
+    // Listen for transaction updates
+    ever(budgetService.transactionUpdateTrigger, (_) {
+      if (selectedCategory.value != null) {
+        loadTransactions();
+      }
+    });
   }
 
   /// Load category and its transactions
   void loadCategory(String categoryId) {
-    final category = HiveService.getCategoryById(categoryId);
+    final category = budgetService.getCategoryById(categoryId);
     if (category != null) {
       selectedCategory.value = category;
       loadTransactions();
@@ -37,9 +44,11 @@ class CategoryController extends GetxController {
   /// Load transactions for selected category
   void loadTransactions() {
     if (selectedCategory.value != null) {
-      transactions.value = HiveService.getTransactionsByCategory(
-        selectedCategory.value!.id,
-      );
+      // Get expenses from BudgetService which has current month context
+      final allExpenses = budgetService.expensesForCurrentMonth;
+      transactions.value = allExpenses
+          .where((t) => t.categoryId == selectedCategory.value!.id)
+          .toList();
       transactions.refresh();
     }
   }
@@ -51,9 +60,7 @@ class CategoryController extends GetxController {
 
   /// Navigate to add category
   void goToAddCategory() {
-    Get.toNamed(AppRoutes.addCategory)?.then((_) {
-      refreshCategories();
-    });
+    Get.toNamed(AppRoutes.addCategory);
   }
 
   /// Navigate to category transactions
@@ -66,32 +73,19 @@ class CategoryController extends GetxController {
     Get.toNamed(
       AppRoutes.addTransaction,
       arguments: category.id,
-    )?.then((_) {
-      loadTransactions();
-      refreshCategories();
-    });
+    );
   }
 
   /// Delete transaction
   Future<void> deleteTransaction(String transactionId) async {
-    await HiveService.deleteTransaction(transactionId);
-    budgetService.notifyTransactionsChanged();
-    loadTransactions();
-    refreshCategories();
+    await budgetService.deleteTransaction(transactionId);
+    // UI updates automatically via listener
   }
 
   /// Delete category
   Future<void> deleteCategory(String categoryId) async {
-    // Delete all transactions first
-    final categoryTransactions = HiveService.getTransactionsByCategory(categoryId);
-    for (final transaction in categoryTransactions) {
-      await HiveService.deleteTransaction(transaction.id);
-    }
-    
-    // Delete category
     await budgetService.deleteCategory(categoryId);
-    refreshCategories();
-    
+
     if (selectedCategory.value?.id == categoryId) {
       selectedCategory.value = null;
       showTransactions.value = false;
@@ -104,4 +98,3 @@ class CategoryController extends GetxController {
     return budgetService.getCategorySpending(categoryId);
   }
 }
-

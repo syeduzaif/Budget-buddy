@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'category_controller.dart';
 import '../../widgets/category_card.dart';
 import '../../widgets/transaction_tile.dart';
-import '../../utils/constants.dart';
+import '../../data/models/category.dart';
 
 /// Categories view showing list of categories
 class CategoryView extends StatelessWidget {
@@ -12,12 +12,13 @@ class CategoryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<CategoryController>();
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppConstants.backgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Categories'),
-        elevation: 0,
+        centerTitle: true,
       ),
       body: Obx(() {
         final categories = controller.budgetService.categories;
@@ -26,7 +27,7 @@ class CategoryView extends StatelessWidget {
 
         // If showing transactions, display transaction list
         if (showTransactions && selectedCategory != null) {
-          return _buildTransactionView(controller, selectedCategory);
+          return _buildTransactionView(controller, selectedCategory, theme);
         }
 
         // Show categories list
@@ -38,32 +39,42 @@ class CategoryView extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        Icons.category,
-                        size: 64,
-                        color: AppConstants.textSecondary,
+                        Icons.category_outlined,
+                        size: 80,
+                        color: theme.colorScheme.secondary.withOpacity(0.5),
                       ),
-                      const SizedBox(height: AppConstants.paddingL),
+                      const SizedBox(height: 24),
                       Text(
                         'No Categories Yet',
-                        style: AppConstants.headingMedium,
+                        style: theme.textTheme.headlineSmall,
                       ),
-                      const SizedBox(height: AppConstants.paddingM),
+                      const SizedBox(height: 12),
                       Text(
                         'Create your first category to start tracking expenses',
-                        style: AppConstants.bodyMedium,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.textTheme.bodyMedium?.color
+                              ?.withOpacity(0.6),
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(AppConstants.paddingM),
+              : ListView.separated(
+                  padding: const EdgeInsets.all(20),
                   itemCount: categories.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
                     final category = categories[index];
-                    return CategoryCard(
-                      category: category,
-                      onTap: () => controller.goToTransactions(category),
+                    return Hero(
+                      tag: 'category_${category.id}',
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: CategoryCard(
+                          category: category,
+                          onTap: () => controller.goToTransactions(category),
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -82,39 +93,67 @@ class CategoryView extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionView(CategoryController controller, category) {
+  Widget _buildTransactionView(
+      CategoryController controller, Category category, ThemeData theme) {
     return Column(
       children: [
-        // Category header
+        // Category header with gradient
         Container(
-          padding: const EdgeInsets.all(AppConstants.paddingM),
-          color: AppConstants.primaryColor,
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () {
-                  Get.back();
-                  controller.showTransactions.value = false;
-                  controller.selectedCategory.value = null;
-                },
-              ),
-              Expanded(
-                child: Text(
-                  category.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(category.colorValue),
+                Color(category.colorValue).withOpacity(0.8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius:
+                const BorderRadius.vertical(bottom: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () {
+                          // Manually handle back if we want to stay in view, otherwise Get.back() pops the route.
+                          // The controller logic uses a bool toggle.
+                          if (controller.showTransactions.value) {
+                            controller.showTransactions.value = false;
+                            controller.selectedCategory.value = null;
+                          } else {
+                            Get.back();
+                          }
+                        },
+                      ),
+                      Expanded(
+                        child: Text(
+                          category.name,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        onPressed: () =>
+                            controller.goToAddTransaction(category),
+                        tooltip: 'Add Transaction',
+                      ),
+                    ],
                   ),
-                ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.add, color: Colors.white),
-                onPressed: () => controller.goToAddTransaction(category),
-                tooltip: 'Add Transaction',
-              ),
-            ],
+            ),
           ),
         ),
         // Transactions list
@@ -130,14 +169,14 @@ class CategoryView extends StatelessWidget {
                     Icon(
                       Icons.receipt_long,
                       size: 64,
-                      color: AppConstants.textSecondary,
+                      color: theme.disabledColor,
                     ),
-                    const SizedBox(height: AppConstants.paddingL),
+                    const SizedBox(height: 16),
                     Text(
                       'No Transactions Yet',
-                      style: AppConstants.headingMedium,
+                      style: theme.textTheme.titleMedium,
                     ),
-                    const SizedBox(height: AppConstants.paddingM),
+                    const SizedBox(height: 16),
                     ElevatedButton.icon(
                       onPressed: () => controller.goToAddTransaction(category),
                       icon: const Icon(Icons.add),
@@ -149,13 +188,17 @@ class CategoryView extends StatelessWidget {
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.all(AppConstants.paddingM),
+              padding: const EdgeInsets.all(16),
               itemCount: transactions.length,
               itemBuilder: (context, index) {
                 final transaction = transactions[index];
-                return TransactionTile(
-                  transaction: transaction,
-                  onDelete: () => controller.deleteTransaction(transaction.id),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: TransactionTile(
+                    transaction: transaction,
+                    onDelete: () =>
+                        controller.deleteTransaction(transaction.id),
+                  ),
                 );
               },
             );
@@ -165,4 +208,3 @@ class CategoryView extends StatelessWidget {
     );
   }
 }
-
