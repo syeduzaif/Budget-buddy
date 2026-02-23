@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_fonts.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../core/widgets/buttons.dart';
-import '../../core/widgets/input_fields.dart';
-import 'auth_controller.dart';
+import '../../core/theme/app_fonts.dart';
+import '../../services/firebase/firebase_auth_service.dart';
+import '../../services/firebase/google_auth_service.dart';
+import '../../utils/validators.dart';
 
 class SignupView extends StatefulWidget {
   const SignupView({super.key});
@@ -16,200 +15,199 @@ class SignupView extends StatefulWidget {
 }
 
 class _SignupViewState extends State<SignupView> {
-  final AuthController controller = Get.find<AuthController>();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  late final TextEditingController _nameController;
-  late final TextEditingController _emailController;
-  late final TextEditingController _passwordController;
-  late final TextEditingController _confirmPasswordController;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController();
-    _emailController = TextEditingController();
-    _passwordController = TextEditingController();
-    _confirmPasswordController = TextEditingController();
-  }
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _loading = false;
+  bool _obscure = true;
+  String? _error;
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
-  void _handleSignup() {
-    if (_formKey.currentState!.validate()) {
-      controller.signup(
-        _nameController.text,
-        _emailController.text,
-        _passwordController.text,
+  Future<void> _signup() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _loading = true; _error = null; });
+    try {
+      final authService = Get.find<FirebaseAuthService>();
+      await authService.signUpWithEmailPassword(
+        email: _emailCtrl.text,
+        password: _passwordCtrl.text,
       );
+      await authService.updateDisplayName(_nameCtrl.text.trim());
+    } catch (e) {
+      setState(() { _error = e.toString(); });
+    } finally {
+      if (mounted) setState(() { _loading = false; });
+    }
+  }
+
+  Future<void> _googleSignup() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      await Get.find<GoogleAuthService>().signInWithGoogle();
+    } catch (e) {
+      setState(() { _error = e.toString(); });
+    } finally {
+      if (mounted) setState(() { _loading = false; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Get.back(),
-        ),
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.l),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height -
-                  MediaQuery.of(context).padding.top -
-                  kToolbarHeight -
-                  AppSpacing.l * 2,
-            ),
-            child: IntrinsicHeight(
-              child: Form(
-                key: _formKey,
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    vertical: AppSpacing.xl, horizontal: AppSpacing.l),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.primaryDark, AppColors.primary],
+                  ),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'Create Account',
-                      style: AppFonts.h2.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.s),
-                    Text(
-                      'Start your financial journey today!',
-                      style: AppFonts.bodyLarge.copyWith(
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-
-                    const SizedBox(height: AppSpacing.xxl),
-
-                    // Name Field
-                    AppInputField(
-                      label: 'Full Name',
-                      hint: 'Enter your full name',
-                      controller: _nameController,
-                      prefixIcon: Icons.person_outline,
-                      textCapitalization: TextCapitalization.words,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your name';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: AppSpacing.l),
-
-                    // Email Field
-                    AppInputField(
-                      label: 'Email',
-                      hint: 'Enter your email',
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      prefixIcon: Icons.email_outlined,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!GetUtils.isEmail(value)) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: AppSpacing.l),
-
-                    // Password Field
-                    Obx(() => AppInputField(
-                          label: 'Password',
-                          hint: 'Create a password',
-                          controller: _passwordController,
-                          obscureText: !controller.isPasswordVisible.value,
-                          prefixIcon: Icons.lock_outlined,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              controller.isPasswordVisible.value
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: AppColors.textMuted,
-                            ),
-                            onPressed: controller.togglePasswordVisibility,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter a password';
-                            }
-                            if (value.length < 6) {
-                              return 'Password must be at least 6 characters';
-                            }
-                            return null;
-                          },
-                        )),
-
-                    const SizedBox(height: AppSpacing.l),
-
-                    // Confirm Password Field
-                    Obx(() => AppInputField(
-                          label: 'Confirm Password',
-                          hint: 'Confirm your password',
-                          controller: _confirmPasswordController,
-                          obscureText: !controller.isPasswordVisible.value,
-                          prefixIcon: Icons.lock_outline,
-                          validator: (val) {
-                            if (val == null || val.isEmpty) {
-                              return 'Please confirm your password';
-                            }
-                            if (val != _passwordController.text) {
-                              return 'Passwords do not match';
-                            }
-                            return null;
-                          },
-                        )),
-
-                    const SizedBox(height: AppSpacing.xl),
-
-                    // Sign Up Button
-                    Obx(() => PrimaryButton(
-                          text: 'Sign Up',
-                          onPressed: _handleSignup,
-                          isLoading: controller.isLoading.value,
-                          isFullWidth: true,
-                        )),
-
-                    const Spacer(),
-
-                    // Login Link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Already have an account?",
-                          style: AppFonts.bodyMedium,
-                        ),
-                        AppTextButton(
-                          text: 'Login',
-                          onPressed: () => Get.back(),
-                        ),
-                      ],
-                    ),
+                    const Icon(Icons.account_balance_wallet_rounded,
+                        size: 64, color: Colors.white),
+                    const SizedBox(height: AppSpacing.m),
+                    Text('Budget Buddy',
+                        style: AppFonts.h2.copyWith(color: Colors.white)),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text('Start your financial journey',
+                        style: AppFonts.bodyMedium.copyWith(color: Colors.white70)),
                   ],
                 ),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.l),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: AppSpacing.m),
+                      Text('Create Account', style: AppFonts.h4),
+                      const SizedBox(height: AppSpacing.s),
+                      Text('Sign up to get started',
+                          style: AppFonts.bodyMedium.copyWith(color: colors.onSurfaceVariant)),
+                      const SizedBox(height: AppSpacing.l),
+                      if (_error != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.s),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusM),
+                          ),
+                          child: Text(_error!,
+                              style: AppFonts.bodySmall.copyWith(color: AppColors.error)),
+                        ),
+                        const SizedBox(height: AppSpacing.m),
+                      ],
+                      TextFormField(
+                        controller: _nameCtrl,
+                        keyboardType: TextInputType.name,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Full Name',
+                          prefixIcon: Icon(Icons.person_outlined),
+                        ),
+                        validator: Validators.name,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      TextFormField(
+                        controller: _emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
+                        validator: Validators.email,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      TextFormField(
+                        controller: _passwordCtrl,
+                        obscureText: _obscure,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: const Icon(Icons.lock_outlined),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined),
+                            onPressed: () => setState(() => _obscure = !_obscure),
+                          ),
+                        ),
+                        validator: Validators.password,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      TextFormField(
+                        controller: _confirmCtrl,
+                        obscureText: _obscure,
+                        decoration: const InputDecoration(
+                          labelText: 'Confirm Password',
+                          prefixIcon: Icon(Icons.lock_outlined),
+                        ),
+                        validator: (v) => Validators.confirmPassword(v, _passwordCtrl.text),
+                      ),
+                      const SizedBox(height: AppSpacing.l),
+                      FilledButton(
+                        onPressed: _loading ? null : _signup,
+                        child: _loading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text('Create Account'),
+                      ),
+                      const SizedBox(height: AppSpacing.l),
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text('OR',
+                                style: AppFonts.caption.copyWith(color: colors.onSurfaceVariant)),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.l),
+                      OutlinedButton.icon(
+                        onPressed: _loading ? null : _googleSignup,
+                        icon: const Icon(Icons.g_mobiledata, size: 28),
+                        label: const Text('Continue with Google'),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Already have an account? ', style: AppFonts.bodyMedium),
+                          TextButton(
+                            onPressed: () => Get.back(),
+                            child: const Text('Log In'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
