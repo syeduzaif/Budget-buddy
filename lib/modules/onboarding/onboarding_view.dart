@@ -17,11 +17,11 @@ class OnboardingView extends GetView<OnboardingController> {
           children: [
             // Progress indicator
             Obx(() => LinearProgressIndicator(
-              value: (controller.currentPage.value + 1) / 3,
-              backgroundColor: AppColors.border,
-              color: AppColors.primary,
-              minHeight: 3,
-            )),
+                  value: (controller.currentPage.value + 1) / 3,
+                  backgroundColor: AppColors.border,
+                  color: AppColors.primary,
+                  minHeight: 3,
+                )),
             Expanded(
               child: PageView(
                 controller: controller.pageController,
@@ -63,7 +63,8 @@ class _WelcomePage extends StatelessWidget {
                 size: 64, color: Colors.white),
           ),
           const SizedBox(height: AppSpacing.xxl),
-          Text('Welcome to Budget Buddy', style: AppFonts.h3, textAlign: TextAlign.center),
+          Text('Welcome to Budget Buddy',
+              style: AppFonts.h3, textAlign: TextAlign.center),
           const SizedBox(height: AppSpacing.m),
           Text(
             'Smart budgeting made simple. Track your spending, manage categories, and reach your financial goals.',
@@ -96,52 +97,63 @@ class _CurrencyPage extends StatelessWidget {
           Text('Pick Your Currency', style: AppFonts.h3),
           const SizedBox(height: AppSpacing.s),
           Text('Choose the currency you use for your budget.',
-              style: AppFonts.bodyMedium.copyWith(color: AppColors.textSecondary)),
+              style:
+                  AppFonts.bodyMedium.copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: AppSpacing.l),
           Expanded(
-            child: Obx(() => GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 2.5,
-                crossAxisSpacing: AppSpacing.s,
-                mainAxisSpacing: AppSpacing.s,
-              ),
-              itemCount: CurrencyUtils.currencies.length,
-              itemBuilder: (context, i) {
-                final currency = CurrencyUtils.currencies[i];
-                final selected = ctrl.selectedCurrency.value.code == currency.code;
-                return InkWell(
-                  onTap: () => ctrl.selectCurrency(currency),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusM),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: selected ? AppColors.primary : Colors.transparent,
-                      border: Border.all(
-                        color: selected ? AppColors.primary : AppColors.border,
-                        width: selected ? 2 : 1,
-                      ),
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusM),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.s, vertical: AppSpacing.xs),
-                    child: Row(
-                      children: [
-                        Text(currency.symbol,
-                            style: AppFonts.labelLarge.copyWith(
-                                color: selected ? Colors.white : AppColors.textPrimary)),
-                        const SizedBox(width: AppSpacing.xs),
-                        Expanded(
-                          child: Text(currency.code,
-                              style: AppFonts.labelMedium.copyWith(
-                                  color: selected ? Colors.white70 : AppColors.textSecondary),
-                              overflow: TextOverflow.ellipsis),
+            child: Obx(() {
+              // Read the observable directly in the Obx scope so GetX can track it
+              final selectedCode = ctrl.selectedCurrency.value.code;
+              return GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 2.5,
+                  crossAxisSpacing: AppSpacing.s,
+                  mainAxisSpacing: AppSpacing.s,
+                ),
+                itemCount: CurrencyUtils.currencies.length,
+                itemBuilder: (context, i) {
+                  final currency = CurrencyUtils.currencies[i];
+                  final selected = selectedCode == currency.code;
+                  return InkWell(
+                    onTap: () => ctrl.selectCurrency(currency),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusM),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color:
+                            selected ? AppColors.primary : Colors.transparent,
+                        border: Border.all(
+                          color:
+                              selected ? AppColors.primary : AppColors.border,
+                          width: selected ? 2 : 1,
                         ),
-                      ],
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusM),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s, vertical: AppSpacing.xs),
+                      child: Row(
+                        children: [
+                          Text(currency.symbol,
+                              style: AppFonts.labelLarge.copyWith(
+                                  color: selected
+                                      ? Colors.white
+                                      : AppColors.textPrimary)),
+                          const SizedBox(width: AppSpacing.xs),
+                          Expanded(
+                            child: Text(currency.code,
+                                style: AppFonts.labelMedium.copyWith(
+                                    color: selected
+                                        ? Colors.white70
+                                        : AppColors.textSecondary),
+                                overflow: TextOverflow.ellipsis),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            )),
+                  );
+                },
+              );
+            }),
           ),
           const SizedBox(height: AppSpacing.l),
           FilledButton(
@@ -174,16 +186,17 @@ class _IncomePage extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xxl),
           Obx(() => TextFormField(
-            controller: ctrl.incomeController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: AppFonts.h3,
-            decoration: InputDecoration(
-              labelText: 'Monthly Income',
-              prefixText: '${ctrl.selectedCurrency.value.symbol} ',
-              prefixStyle: AppFonts.h4.copyWith(color: AppColors.primary),
-              hintText: '0.00',
-            ),
-          )),
+                controller: ctrl.incomeController,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                style: AppFonts.h3,
+                decoration: InputDecoration(
+                  labelText: 'Monthly Income',
+                  prefixText: '${ctrl.selectedCurrency.value.symbol} ',
+                  prefixStyle: AppFonts.h4.copyWith(color: AppColors.primary),
+                  hintText: '0.00',
+                ),
+              )),
           const Spacer(),
           FilledButton(
             onPressed: ctrl.finish,

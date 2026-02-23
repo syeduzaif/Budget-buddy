@@ -21,33 +21,32 @@ class CategoryFormView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Obx(() => Text(ctrl.isEditing ? 'Edit Category' : 'New Category',
-            style: AppFonts.h6)),
+        title: Text(ctrl.isEditing ? 'Edit Category' : 'New Category',
+            style: AppFonts.h6),
         actions: [
-          Obx(() => ctrl.isEditing
-              ? IconButton(
-                  icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                  onPressed: () async {
-                    final ok = await showDialog<bool>(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('Delete Category'),
-                        content: const Text(
-                            'Delete this category? Transactions will not be deleted.'),
-                        actions: [
-                          TextButton(
-                              onPressed: () => Get.back(result: false),
-                              child: const Text('Cancel')),
-                          FilledButton(
-                              onPressed: () => Get.back(result: true),
-                              child: const Text('Delete')),
-                        ],
-                      ),
-                    );
-                    if (ok == true) ctrl.delete();
-                  },
-                )
-              : const SizedBox.shrink()),
+          if (ctrl.isEditing)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: AppColors.error),
+              onPressed: () async {
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Delete Category'),
+                    content: const Text(
+                        'Delete this category? Transactions will not be deleted.'),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Get.back(result: false),
+                          child: const Text('Cancel')),
+                      FilledButton(
+                          onPressed: () => Get.back(result: true),
+                          child: const Text('Delete')),
+                    ],
+                  ),
+                );
+                if (ok == true) ctrl.delete();
+              },
+            ),
         ],
       ),
       body: SingleChildScrollView(
@@ -68,7 +67,8 @@ class CategoryFormView extends StatelessWidget {
               const SizedBox(height: AppSpacing.m),
               TextFormField(
                 controller: ctrl.budgetController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
                   labelText: 'Budget Limit',
                   prefixIcon: Icon(Icons.attach_money),
@@ -82,8 +82,8 @@ class CategoryFormView extends StatelessWidget {
                     spacing: AppSpacing.s,
                     runSpacing: AppSpacing.s,
                     children: CategoryFormController.palette.map((color) {
-                      final selected =
-                          ctrl.selectedColor.value.toARGB32() == color.toARGB32();
+                      final selected = ctrl.selectedColor.value.toARGB32() ==
+                          color.toARGB32();
                       return GestureDetector(
                         onTap: () => ctrl.selectColor(color),
                         child: AnimatedContainer(
@@ -127,7 +127,9 @@ class CategoryFormView extends StatelessWidget {
                             width: 20,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
-                        : Text(ctrl.isEditing ? 'Save Changes' : 'Create Category'),
+                        : Text(ctrl.isEditing
+                            ? 'Save Changes'
+                            : 'Create Category'),
                   )),
             ],
           ),
