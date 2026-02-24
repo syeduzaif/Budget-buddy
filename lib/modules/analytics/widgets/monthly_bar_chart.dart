@@ -21,12 +21,14 @@ class MonthlyBarChart extends StatelessWidget {
       return SizedBox(
         height: 180,
         child: Center(
-          child: Text('No data', style: AppFonts.bodySmall.copyWith(color: AppColors.textMuted)),
+          child: Text('No data',
+              style: AppFonts.bodySmall.copyWith(color: AppColors.textMuted)),
         ),
       );
     }
 
-    final maxY = data.fold(0.0, (m, e) => e['total'] > m ? e['total'] as double : m);
+    final maxY =
+        data.fold(0.0, (m, e) => e['total'] > m ? e['total'] as double : m);
     final safeMax = maxY > 0 ? maxY * 1.2 : 100.0;
 
     return SizedBox(
@@ -47,9 +49,12 @@ class MonthlyBarChart extends StatelessWidget {
             ),
           ),
           titlesData: FlTitlesData(
-            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            leftTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -84,6 +89,8 @@ class MonthlyBarChart extends StatelessWidget {
             );
           }),
         ),
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOutCubic,
       ),
     );
   }

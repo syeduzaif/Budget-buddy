@@ -11,14 +11,21 @@ import '../modules/settings/settings_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
+  static const _duration = Duration(milliseconds: 250);
+  static const _transition = Transition.fadeIn;
+
   static final pages = [
     GetPage(
       name: AppRoutes.login,
       page: () => const LoginView(),
+      transition: _transition,
+      transitionDuration: _duration,
     ),
     GetPage(
       name: AppRoutes.signup,
       page: () => const SignupView(),
+      transition: _transition,
+      transitionDuration: _duration,
     ),
     GetPage(
       name: AppRoutes.onboarding,
@@ -26,22 +33,32 @@ class AppPages {
       binding: BindingsBuilder(() {
         Get.put(OnboardingController());
       }),
+      transition: _transition,
+      transitionDuration: _duration,
     ),
     GetPage(
       name: AppRoutes.home,
       page: () => const HomeView(),
+      transition: _transition,
+      transitionDuration: _duration,
     ),
     GetPage(
       name: AppRoutes.categoryForm,
       page: () => const CategoryFormView(),
+      transition: Transition.rightToLeft,
+      transitionDuration: _duration,
     ),
     GetPage(
       name: AppRoutes.transactions,
       page: () => const TransactionsView(),
+      transition: Transition.rightToLeft,
+      transitionDuration: _duration,
     ),
     GetPage(
       name: AppRoutes.settings,
       page: () => const SettingsView(),
+      transition: Transition.rightToLeft,
+      transitionDuration: _duration,
     ),
   ];
 }

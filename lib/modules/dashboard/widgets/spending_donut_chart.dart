@@ -41,12 +41,11 @@ class SpendingDonutChart extends StatelessWidget {
           centerSpaceRadius: 44,
           sections: data.map((e) {
             final pct = total > 0 ? e.value / total * 100 : 0.0;
-            final showTitle = pct >= 5;
             return PieChartSectionData(
               color: Color(e.key.colorValue),
               value: e.value,
-              title: showTitle ? '${pct.toStringAsFixed(0)}%' : '',
-              radius: showTitle ? 36 : 28,
+              title: pct >= 5 ? '${pct.toStringAsFixed(0)}%' : '',
+              radius: 40,
               titleStyle: AppFonts.labelSmall.copyWith(
                 color: Colors.white,
                 fontSize: 11,
@@ -56,6 +55,8 @@ class SpendingDonutChart extends StatelessWidget {
             );
           }).toList(),
         ),
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOutCubic,
       ),
     );
   }

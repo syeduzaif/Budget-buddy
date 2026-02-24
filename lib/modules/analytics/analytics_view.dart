@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
+import '../../core/animations/animations.dart';
 import '../../utils/currency_utils.dart';
 import 'analytics_controller.dart';
 import 'widgets/monthly_bar_chart.dart';
@@ -27,74 +28,87 @@ class AnalyticsView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Range selector
-              SegmentedButton<int>(
-                segments: AnalyticsController.ranges
-                    .asMap()
-                    .entries
-                    .map((e) => ButtonSegment(value: e.key, label: Text(e.value)))
-                    .toList(),
-                selected: {ctrl.selectedRange.value},
-                onSelectionChanged: (s) => ctrl.setRange(s.first),
+              FadeSlideItem(
+                index: 0,
+                child: SegmentedButton<int>(
+                  segments: AnalyticsController.ranges
+                      .asMap()
+                      .entries
+                      .map((e) =>
+                          ButtonSegment(value: e.key, label: Text(e.value)))
+                      .toList(),
+                  selected: {ctrl.selectedRange.value},
+                  onSelectionChanged: (s) => ctrl.setRange(s.first),
+                ),
               ),
               const SizedBox(height: AppSpacing.l),
 
               // Summary cards
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      label: 'Total Spent',
-                      value: CurrencyUtils.formatAmount(ctrl.totalSpent, sym),
-                      icon: Icons.trending_up,
-                      color: AppColors.warning,
+              FadeSlideItem(
+                index: 1,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        label: 'Total Spent',
+                        value: CurrencyUtils.formatAmount(ctrl.totalSpent, sym),
+                        icon: Icons.trending_up,
+                        color: AppColors.warning,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.s),
-                  Expanded(
-                    child: _StatCard(
-                      label: 'Savings Rate',
-                      value: '${ctrl.savingsRate.toStringAsFixed(1)}%',
-                      icon: Icons.savings_outlined,
-                      color: AppColors.success,
+                    const SizedBox(width: AppSpacing.s),
+                    Expanded(
+                      child: _StatCard(
+                        label: 'Savings Rate',
+                        value: '${ctrl.savingsRate.toStringAsFixed(1)}%',
+                        icon: Icons.savings_outlined,
+                        color: AppColors.success,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: AppSpacing.l),
 
               // Monthly trend
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.m),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Monthly Spending', style: AppFonts.h6),
-                      const SizedBox(height: AppSpacing.m),
-                      MonthlyBarChart(
-                        data: ctrl.monthlyTotals,
-                        currencySymbol: sym,
-                      ),
-                    ],
+              FadeSlideItem(
+                index: 2,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.m),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Monthly Spending', style: AppFonts.h6),
+                        const SizedBox(height: AppSpacing.m),
+                        MonthlyBarChart(
+                          data: ctrl.monthlyTotals,
+                          currencySymbol: sym,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: AppSpacing.m),
 
               // Category breakdown
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.m),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('By Category', style: AppFonts.h6),
-                      const SizedBox(height: AppSpacing.m),
-                      CategoryPieChart(
-                        data: ctrl.categoryTotals,
-                        currencySymbol: sym,
-                      ),
-                    ],
+              FadeSlideItem(
+                index: 3,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.m),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('By Category', style: AppFonts.h6),
+                        const SizedBox(height: AppSpacing.m),
+                        CategoryPieChart(
+                          data: ctrl.categoryTotals,
+                          currencySymbol: sym,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -130,10 +144,10 @@ class _StatCard extends StatelessWidget {
             Icon(icon, color: color, size: AppSpacing.iconS),
             const SizedBox(height: AppSpacing.xs),
             Text(label,
-                style: AppFonts.labelSmall.copyWith(color: AppColors.textMuted)),
+                style:
+                    AppFonts.labelSmall.copyWith(color: AppColors.textMuted)),
             const SizedBox(height: AppSpacing.xxs),
-            Text(value,
-                style: AppFonts.h5, overflow: TextOverflow.ellipsis),
+            Text(value, style: AppFonts.h5, overflow: TextOverflow.ellipsis),
           ],
         ),
       ),

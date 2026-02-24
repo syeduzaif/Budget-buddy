@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_fonts.dart';
+import '../../../core/animations/animations.dart';
 import '../../../data/models/category.dart';
 import '../../../utils/currency_utils.dart';
 
@@ -90,14 +91,10 @@ class CategoryBudgetList extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.xxs),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                    child: LinearProgressIndicator(
-                      value: pct,
-                      backgroundColor: color.withValues(alpha: 0.15),
-                      color: isOver ? AppColors.error : color,
-                      minHeight: 6,
-                    ),
+                  AnimatedProgressBar(
+                    value: pct,
+                    color: isOver ? AppColors.error : color,
+                    backgroundColor: color.withValues(alpha: 0.15),
                   ),
                 ],
               ),

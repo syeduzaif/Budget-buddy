@@ -47,15 +47,20 @@ class HomeView extends StatelessWidget {
       return 0;
     }
 
+    const views = [
+      DashboardView(),
+      CategoriesView(),
+      AnalyticsView(),
+      AiChatView(),
+    ];
+
     return Obx(() => Scaffold(
-          body: IndexedStack(
-            index: stackIndex(ctrl.currentIndex.value),
-            children: const [
-              DashboardView(),
-              CategoriesView(),
-              AnalyticsView(),
-              AiChatView(),
-            ],
+          body: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: KeyedSubtree(
+              key: ValueKey(ctrl.currentIndex.value),
+              child: views[stackIndex(ctrl.currentIndex.value)],
+            ),
           ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: ctrl.currentIndex.value,

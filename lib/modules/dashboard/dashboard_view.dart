@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
+import '../../core/animations/animations.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/currency_utils.dart';
 import '../../utils/date_utils.dart';
@@ -71,68 +72,90 @@ class DashboardView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Income card
-                SummaryCard(
-                  label: 'Monthly Income',
-                  amount: CurrencyUtils.formatAmount(
-                      ctrl.settings.monthlyIncome.value, sym),
-                  icon: Icons.account_balance_wallet_outlined,
-                  color: AppColors.primary,
-                  isLarge: true,
+                FadeSlideItem(
+                  index: 0,
+                  child: SummaryCard(
+                    label: 'Monthly Income',
+                    amount: CurrencyUtils.formatAmount(
+                        ctrl.settings.monthlyIncome.value, sym),
+                    icon: Icons.account_balance_wallet_outlined,
+                    color: AppColors.primary,
+                    isLarge: true,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.s),
                 // Spent + Remaining row
-                Row(
-                  children: [
-                    Expanded(
-                      child: SummaryCard(
-                        label: 'Spent',
-                        amount: CurrencyUtils.formatAmount(ctrl.totalSpent, sym),
-                        icon: Icons.trending_up,
-                        color: ctrl.totalSpent > ctrl.settings.monthlyIncome.value
-                            ? AppColors.error
-                            : AppColors.warning,
+                FadeSlideItem(
+                  index: 1,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SummaryCard(
+                          label: 'Spent',
+                          amount:
+                              CurrencyUtils.formatAmount(ctrl.totalSpent, sym),
+                          icon: Icons.trending_up,
+                          color: ctrl.totalSpent >
+                                  ctrl.settings.monthlyIncome.value
+                              ? AppColors.error
+                              : AppColors.warning,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: AppSpacing.s),
-                    Expanded(
-                      child: SummaryCard(
-                        label: 'Remaining',
-                        amount: CurrencyUtils.formatAmount(ctrl.remaining, sym),
-                        icon: Icons.savings_outlined,
-                        color: ctrl.remaining >= 0 ? AppColors.success : AppColors.error,
+                      const SizedBox(width: AppSpacing.s),
+                      Expanded(
+                        child: SummaryCard(
+                          label: 'Remaining',
+                          amount:
+                              CurrencyUtils.formatAmount(ctrl.remaining, sym),
+                          icon: Icons.savings_outlined,
+                          color: ctrl.remaining >= 0
+                              ? AppColors.success
+                              : AppColors.error,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.l),
 
                 // Spending donut chart
                 if (ctrl.categories.isNotEmpty) ...[
-                  Text('Spending Breakdown', style: AppFonts.h6),
-                  const SizedBox(height: AppSpacing.s),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.m),
-                      child: SpendingDonutChart(
-                        categories: ctrl.categories,
-                        spentMap: spentMap,
-                      ),
+                  FadeSlideItem(
+                    index: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Spending Breakdown', style: AppFonts.h6),
+                        const SizedBox(height: AppSpacing.s),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.m),
+                            child: SpendingDonutChart(
+                              categories: ctrl.categories,
+                              spentMap: spentMap,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: AppSpacing.l),
                 ],
 
                 // Category budget list
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.m),
-                    child: CategoryBudgetList(
-                      categories: ctrl.categories,
-                      spentMap: spentMap,
-                      currencySymbol: sym,
-                      onSeeAll: ctrl.categories.length > 4
-                          ? () => Get.toNamed(AppRoutes.categoryForm)
-                          : null,
+                FadeSlideItem(
+                  index: 3,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.m),
+                      child: CategoryBudgetList(
+                        categories: ctrl.categories,
+                        spentMap: spentMap,
+                        currencySymbol: sym,
+                        onSeeAll: ctrl.categories.length > 4
+                            ? () => Get.toNamed(AppRoutes.categoryForm)
+                            : null,
+                      ),
                     ),
                   ),
                 ),

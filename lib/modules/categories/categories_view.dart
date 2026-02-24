@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
+import '../../core/animations/animations.dart';
 import '../../routes/app_routes.dart';
 import 'categories_controller.dart';
 import 'widgets/category_card.dart';
@@ -115,22 +116,25 @@ class CategoriesView extends StatelessWidget {
                       );
                     },
                     onDismissed: (_) => ctrl.deleteCategory(cat),
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.s),
-                      child: CategoryCard(
-                        category: cat,
-                        spent: ctrl.spentForCategory(cat.id),
-                        currencySymbol: sym,
-                        onTap: () => Get.toNamed(
-                          AppRoutes.transactions,
-                          arguments: {
-                            'categoryId': cat.id,
-                            'categoryName': cat.name
-                          },
-                        ),
-                        onEdit: () => Get.toNamed(
-                          AppRoutes.categoryForm,
-                          arguments: cat,
+                    child: FadeSlideItem(
+                      index: i,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.s),
+                        child: CategoryCard(
+                          category: cat,
+                          spent: ctrl.spentForCategory(cat.id),
+                          currencySymbol: sym,
+                          onTap: () => Get.toNamed(
+                            AppRoutes.transactions,
+                            arguments: {
+                              'categoryId': cat.id,
+                              'categoryName': cat.name
+                            },
+                          ),
+                          onEdit: () => Get.toNamed(
+                            AppRoutes.categoryForm,
+                            arguments: cat,
+                          ),
                         ),
                       ),
                     ),
