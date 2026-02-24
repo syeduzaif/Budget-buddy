@@ -35,9 +35,8 @@ class TransactionFormController extends GetxController {
     preselectedCategoryId = args?['categoryId'];
 
     categoryRepo.getCategories().listen((list) {
-      final filtered = list
-          .where((c) => c.month == settings.currentMonth.value)
-          .toList();
+      final filtered =
+          list.where((c) => c.month == settings.currentMonth.value).toList();
       categories.assignAll(filtered);
       if (selectedCategory.value == null && filtered.isNotEmpty) {
         if (preselectedCategoryId != null) {

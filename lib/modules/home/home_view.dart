@@ -90,7 +90,7 @@ class HomeView extends StatelessWidget {
               NavigationDestination(
                 icon: Icon(Icons.auto_awesome_outlined),
                 selectedIcon: Icon(Icons.auto_awesome),
-                label: 'AI Chat',
+                label: 'AI',
               ),
             ],
           ),

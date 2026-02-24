@@ -44,12 +44,14 @@ class CategoryCard extends StatelessWidget {
                   Container(
                     width: 12,
                     height: 12,
-                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                    decoration:
+                        BoxDecoration(color: color, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(category.name,
-                        style: AppFonts.labelLarge, overflow: TextOverflow.ellipsis),
+                        style: AppFonts.labelLarge,
+                        overflow: TextOverflow.ellipsis),
                   ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 18),
@@ -66,8 +68,8 @@ class CategoryCard extends StatelessWidget {
                 children: [
                   Text(
                     CurrencyUtils.formatAmount(spent, currencySymbol),
-                    style: AppFonts.h6.copyWith(
-                        color: isOver ? AppColors.error : AppColors.textPrimary),
+                    style: AppFonts.h6
+                        .copyWith(color: isOver ? AppColors.error : null),
                   ),
                   Text(
                     'of ${CurrencyUtils.formatAmount(category.budgetLimit, currencySymbol)}',
@@ -88,7 +90,8 @@ class CategoryCard extends StatelessWidget {
               if (isOver) ...[
                 const SizedBox(height: AppSpacing.xxs),
                 Text('Over budget!',
-                    style: AppFonts.labelSmall.copyWith(color: AppColors.error)),
+                    style:
+                        AppFonts.labelSmall.copyWith(color: AppColors.error)),
               ],
             ],
           ),

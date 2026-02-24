@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/category.dart';
@@ -21,6 +22,7 @@ class CategoriesController extends GetxController {
   final categories = <Category>[].obs;
   final transactions = <TransactionItem>[].obs;
   final searchQuery = ''.obs;
+  final searchController = TextEditingController();
 
   List<Category> get filtered => searchQuery.value.isEmpty
       ? categories
@@ -32,7 +34,8 @@ class CategoriesController extends GetxController {
   double spentForCategory(String categoryId) => transactions
       .where((t) =>
           t.categoryId == categoryId &&
-          AppDateUtils.getMonthKeyFromDate(t.date) == settings.currentMonth.value)
+          AppDateUtils.getMonthKeyFromDate(t.date) ==
+              settings.currentMonth.value)
       .fold(0.0, (sum, t) => sum + t.amount);
 
   @override

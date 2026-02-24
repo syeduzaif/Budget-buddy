@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_fonts.dart';
 
@@ -21,6 +20,7 @@ class SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Card(
       elevation: AppSpacing.elevationS,
       child: Padding(
@@ -32,16 +32,15 @@ class SummaryCard extends StatelessWidget {
               children: [
                 Icon(icon, color: color, size: AppSpacing.iconS),
                 const SizedBox(width: AppSpacing.xs),
-                Text(label,
-                    style: AppFonts.labelMedium.copyWith(color: color)),
+                Text(label, style: AppFonts.labelMedium.copyWith(color: color)),
               ],
             ),
             const SizedBox(height: AppSpacing.s),
             Text(
               amount,
               style: isLarge
-                  ? AppFonts.h3.copyWith(color: AppColors.textPrimary)
-                  : AppFonts.h5.copyWith(color: AppColors.textPrimary),
+                  ? AppFonts.h3.copyWith(color: onSurface)
+                  : AppFonts.h5.copyWith(color: onSurface),
               overflow: TextOverflow.ellipsis,
             ),
           ],

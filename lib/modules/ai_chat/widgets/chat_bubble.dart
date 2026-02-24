@@ -24,7 +24,8 @@ class ChatBubble extends StatelessWidget {
             const CircleAvatar(
               radius: 14,
               backgroundColor: AppColors.primaryLight,
-              child: Icon(Icons.auto_awesome, size: 16, color: AppColors.primaryDark),
+              child: Icon(Icons.auto_awesome,
+                  size: 16, color: AppColors.primaryDark),
             ),
             const SizedBox(width: AppSpacing.xs),
           ],
@@ -36,7 +37,9 @@ class ChatBubble extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.m, vertical: AppSpacing.s),
               decoration: BoxDecoration(
-                color: isUser ? AppColors.primary : Theme.of(context).cardColor,
+                color: isUser
+                    ? AppColors.primary
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(AppSpacing.radiusL),
                   topRight: const Radius.circular(AppSpacing.radiusL),
@@ -47,11 +50,11 @@ class ChatBubble extends StatelessWidget {
                       ? const Radius.circular(AppSpacing.radiusXs)
                       : const Radius.circular(AppSpacing.radiusL),
                 ),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
                     color: AppColors.shadow,
                     blurRadius: 4,
-                    offset: const Offset(0, 2),
+                    offset: Offset(0, 2),
                   ),
                 ],
               ),
@@ -61,16 +64,16 @@ class ChatBubble extends StatelessWidget {
                   Text(
                     message.message,
                     style: AppFonts.bodyMedium.copyWith(
-                      color: isUser ? Colors.white : null,
+                      color: isUser
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
                     AppDateUtils.formatDate(message.timestamp),
                     style: AppFonts.caption.copyWith(
-                      color: isUser
-                          ? Colors.white60
-                          : AppColors.textMuted,
+                      color: isUser ? Colors.white60 : AppColors.textMuted,
                     ),
                   ),
                 ],

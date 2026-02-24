@@ -36,7 +36,8 @@ class AiChatView extends StatelessWidget {
             const CircleAvatar(
               radius: 14,
               backgroundColor: AppColors.primaryLight,
-              child: Icon(Icons.auto_awesome, size: 16, color: AppColors.primaryDark),
+              child: Icon(Icons.auto_awesome,
+                  size: 16, color: AppColors.primaryDark),
             ),
             const SizedBox(width: AppSpacing.s),
             Text('AI Financial Advisor', style: AppFonts.h6),
@@ -135,7 +136,7 @@ class AiChatView extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              border: Border(
+              border: const Border(
                 top: BorderSide(color: AppColors.border),
               ),
             ),
@@ -180,7 +181,8 @@ class _TypingIndicator extends StatelessWidget {
           const CircleAvatar(
             radius: 14,
             backgroundColor: AppColors.primaryLight,
-            child: Icon(Icons.auto_awesome, size: 16, color: AppColors.primaryDark),
+            child: Icon(Icons.auto_awesome,
+                size: 16, color: AppColors.primaryDark),
           ),
           const SizedBox(width: AppSpacing.xs),
           Container(

@@ -34,19 +34,25 @@ class SpendingDonutChart extends StatelessWidget {
     final total = data.fold(0.0, (s, e) => s + e.value);
 
     return SizedBox(
-      height: 160,
+      height: 200,
       child: PieChart(
         PieChartData(
           sectionsSpace: 2,
-          centerSpaceRadius: 48,
+          centerSpaceRadius: 44,
           sections: data.map((e) {
             final pct = total > 0 ? e.value / total * 100 : 0.0;
+            final showTitle = pct >= 5;
             return PieChartSectionData(
               color: Color(e.key.colorValue),
               value: e.value,
-              title: '${pct.toStringAsFixed(0)}%',
-              radius: 32,
-              titleStyle: AppFonts.labelSmall.copyWith(color: Colors.white),
+              title: showTitle ? '${pct.toStringAsFixed(0)}%' : '',
+              radius: showTitle ? 36 : 28,
+              titleStyle: AppFonts.labelSmall.copyWith(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+              titlePositionPercentageOffset: 0.55,
             );
           }).toList(),
         ),

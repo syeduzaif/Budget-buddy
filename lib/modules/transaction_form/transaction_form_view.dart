@@ -28,25 +28,14 @@ class TransactionFormView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.m),
             Text('Add Transaction', style: AppFonts.h5),
             const SizedBox(height: AppSpacing.l),
 
             // Amount
             TextFormField(
               controller: ctrl.amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               autofocus: true,
               style: AppFonts.h3,
               decoration: InputDecoration(
@@ -68,36 +57,67 @@ class TransactionFormView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.m),
 
-            // Category
-            Obx(() => DropdownButtonFormField(
-                  value: ctrl.selectedCategory.value,
+            // Category — uses InputDecorator + dialog instead of
+            // DropdownButtonFormField to avoid its internal Navigator route
+            // conflicting with the bottom sheet during dispose.
+            Obx(() {
+              final selected = ctrl.selectedCategory.value;
+              return GestureDetector(
+                onTap: () async {
+                  final picked = await showDialog<dynamic>(
+                    context: context,
+                    builder: (ctx) => SimpleDialog(
+                      title: const Text('Select Category'),
+                      children: ctrl.categories
+                          .map((cat) => SimpleDialogOption(
+                                onPressed: () => Navigator.pop(ctx, cat),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: Color(cat.colorValue),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSpacing.s),
+                                    Text(cat.name, style: AppFonts.bodyMedium),
+                                  ],
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                  );
+                  if (picked != null) ctrl.selectCategory(picked);
+                },
+                child: InputDecorator(
                   decoration: const InputDecoration(
                     labelText: 'Category',
                     prefixIcon: Icon(Icons.category_outlined),
+                    suffixIcon: Icon(Icons.arrow_drop_down),
                   ),
-                  items: ctrl.categories
-                      .map((cat) => DropdownMenuItem(
-                            value: cat,
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 12,
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    color: Color(cat.colorValue),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.xs),
-                                Text(cat.name),
-                              ],
+                  child: selected != null
+                      ? Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: Color(selected.colorValue),
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ))
-                      .toList(),
-                  onChanged: (cat) {
-                    if (cat != null) ctrl.selectCategory(cat);
-                  },
-                )),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(selected.name, style: AppFonts.bodyMedium),
+                          ],
+                        )
+                      : Text('Select a category',
+                          style: AppFonts.bodyMedium
+                              .copyWith(color: AppColors.textMuted)),
+                ),
+              );
+            }),
             const SizedBox(height: AppSpacing.m),
 
             // Date

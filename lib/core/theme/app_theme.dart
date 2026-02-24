@@ -41,7 +41,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: AppColors.primaryLight.withOpacity(0.20),
+              color: AppColors.primaryLight.withValues(alpha: 0.20),
               width: 1,
             ),
           ),
@@ -52,11 +52,12 @@ class AppTheme {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: AppColors.textWhite,
-            disabledBackgroundColor: AppColors.primary.withOpacity(0.40),
-            disabledForegroundColor: AppColors.textWhite.withOpacity(0.60),
+            disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.40),
+            disabledForegroundColor:
+                AppColors.textWhite.withValues(alpha: 0.60),
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             elevation: 2,
-            shadowColor: AppColors.primary.withOpacity(0.30),
+            shadowColor: AppColors.primary.withValues(alpha: 0.30),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
@@ -146,7 +147,7 @@ class AppTheme {
         // ── Navigation Bar (M3) ──────────────────────────────────
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: AppColors.surface,
-          indicatorColor: AppColors.primaryLight.withOpacity(0.25),
+          indicatorColor: AppColors.primaryLight.withValues(alpha: 0.25),
           elevation: 4,
           shadowColor: AppColors.shadow,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
@@ -155,7 +156,7 @@ class AppTheme {
         // ── Chips ─────────────────────────────────────────────────
         chipTheme: ChipThemeData(
           backgroundColor: AppColors.cardElevated,
-          selectedColor: AppColors.primaryLight.withOpacity(0.25),
+          selectedColor: AppColors.primaryLight.withValues(alpha: 0.25),
           disabledColor: AppColors.border,
           labelStyle: AppFonts.labelMedium,
           side: BorderSide(color: AppColors.border),
@@ -252,7 +253,7 @@ class AppTheme {
           }),
           trackColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return AppColors.primaryLight.withOpacity(0.5);
+              return AppColors.primaryLight.withValues(alpha: 0.5);
             }
             return AppColors.border;
           }),
@@ -301,7 +302,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: AppColors.primaryLight.withOpacity(0.10),
+              color: AppColors.primaryLight.withValues(alpha: 0.10),
               width: 1,
             ),
           ),
@@ -312,11 +313,12 @@ class AppTheme {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primaryLight,
             foregroundColor: AppColors.deepNavy,
-            disabledBackgroundColor: AppColors.primaryLight.withOpacity(0.30),
-            disabledForegroundColor: AppColors.deepNavy.withOpacity(0.50),
+            disabledBackgroundColor:
+                AppColors.primaryLight.withValues(alpha: 0.30),
+            disabledForegroundColor: AppColors.deepNavy.withValues(alpha: 0.50),
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             elevation: 2,
-            shadowColor: AppColors.primaryLight.withOpacity(0.20),
+            shadowColor: AppColors.primaryLight.withValues(alpha: 0.20),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
@@ -330,7 +332,8 @@ class AppTheme {
             foregroundColor: AppColors.primaryLight,
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             side: BorderSide(
-                color: AppColors.primaryLight.withOpacity(0.6), width: 1.5),
+                color: AppColors.primaryLight.withValues(alpha: 0.6),
+                width: 1.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
@@ -398,7 +401,7 @@ class AppTheme {
         // ── Chips ─────────────────────────────────────────────────
         chipTheme: ChipThemeData(
           backgroundColor: AppColors.surfaceDark,
-          selectedColor: AppColors.primaryLight.withOpacity(0.20),
+          selectedColor: AppColors.primaryLight.withValues(alpha: 0.20),
           labelStyle: AppFonts.labelMedium.copyWith(color: AppColors.textDark),
           side: BorderSide(color: AppColors.borderDark),
           shape: RoundedRectangleBorder(

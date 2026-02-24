@@ -33,7 +33,6 @@ class AppFonts {
   static TextStyle get h1 => GoogleFonts.merriweather(
         fontSize: sizeHuge,
         fontWeight: bold,
-        color: AppColors.textPrimary,
         height: 1.2,
         letterSpacing: -0.5,
       );
@@ -41,7 +40,6 @@ class AppFonts {
   static TextStyle get h2 => GoogleFonts.merriweather(
         fontSize: sizeXxxl,
         fontWeight: bold,
-        color: AppColors.textPrimary,
         height: 1.2,
         letterSpacing: -0.5,
       );
@@ -49,7 +47,6 @@ class AppFonts {
   static TextStyle get h3 => GoogleFonts.merriweather(
         fontSize: sizeXxl,
         fontWeight: semiBold,
-        color: AppColors.textPrimary,
         height: 1.3,
         letterSpacing: -0.3,
       );
@@ -57,21 +54,18 @@ class AppFonts {
   static TextStyle get h4 => GoogleFonts.merriweather(
         fontSize: sizeXl,
         fontWeight: semiBold,
-        color: AppColors.textPrimary,
         height: 1.4,
       );
 
   static TextStyle get h5 => GoogleFonts.merriweather(
         fontSize: sizeL,
         fontWeight: semiBold,
-        color: AppColors.textPrimary,
         height: 1.4,
       );
 
   static TextStyle get h6 => GoogleFonts.merriweather(
         fontSize: sizeM,
         fontWeight: semiBold,
-        color: AppColors.textPrimary,
         height: 1.5,
       );
 
@@ -79,14 +73,12 @@ class AppFonts {
   static TextStyle get bodyLarge => GoogleFonts.sourceSans3(
         fontSize: sizeL,
         fontWeight: regular,
-        color: AppColors.textPrimary,
         height: 1.6,
       );
 
   static TextStyle get bodyMedium => GoogleFonts.sourceSans3(
         fontSize: sizeM,
         fontWeight: regular,
-        color: AppColors.textPrimary,
         height: 1.5,
       );
 
@@ -101,7 +93,6 @@ class AppFonts {
   static TextStyle get labelLarge => GoogleFonts.sourceSans3(
         fontSize: sizeM,
         fontWeight: medium,
-        color: AppColors.textPrimary,
         height: 1.4,
       );
 

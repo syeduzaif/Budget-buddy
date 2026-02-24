@@ -30,14 +30,24 @@ class CategoriesView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.m, AppSpacing.s, AppSpacing.m, AppSpacing.xs),
-            child: TextField(
-              onChanged: (v) => ctrl.searchQuery.value = v,
-              decoration: const InputDecoration(
-                hintText: 'Search categories...',
-                prefixIcon: Icon(Icons.search),
-                isDense: true,
-              ),
-            ),
+            child: Obx(() => TextField(
+                  onChanged: (v) => ctrl.searchQuery.value = v,
+                  controller: ctrl.searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search categories...',
+                    prefixIcon: const Icon(Icons.search),
+                    isDense: true,
+                    suffixIcon: ctrl.searchQuery.value.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              ctrl.searchController.clear();
+                              ctrl.searchQuery.value = '';
+                            },
+                          )
+                        : null,
+                  ),
+                )),
           ),
           Expanded(
             child: Obx(() {
@@ -55,8 +65,8 @@ class CategoriesView extends StatelessWidget {
                       Text('No categories yet', style: AppFonts.h6),
                       const SizedBox(height: AppSpacing.s),
                       Text('Tap + to create your first budget category',
-                          style: AppFonts.bodySmall.copyWith(
-                              color: AppColors.textMuted)),
+                          style: AppFonts.bodySmall
+                              .copyWith(color: AppColors.textMuted)),
                       const SizedBox(height: AppSpacing.l),
                       FilledButton.icon(
                         onPressed: () => Get.toNamed(AppRoutes.categoryForm),
@@ -83,7 +93,8 @@ class CategoriesView extends StatelessWidget {
                         color: AppColors.error,
                         borderRadius: BorderRadius.circular(AppSpacing.radiusM),
                       ),
-                      child: const Icon(Icons.delete_outline, color: Colors.white),
+                      child:
+                          const Icon(Icons.delete_outline, color: Colors.white),
                     ),
                     confirmDismiss: (_) async {
                       return await showDialog<bool>(
@@ -112,7 +123,10 @@ class CategoriesView extends StatelessWidget {
                         currencySymbol: sym,
                         onTap: () => Get.toNamed(
                           AppRoutes.transactions,
-                          arguments: {'categoryId': cat.id, 'categoryName': cat.name},
+                          arguments: {
+                            'categoryId': cat.id,
+                            'categoryName': cat.name
+                          },
                         ),
                         onEdit: () => Get.toNamed(
                           AppRoutes.categoryForm,
