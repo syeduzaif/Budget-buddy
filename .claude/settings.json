@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter run:*)",
+      "Bash(pod install:*)",
+      "Read(//Users/admin/.pub-cache/hosted/pub.dev/cloud_firestore-6.1.1/ios/**)"
+    ]
+  }
+}
