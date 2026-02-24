@@ -139,3 +139,7 @@ lib/firebase_options.dart
 **/logs/
 *.log
 
+
+# Secrets / env files mistakenly named
+todo
+WEBSITE_BUILD_PROMPT.md
