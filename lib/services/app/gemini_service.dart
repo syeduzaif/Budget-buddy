@@ -20,7 +20,7 @@ class GeminiService extends GetxService {
   void _initialize() {
     try {
       _model = GenerativeModel(
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.0-flash',
         apiKey: _apiKey,
         generationConfig: GenerationConfig(
           temperature: 0.7,
@@ -49,7 +49,8 @@ class GeminiService extends GetxService {
       return 'AI service is not available. Please check your API key configuration.';
     }
     try {
-      final response = await _chatSession.sendMessage(Content.text(userMessage));
+      final response =
+          await _chatSession.sendMessage(Content.text(userMessage));
       return response.text ?? 'Sorry, I couldn\'t generate a response.';
     } catch (e) {
       lastError.value = e.toString();
