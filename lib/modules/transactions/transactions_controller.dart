@@ -1,58 +1,65 @@
 import 'package:get/get.dart';
 import '../../data/models/transaction_item.dart';
-import '../../services/budget_service.dart';
-import '../../utils/helpers.dart';
+import '../../data/models/category.dart';
+import '../../data/repositories/transaction_repository.dart';
+import '../../data/repositories/category_repository.dart';
+import '../../utils/date_utils.dart';
 
-/// Controller for All Transactions view
 class TransactionsController extends GetxController {
-  final BudgetService budgetService = Get.find<BudgetService>();
+  final TransactionRepository transactionRepo;
+  final CategoryRepository categoryRepo;
 
-  // Reactive variables
-  final RxList<TransactionItem> allTransactions = <TransactionItem>[].obs;
-  final RxString currentMonth = ''.obs;
+  TransactionsController({
+    required this.transactionRepo,
+    required this.categoryRepo,
+  });
+
+  final transactions = <TransactionItem>[].obs;
+  final categories = <Category>[].obs;
+  String? filterCategoryId;
+  String? filterCategoryName;
+
+  List<TransactionItem> get filtered {
+    var list = transactions.toList();
+    if (filterCategoryId != null) {
+      list = list.where((t) => t.categoryId == filterCategoryId).toList();
+    }
+    return list;
+  }
+
+  Map<String, List<TransactionItem>> get groupedByDate {
+    final map = <String, List<TransactionItem>>{};
+    for (final t in filtered) {
+      final key = AppDateUtils.formatDate(t.date);
+      map.putIfAbsent(key, () => []).add(t);
+    }
+    return map;
+  }
+
+  String categoryName(String categoryId) {
+    try {
+      return categories.firstWhere((c) => c.id == categoryId).name;
+    } catch (_) {
+      return 'Unknown';
+    }
+  }
 
   @override
   void onInit() {
     super.onInit();
-    loadTransactions();
-    // Listen to transaction changes
-    ever(budgetService.transactionUpdateTrigger, (_) {
-      loadTransactions();
+    final args = Get.arguments as Map<String, dynamic>?;
+    filterCategoryId = args?['categoryId'];
+    filterCategoryName = args?['categoryName'];
+
+    transactionRepo.getTransactions().listen((list) {
+      transactions.assignAll(list);
+    });
+    categoryRepo.getCategories().listen((list) {
+      categories.assignAll(list);
     });
   }
 
-  /// Load all transactions
-  void loadTransactions() {
-    currentMonth.value = budgetService.currentMonth.value;
-    final transactions = budgetService.expensesForCurrentMonth;
-
-    // Sort transactions
-    allTransactions.value = transactions.toList()
-      ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date descending
-
-    allTransactions.refresh();
-  }
-
-  /// Get category name for a transaction
-  String getCategoryName(String categoryId) {
-    final category = budgetService.getCategoryById(categoryId);
-    return category?.name ?? 'Unknown';
-  }
-
-  /// Get category color for a transaction
-  int getCategoryColor(String categoryId) {
-    final category = budgetService.getCategoryById(categoryId);
-    return category?.colorValue ?? 0xFF757575;
-  }
-
-  /// Get formatted month display
-  String getFormattedMonth() {
-    return Helpers.formatMonthKey(currentMonth.value);
-  }
-
-  /// Refresh transactions
-  void refreshTransactions() {
-    // budgetService.loadData(); // No longer needed as streams handle it
-    loadTransactions();
+  Future<void> deleteTransaction(String id) async {
+    await transactionRepo.deleteTransaction(id);
   }
 }

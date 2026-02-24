@@ -72,7 +72,7 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 4,
-      shadowColor: color.withOpacity(0.3),
+      shadowColor: color.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSpacing.radiusL),
       ),
@@ -83,8 +83,8 @@ class StatCard extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                color.withOpacity(0.1),
-                color.withOpacity(0.05),
+                color.withValues(alpha: 0.1),
+                color.withValues(alpha: 0.05),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -97,7 +97,7 @@ class StatCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.m),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusM),
                 ),
                 child: Icon(icon, color: color, size: AppSpacing.iconL),

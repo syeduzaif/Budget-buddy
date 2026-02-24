@@ -1,233 +1,201 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
-import 'ai_chat_controller.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_fonts.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../core/constants/app_icons.dart';
+import '../../core/theme/app_fonts.dart';
+import 'ai_chat_controller.dart';
+import 'widgets/chat_bubble.dart';
 
-class AiChatView extends GetView<AiChatController> {
+class AiChatView extends StatelessWidget {
   const AiChatView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final ctrl = Get.find<AiChatController>();
+    final textCtrl = TextEditingController();
+    final scrollCtrl = ScrollController();
+
+    void sendAndScroll(String text) {
+      ctrl.sendMessage(text);
+      textCtrl.clear();
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (scrollCtrl.hasClients) {
+          scrollCtrl.animateTo(
+            scrollCtrl.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(AppIcons.ai, size: AppSpacing.iconM),
-            SizedBox(width: AppSpacing.s),
-            Text('AI Assistant'),
+            const CircleAvatar(
+              radius: 14,
+              backgroundColor: AppColors.primaryLight,
+              child: Icon(Icons.auto_awesome,
+                  size: 16, color: AppColors.primaryDark),
+            ),
+            const SizedBox(width: AppSpacing.s),
+            Text('AI Financial Advisor', style: AppFonts.h6),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(AppIcons.delete),
-            onPressed: () {
-              // Optional: Clear chat functionality
-            },
+            icon: const Icon(Icons.delete_sweep_outlined),
+            tooltip: 'Clear chat',
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => AlertDialog(
+                title: const Text('Clear Chat'),
+                content: const Text('Delete all chat history?'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Get.back(), child: const Text('Cancel')),
+                  FilledButton(
+                      onPressed: () {
+                        ctrl.clearChat();
+                        Get.back();
+                      },
+                      child: const Text('Clear')),
+                ],
+              ),
+            ),
           ),
         ],
       ),
       body: Column(
         children: [
+          // Messages list
           Expanded(
             child: Obx(() {
+              final msgs = ctrl.messages;
+              if (msgs.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.auto_awesome,
+                          size: 64, color: AppColors.primaryLight),
+                      const SizedBox(height: AppSpacing.m),
+                      Text('Your AI Financial Advisor', style: AppFonts.h5),
+                      const SizedBox(height: AppSpacing.s),
+                      Text(
+                        'Ask me anything about your budget,\nsavings, or spending habits.',
+                        style: AppFonts.bodyMedium
+                            .copyWith(color: AppColors.textSecondary),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
+              }
               return ListView.builder(
-                controller: controller.scrollController,
+                controller: scrollCtrl,
                 padding: const EdgeInsets.all(AppSpacing.m),
-                itemCount: controller.messages.length +
-                    (controller.isLoading.value ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == controller.messages.length) {
-                    return const _LoadingBubble();
+                itemCount: msgs.length + (ctrl.isTyping.value ? 1 : 0),
+                itemBuilder: (_, i) {
+                  if (i == msgs.length && ctrl.isTyping.value) {
+                    return _TypingIndicator();
                   }
-                  final msg = controller.messages[index];
-                  return _MessageBubble(
-                    message: msg.message,
-                    isUser: msg.isUser,
-                    timestamp: msg.timestamp,
-                  );
+                  return ChatBubble(message: msgs[i]);
                 },
               );
             }),
           ),
-          _buildInputArea(context),
+
+          // Quick prompts
+          SizedBox(
+            height: 44,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+              itemCount: AiChatController.quickPrompts.length,
+              separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.s),
+              itemBuilder: (_, i) {
+                final prompt = AiChatController.quickPrompts[i];
+                return ActionChip(
+                  label: Text(prompt, style: AppFonts.labelSmall),
+                  onPressed: () => sendAndScroll(prompt),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s),
+
+          // Input area
+          Container(
+            padding: EdgeInsets.only(
+              left: AppSpacing.m,
+              right: AppSpacing.m,
+              bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.m,
+              top: AppSpacing.s,
+            ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: const Border(
+                top: BorderSide(color: AppColors.border),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: textCtrl,
+                    decoration: const InputDecoration(
+                      hintText: 'Ask your financial advisor...',
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                    maxLines: null,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: sendAndScroll,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s),
+                Obx(() => IconButton.filled(
+                      onPressed: ctrl.isTyping.value
+                          ? null
+                          : () => sendAndScroll(textCtrl.text),
+                      icon: const Icon(Icons.send_rounded),
+                    )),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildInputArea(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.m),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow,
-            offset: const Offset(0, -2),
-            blurRadius: 10,
-          ),
-        ],
-      ),
+class _TypingIndicator extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s),
       child: Row(
         children: [
-          Expanded(
-            child: TextField(
-              controller: controller.textController,
-              decoration: InputDecoration(
-                hintText: 'Ask about your budget...',
-                filled: true,
-                fillColor: AppColors.background,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusXxl),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.l,
-                  vertical: AppSpacing.m,
-                ),
-              ),
-              textCapitalization: TextCapitalization.sentences,
-              onSubmitted: (_) => controller.sendMessage(),
-            ),
+          const CircleAvatar(
+            radius: 14,
+            backgroundColor: AppColors.primaryLight,
+            child: Icon(Icons.auto_awesome,
+                size: 16, color: AppColors.primaryDark),
           ),
-          const SizedBox(width: AppSpacing.s),
-          FloatingActionButton(
-            onPressed: controller.sendMessage,
-            mini: true,
-            elevation: AppSpacing.elevationS,
-            child: const Icon(AppIcons.ai),
+          const SizedBox(width: AppSpacing.xs),
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.m, vertical: AppSpacing.s),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusL),
+            ),
+            child: Text('Thinking...',
+                style: AppFonts.bodySmall.copyWith(color: AppColors.textMuted)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _MessageBubble extends StatelessWidget {
-  final String message;
-  final bool isUser;
-  final DateTime timestamp;
-
-  const _MessageBubble({
-    required this.message,
-    required this.isUser,
-    required this.timestamp,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.m),
-        constraints: BoxConstraints(maxWidth: Get.width * 0.75),
-        decoration: BoxDecoration(
-          color: isUser
-              ? AppColors.primary
-              : isDark
-                  ? AppColors.cardDark
-                  : AppColors.card,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(AppSpacing.radiusL),
-            topRight: const Radius.circular(AppSpacing.radiusL),
-            bottomLeft: Radius.circular(
-                isUser ? AppSpacing.radiusL : AppSpacing.radiusXs),
-            bottomRight: Radius.circular(
-                isUser ? AppSpacing.radiusXs : AppSpacing.radiusL),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(AppSpacing.m),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!isUser) ...[
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    AppIcons.ai,
-                    size: AppSpacing.iconXs,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    'AI Assistant',
-                    style: AppFonts.labelSmall.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: AppFonts.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xs),
-            ],
-            Text(
-              message,
-              style: AppFonts.bodyMedium.copyWith(
-                color: isUser ? AppColors.textWhite : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              DateFormat('h:mm a').format(timestamp),
-              style: AppFonts.caption.copyWith(
-                color: isUser
-                    ? AppColors.textWhite.withOpacity(0.7)
-                    : AppColors.textMuted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LoadingBubble extends StatelessWidget {
-  const _LoadingBubble();
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.m),
-        padding: const EdgeInsets.all(AppSpacing.m),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(AppSpacing.radiusL),
-            topRight: Radius.circular(AppSpacing.radiusL),
-            bottomLeft: Radius.circular(AppSpacing.radiusXs),
-            bottomRight: Radius.circular(AppSpacing.radiusL),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: AppSpacing.iconXs,
-              height: AppSpacing.iconXs,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: AppSpacing.s),
-            Text('Thinking...', style: AppFonts.bodySmall),
-          ],
-        ),
       ),
     );
   }

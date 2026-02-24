@@ -1,78 +1,75 @@
 import 'package:get/get.dart';
-import '../../services/budget_service.dart';
-import '../../routes/app_routes.dart';
-import 'set_income_dialog.dart';
+import '../../data/models/category.dart';
+import '../../data/models/transaction_item.dart';
+import '../../data/repositories/category_repository.dart';
+import '../../data/repositories/transaction_repository.dart';
+import '../../services/app/settings_service.dart';
+import '../../utils/date_utils.dart';
 
-/// Controller for Dashboard view
 class DashboardController extends GetxController {
-  final BudgetService budgetService = Get.find<BudgetService>();
+  final CategoryRepository categoryRepo;
+  final TransactionRepository transactionRepo;
+  final SettingsService settings;
 
-  // Reactive variables
-  final RxBool isIncomeSet = false.obs;
+  DashboardController({
+    required this.categoryRepo,
+    required this.transactionRepo,
+    required this.settings,
+  });
+
+  final categories = <Category>[].obs;
+  final transactions = <TransactionItem>[].obs;
+
+  double get totalBudget =>
+      categories.fold(0.0, (sum, c) => sum + c.budgetLimit);
+
+  double get totalSpent => transactions
+      .where((t) => _isCurrentMonth(t))
+      .fold(0.0, (sum, t) => sum + t.amount);
+
+  double get remaining => settings.monthlyIncome.value - totalSpent;
+
+  double get savingsRate {
+    final income = settings.monthlyIncome.value;
+    if (income <= 0) return 0;
+    return ((income - totalSpent) / income * 100).clamp(0, 100);
+  }
+
+  double spentForCategory(String categoryId) => transactions
+      .where((t) => t.categoryId == categoryId && _isCurrentMonth(t))
+      .fold(0.0, (sum, t) => sum + t.amount);
+
+  bool _isCurrentMonth(TransactionItem t) =>
+      AppDateUtils.getMonthKeyFromDate(t.date) == settings.currentMonth.value;
 
   @override
   void onInit() {
     super.onInit();
-    // Verify current status immediately
-    checkIncome();
-
-    // Listen for future updates (e.g. data loading from Firestore)
-    ever(budgetService.monthlyIncome, (_) => checkIncome());
-
-    refreshData();
+    categoryRepo.getCategories().listen((list) {
+      categories.assignAll(
+          list.where((c) => c.month == settings.currentMonth.value).toList());
+    });
+    transactionRepo.getTransactions().listen((list) {
+      transactions.assignAll(list);
+    });
   }
 
-  /// Check if income is set
-  void checkIncome() {
-    isIncomeSet.value = budgetService.monthlyIncome.value > 0;
+  void goToPreviousMonth() async {
+    final prev = AppDateUtils.getPreviousMonthKey(settings.currentMonth.value);
+    await settings.setCurrentMonth(prev);
+    _refreshCategories();
   }
 
-  /// Refresh dashboard data
-  void refreshData() {
-    budgetService.loadData();
-    checkIncome();
+  void goToNextMonth() async {
+    final next = AppDateUtils.getNextMonthKey(settings.currentMonth.value);
+    await settings.setCurrentMonth(next);
+    _refreshCategories();
   }
 
-  /// Get formatted month display
-  String getFormattedMonth() {
-    return budgetService.getFormattedMonth();
-  }
-
-  /// Navigate to previous month
-  void goToPreviousMonth() {
-    budgetService.goToPreviousMonth();
-  }
-
-  /// Navigate to next month
-  void goToNextMonth() {
-    budgetService.goToNextMonth();
-  }
-
-  /// Navigate to categories view
-  void goToCategories() {
-    Get.toNamed(AppRoutes.categories);
-  }
-
-  /// Navigate to all transactions view
-  void goToAllTransactions() {
-    Get.toNamed(AppRoutes.allTransactions);
-  }
-
-  /// Navigate to AI Chat view
-  void goToAiChat() {
-    Get.toNamed(AppRoutes.aiChat);
-  }
-
-  /// Navigate to set income dialog
-  void showSetIncomeDialog() {
-    Get.dialog(
-      SetIncomeDialog(
-        initialAmount: budgetService.monthlyIncome.value,
-      ),
-    ).then((result) {
-      if (result == true) {
-        checkIncome();
-      }
+  void _refreshCategories() {
+    categoryRepo.getCategories().first.then((list) {
+      categories.assignAll(
+          list.where((c) => c.month == settings.currentMonth.value).toList());
     });
   }
 }

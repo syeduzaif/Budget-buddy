@@ -1,134 +1,118 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/chat_message_model.dart';
+import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/chat_repository.dart';
-import '../../services/ai_insights_service.dart';
-import '../../services/gemini_service.dart';
+import '../../data/repositories/transaction_repository.dart';
+import '../../services/app/gemini_service.dart';
+import '../../services/app/settings_service.dart';
+import '../../utils/date_utils.dart';
 
 class AiChatController extends GetxController {
-  final AiInsightsService _insightsService = Get.find<AiInsightsService>();
-  final GeminiService _geminiService = Get.find<GeminiService>();
-  final ChatRepository _chatRepository = Get.find<ChatRepository>();
+  final ChatRepository _chatRepo = Get.find<ChatRepository>();
+  final GeminiService _gemini = Get.find<GeminiService>();
+  final SettingsService _settings = Get.find<SettingsService>();
+  final CategoryRepository _categoryRepo = Get.find<CategoryRepository>();
+  final TransactionRepository _transactionRepo = Get.find<TransactionRepository>();
 
   final messages = <ChatMessageModel>[].obs;
-  final textController = TextEditingController();
-  final scrollController = ScrollController();
-  final isLoading = false.obs;
+  final isTyping = false.obs;
+
+  static const List<String> quickPrompts = [
+    'Analyze my budget',
+    'Saving tips',
+    'Where am I overspending?',
+    'How to reduce expenses?',
+  ];
 
   @override
   void onInit() {
     super.onInit();
-    _bindMessages();
+    _chatRepo.getMessages().listen((list) => messages.assignAll(list));
   }
 
-  void _bindMessages() {
-    _chatRepository.getMessages().listen((list) {
-      messages.assignAll(list);
+  Future<void> sendMessage(String text) async {
+    if (text.trim().isEmpty) return;
 
-      // Add initial greeting if empty
-      if (messages.isEmpty) {
-        _saveMessage(ChatMessageModel(
-          id: const Uuid().v4(),
-          message:
-              "Hello! I'm your AI Budget Assistant. How can I help you manage your finances today?",
-          isUser: false,
-          timestamp: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ));
-      } else {
-        _scrollToBottom();
-      }
-    });
-  }
-
-  Future<void> sendMessage() async {
-    final text = textController.text.trim();
-    if (text.isEmpty) return;
-
-    textController.clear();
-
-    // Add user message
     final userMsg = ChatMessageModel(
       id: const Uuid().v4(),
-      message: text,
+      message: text.trim(),
       isUser: true,
       timestamp: DateTime.now(),
-      updatedAt: DateTime.now(),
     );
-    await _saveMessage(userMsg);
+    await _chatRepo.addMessage(userMsg);
 
-    isLoading.value = true;
-    _scrollToBottom();
-
-    // Generate AI response
+    isTyping.value = true;
     try {
-      final response = await _generateResponse(text);
-      await _addAiMessage(response);
-    } catch (e) {
-      await _addAiMessage("Sorry, I encountered an error: $e");
+      String response;
+      if (_isInsightQuery(text)) {
+        response = await _generateInsights();
+      } else {
+        response = await _gemini.generateResponse(text.trim());
+      }
+
+      final aiMsg = ChatMessageModel(
+        id: const Uuid().v4(),
+        message: response,
+        isUser: false,
+        timestamp: DateTime.now(),
+      );
+      await _chatRepo.addMessage(aiMsg);
     } finally {
-      isLoading.value = false;
-      _scrollToBottom();
+      isTyping.value = false;
     }
   }
 
-  Future<String> _generateResponse(String userMessage) async {
-    final lowerMsg = userMessage.toLowerCase();
-
-    // Check if user wants spending analysis
-    if (lowerMsg.contains("analyze") ||
-        lowerMsg.contains("insight") ||
-        lowerMsg.contains("spending") ||
-        lowerMsg.contains("budget overview")) {
-      // Use local insights service for data analysis
-      final insights = _insightsService.analyzeMonthlySpending();
-      if (insights.isEmpty) {
-        return await _geminiService.generateResponse(
-            "The user asked for spending analysis but has no transactions yet. "
-            "Encourage them to start tracking expenses.");
-      }
-
-      // Let Gemini provide insights based on the data
-      return await _geminiService.generateResponse(
-          "Provide financial insights based on this data: ${insights.join(', ')}");
-    }
-
-    // For all other queries, use Gemini AI
-    return await _geminiService.generateResponse(userMessage);
+  bool _isInsightQuery(String text) {
+    final lower = text.toLowerCase();
+    return lower.contains('analyze') ||
+        lower.contains('budget') ||
+        lower.contains('overspend') ||
+        lower.contains('spending');
   }
 
-  Future<void> _addAiMessage(String text) async {
-    final aiMsg = ChatMessageModel(
-      id: const Uuid().v4(),
-      message: text,
-      isUser: false,
-      timestamp: DateTime.now(),
-      updatedAt: DateTime.now(),
+  Future<String> _generateInsights() async {
+    final categories = await _categoryRepo
+        .getCategories()
+        .first;
+    final transactions = await _transactionRepo
+        .getTransactions()
+        .first;
+
+    final currentMonth = _settings.currentMonth.value;
+    final monthTx = transactions.where(
+        (t) => AppDateUtils.getMonthKeyFromDate(t.date) == currentMonth);
+
+    final categorySpending = categories.map((cat) {
+      final spent = monthTx
+          .where((t) => t.categoryId == cat.id)
+          .fold(0.0, (s, t) => s + t.amount);
+      final pct = cat.budgetLimit > 0
+          ? (spent / cat.budgetLimit * 100).toStringAsFixed(0)
+          : '0';
+      return {
+        'name': cat.name,
+        'spent': spent.toStringAsFixed(2),
+        'budget': cat.budgetLimit.toStringAsFixed(2),
+        'percentage': pct,
+      };
+    }).toList();
+
+    final totalSpent =
+        monthTx.fold(0.0, (s, t) => s + t.amount);
+    final totalBudget =
+        categories.fold(0.0, (s, c) => s + c.budgetLimit);
+
+    return _gemini.generateInsights(
+      monthlyIncome: _settings.monthlyIncome.value,
+      totalSpent: totalSpent,
+      totalBudget: totalBudget,
+      categorySpending: categorySpending,
     );
-    await _saveMessage(aiMsg);
   }
 
-  Future<void> _saveMessage(ChatMessageModel msg) async {
-    await _chatRepository.addMessage(msg);
-  }
-
-  void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (scrollController.hasClients) {
-        scrollController.animateTo(
-          scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
-  @override
-  void onClose() {
-    textController.dispose();
-    scrollController.dispose();
-    super.onClose();
+  Future<void> clearChat() async {
+    await _chatRepo.deleteAllMessages();
+    _gemini.resetChat();
   }
 }

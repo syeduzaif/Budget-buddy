@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_fonts.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../core/widgets/buttons.dart';
-import '../../core/widgets/input_fields.dart';
-import 'auth_controller.dart';
+import '../../core/theme/app_fonts.dart';
+import '../../services/firebase/firebase_auth_service.dart';
+import '../../services/firebase/google_auth_service.dart';
+import '../../routes/app_routes.dart';
+import '../../utils/validators.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -16,214 +16,194 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
-  final AuthController controller = Get.find<AuthController>();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  late final TextEditingController _emailController;
-  late final TextEditingController _passwordController;
-
-  @override
-  void initState() {
-    super.initState();
-    _emailController = TextEditingController();
-    _passwordController = TextEditingController();
-  }
+  final _formKey = GlobalKey<FormState>();
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  bool _loading = false;
+  bool _obscure = true;
+  String? _error;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
     super.dispose();
   }
 
-  void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
-      controller.login(_emailController.text, _passwordController.text);
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _loading = true; _error = null; });
+    try {
+      await Get.find<FirebaseAuthService>().signInWithEmailPassword(
+        email: _emailCtrl.text,
+        password: _passwordCtrl.text,
+      );
+    } catch (e) {
+      setState(() { _error = e.toString(); });
+    } finally {
+      if (mounted) setState(() { _loading = false; });
+    }
+  }
+
+  Future<void> _googleLogin() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      await Get.find<GoogleAuthService>().signInWithGoogle();
+    } catch (e) {
+      setState(() { _error = e.toString(); });
+    } finally {
+      if (mounted) setState(() { _loading = false; });
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    if (_emailCtrl.text.trim().isEmpty) {
+      Get.snackbar('Info', 'Enter your email first', snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+    try {
+      await Get.find<FirebaseAuthService>().sendPasswordResetEmail(_emailCtrl.text);
+      Get.snackbar('Email Sent', 'Check your inbox for a password reset link',
+          snackPosition: SnackPosition.BOTTOM);
+    } catch (e) {
+      Get.snackbar('Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.l),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height -
-                  MediaQuery.of(context).padding.top -
-                  MediaQuery.of(context).padding.bottom -
-                  AppSpacing.l * 2,
-            ),
-            child: IntrinsicHeight(
-              child: Form(
-                key: _formKey,
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    vertical: AppSpacing.xl, horizontal: AppSpacing.l),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.primaryDark, AppColors.primary],
+                  ),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: AppSpacing.xxl),
-
-                    // Logo and Welcome Text
-                    Center(
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(AppSpacing.m),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.account_balance_wallet,
-                              size: 48,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.l),
-                          Text(
-                            'Budget Buddy',
-                            style: AppFonts.h2.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.s),
-                          Text(
-                            'Welcome back!',
-                            style: AppFonts.bodyLarge.copyWith(
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: AppSpacing.xxl),
-
-                    // Email Field
-                    AppInputField(
-                      label: 'Email',
-                      hint: 'Enter your email',
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      prefixIcon: Icons.email_outlined,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!GetUtils.isEmail(value)) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: AppSpacing.l),
-
-                    // Password Field
-                    Obx(() => AppInputField(
-                          label: 'Password',
-                          hint: 'Enter your password',
-                          controller: _passwordController,
-                          obscureText: !controller.isPasswordVisible.value,
-                          prefixIcon: Icons.lock_outlined,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              controller.isPasswordVisible.value
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: AppColors.textMuted,
-                            ),
-                            onPressed: controller.togglePasswordVisibility,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your password';
-                            }
-                            if (value.length < 6) {
-                              return 'Password must be at least 6 characters';
-                            }
-                            return null;
-                          },
-                        )),
-
-                    const SizedBox(height: AppSpacing.s),
-
-                    // Forgot Password Link
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: AppTextButton(
-                        text: 'Forgot Password?',
-                        onPressed: () {
-                          // TODO: Implement forgot password
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(height: AppSpacing.xl),
-
-                    // Login Button
-                    Obx(() => PrimaryButton(
-                          text: 'Login',
-                          onPressed: _handleLogin,
-                          isLoading: controller.isLoading.value,
-                          isFullWidth: true,
-                        )),
-
-                    const SizedBox(height: AppSpacing.l),
-
-                    // Divider
-                    Row(
-                      children: [
-                        const Expanded(child: Divider()),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.m),
-                          child: Text(
-                            'OR',
-                            style: AppFonts.labelSmall.copyWith(
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ),
-                        const Expanded(child: Divider()),
-                      ],
-                    ),
-
-                    const SizedBox(height: AppSpacing.l),
-
-                    // Google Sign-In Button
-                    // Google Sign-In Button
-                    Obx(() => SecondaryButton(
-                          text: 'Continue with Google',
-                          icon: Icons
-                              .g_mobiledata, // Fallback icon, ideally use assets
-                          onPressed: controller.isLoading.value
-                              ? null
-                              : controller.loginWithGoogle,
-                          isFullWidth: true,
-                        )),
-
-                    const Spacer(),
-
-                    // Sign Up Link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Don't have an account?",
-                          style: AppFonts.bodyMedium,
-                        ),
-                        AppTextButton(
-                          text: 'Sign Up',
-                          onPressed: controller.goToSignup,
-                        ),
-                      ],
-                    ),
+                    const Icon(Icons.account_balance_wallet_rounded,
+                        size: 64, color: Colors.white),
+                    const SizedBox(height: AppSpacing.m),
+                    Text('Budget Buddy',
+                        style: AppFonts.h2.copyWith(color: Colors.white)),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text('Smart budgeting, simply done',
+                        style: AppFonts.bodyMedium.copyWith(color: Colors.white70)),
                   ],
                 ),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.l),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: AppSpacing.m),
+                      Text('Welcome back', style: AppFonts.h4),
+                      const SizedBox(height: AppSpacing.s),
+                      Text('Sign in to continue',
+                          style: AppFonts.bodyMedium.copyWith(color: colors.onSurfaceVariant)),
+                      const SizedBox(height: AppSpacing.l),
+                      if (_error != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.s),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusM),
+                          ),
+                          child: Text(_error!,
+                              style: AppFonts.bodySmall.copyWith(color: AppColors.error)),
+                        ),
+                        const SizedBox(height: AppSpacing.m),
+                      ],
+                      TextFormField(
+                        controller: _emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
+                        validator: Validators.email,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      TextFormField(
+                        controller: _passwordCtrl,
+                        obscureText: _obscure,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: const Icon(Icons.lock_outlined),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined),
+                            onPressed: () => setState(() => _obscure = !_obscure),
+                          ),
+                        ),
+                        validator: Validators.password,
+                      ),
+                      const SizedBox(height: AppSpacing.s),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _forgotPassword,
+                          child: const Text('Forgot Password?'),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      FilledButton(
+                        onPressed: _loading ? null : _login,
+                        child: _loading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text('Log In'),
+                      ),
+                      const SizedBox(height: AppSpacing.l),
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            child: Text('OR',
+                                style: AppFonts.caption.copyWith(color: colors.onSurfaceVariant)),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.l),
+                      OutlinedButton.icon(
+                        onPressed: _loading ? null : _googleLogin,
+                        icon: const Icon(Icons.g_mobiledata, size: 28),
+                        label: const Text('Continue with Google'),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text("Don't have an account? ", style: AppFonts.bodyMedium),
+                          TextButton(
+                            onPressed: () => Get.toNamed(AppRoutes.signup),
+                            child: const Text('Sign Up'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
