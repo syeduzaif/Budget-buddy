@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:uuid/uuid.dart';
+import '../../data/models/category.dart';
+import '../../data/predefined_categories.dart';
+import '../../data/repositories/category_repository.dart';
 import '../../services/app/settings_service.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/currency_utils.dart';
@@ -38,8 +42,31 @@ class OnboardingController extends GetxController {
     final income = double.tryParse(incomeController.text.trim()) ?? 0.0;
     await _settings.setCurrency(selectedCurrency.value.code, selectedCurrency.value.symbol);
     await _settings.setMonthlyIncome(income);
-    await _settings.setCurrentMonth(AppDateUtils.getCurrentMonthKey());
+    final month = AppDateUtils.getCurrentMonthKey();
+    await _settings.setCurrentMonth(month);
     await _settings.completeOnboarding();
+    await _seedDefaultCategories(month);
     Get.offAllNamed(AppRoutes.home);
+  }
+
+  Future<void> _seedDefaultCategories(String month) async {
+    final categoryRepo = Get.find<CategoryRepository>();
+    const uuid = Uuid();
+    final now = DateTime.now();
+
+    final categories = kPredefinedCategories
+        .map((preset) => Category(
+              id: uuid.v4(),
+              name: preset.name,
+              budgetLimit: preset.defaultBudget,
+              colorValue: preset.colorValue,
+              iconCodePoint: preset.iconCodePoint,
+              month: month,
+              createdAt: now,
+              updatedAt: now,
+            ))
+        .toList();
+
+    await categoryRepo.addCategories(categories);
   }
 }

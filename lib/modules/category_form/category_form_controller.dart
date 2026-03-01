@@ -15,6 +15,7 @@ class CategoryFormController extends GetxController {
   final nameController = TextEditingController();
   final budgetController = TextEditingController();
   final selectedColor = const Color(0xFF2D8B8B).obs;
+  final selectedIconCodePoint = Rxn<int>();
   final isLoading = false.obs;
 
   Category? editingCategory;
@@ -24,6 +25,29 @@ class CategoryFormController extends GetxController {
     Color(0xFF2ECC71), Color(0xFFF39C12), Color(0xFF3498DB),
     Color(0xFF9B59B6), Color(0xFFE67E22), Color(0xFF1ABC9C),
     Color(0xFFE91E63), Color(0xFF607D8B), Color(0xFF795548),
+  ];
+
+  static const List<IconData> iconPalette = [
+    Icons.restaurant,
+    Icons.directions_car,
+    Icons.home,
+    Icons.bolt,
+    Icons.movie,
+    Icons.shopping_bag,
+    Icons.local_hospital,
+    Icons.school,
+    Icons.savings,
+    Icons.flight,
+    Icons.pets,
+    Icons.checkroom,
+    Icons.phone_android,
+    Icons.fitness_center,
+    Icons.coffee,
+    Icons.child_care,
+    Icons.card_giftcard,
+    Icons.build,
+    Icons.wifi,
+    Icons.more_horiz,
   ];
 
   bool get isEditing => editingCategory != null;
@@ -37,6 +61,7 @@ class CategoryFormController extends GetxController {
       nameController.text = arg.name;
       budgetController.text = arg.budgetLimit.toString();
       selectedColor.value = Color(arg.colorValue);
+      selectedIconCodePoint.value = arg.iconCodePoint;
     }
   }
 
@@ -48,6 +73,7 @@ class CategoryFormController extends GetxController {
   }
 
   void selectColor(Color color) => selectedColor.value = color;
+  void selectIcon(int? codePoint) => selectedIconCodePoint.value = codePoint;
 
   Future<void> save() async {
     final name = nameController.text.trim();
@@ -62,6 +88,7 @@ class CategoryFormController extends GetxController {
           name: name,
           budgetLimit: budget,
           colorValue: selectedColor.value.toARGB32(),
+          iconCodePoint: selectedIconCodePoint.value,
           month: editingCategory!.month,
           createdAt: editingCategory!.createdAt,
           updatedAt: DateTime.now(),
@@ -73,6 +100,7 @@ class CategoryFormController extends GetxController {
           name: name,
           budgetLimit: budget,
           colorValue: selectedColor.value.toARGB32(),
+          iconCodePoint: selectedIconCodePoint.value,
           month: settings.currentMonth.value.isNotEmpty
               ? settings.currentMonth.value
               : AppDateUtils.getCurrentMonthKey(),

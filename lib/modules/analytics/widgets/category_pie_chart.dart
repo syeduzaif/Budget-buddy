@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/category_icon.dart';
 import '../../../data/models/category.dart';
 import '../../../utils/currency_utils.dart';
 
@@ -66,11 +67,14 @@ class CategoryPieChart extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: AppSpacing.xs),
             child: Row(
               children: [
-                Container(
-                    width: 10,
-                    height: 10,
-                    decoration:
-                        BoxDecoration(color: color, shape: BoxShape.circle)),
+                if (cat != null)
+                  CategoryIcon(category: cat, size: 20)
+                else
+                  Container(
+                      width: 10,
+                      height: 10,
+                      decoration:
+                          BoxDecoration(color: color, shape: BoxShape.circle)),
                 const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(cat?.name ?? 'Unknown',

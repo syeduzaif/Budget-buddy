@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -29,6 +30,9 @@ class Category extends HiveObject {
   @HiveField(7)
   late bool synced;
 
+  @HiveField(8)
+  int? iconCodePoint;
+
   Category({
     required this.id,
     required this.name,
@@ -38,7 +42,12 @@ class Category extends HiveObject {
     required this.createdAt,
     required this.updatedAt,
     this.synced = false,
+    this.iconCodePoint,
   });
+
+  IconData get icon => iconCodePoint != null
+      ? IconData(iconCodePoint!, fontFamily: 'MaterialIcons')
+      : Icons.circle;
 
   // Calculate total spent from transactions
   double calculateTotalSpent(List<dynamic> allTransactions) {
@@ -69,6 +78,7 @@ class Category extends HiveObject {
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
         'synced': synced,
+        'iconCodePoint': iconCodePoint,
       };
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
@@ -82,6 +92,7 @@ class Category extends HiveObject {
             ? DateTime.parse(json['updatedAt'])
             : DateTime.parse(json['createdAt']),
         synced: json['synced'] ?? false,
+        iconCodePoint: json['iconCodePoint'] as int?,
       );
 
   factory Category.fromFirestore(DocumentSnapshot doc) {
@@ -95,11 +106,12 @@ class Category extends HiveObject {
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       synced: true,
+      iconCodePoint: data['iconCodePoint'] as int?,
     );
   }
 
   Map<String, dynamic> toFirestore() {
-    return {
+    final map = <String, dynamic>{
       'name': name,
       'budgetLimit': budgetLimit,
       'colorValue': colorValue,
@@ -107,5 +119,9 @@ class Category extends HiveObject {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': FieldValue.serverTimestamp(),
     };
+    if (iconCodePoint != null) {
+      map['iconCodePoint'] = iconCodePoint;
+    }
+    return map;
   }
 }

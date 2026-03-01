@@ -21,6 +21,15 @@ class CategoryRepository extends GetxService {
     await _fs.categoriesCollection!.doc(category.id).set(category.toFirestore());
   }
 
+  Future<void> addCategories(List<Category> categories) async {
+    if (_fs.categoriesCollection == null) return;
+    final batch = FirebaseFirestore.instance.batch();
+    for (final cat in categories) {
+      batch.set(_fs.categoriesCollection!.doc(cat.id), cat.toFirestore());
+    }
+    await batch.commit();
+  }
+
   Future<void> updateCategory(Category category) async {
     if (_fs.categoriesCollection == null) return;
     await _fs.categoriesCollection!.doc(category.id).update(category.toFirestore());
