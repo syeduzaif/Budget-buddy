@@ -76,6 +76,45 @@ class CategoryFormView extends StatelessWidget {
                 validator: Validators.amount,
               ),
               const SizedBox(height: AppSpacing.l),
+              Text('Pick an Icon', style: AppFonts.labelLarge),
+              const SizedBox(height: AppSpacing.s),
+              Obx(() => Wrap(
+                    spacing: AppSpacing.s,
+                    runSpacing: AppSpacing.s,
+                    children:
+                        CategoryFormController.iconPalette.map((iconData) {
+                      final isSelected = ctrl.selectedIconCodePoint.value ==
+                          iconData.codePoint;
+                      return GestureDetector(
+                        onTap: () => ctrl.selectIcon(iconData.codePoint),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? ctrl.selectedColor.value
+                                    .withValues(alpha: 0.2)
+                                : Colors.transparent,
+                            shape: BoxShape.circle,
+                            border: isSelected
+                                ? Border.all(
+                                    color: ctrl.selectedColor.value, width: 2)
+                                : Border.all(
+                                    color: AppColors.border, width: 1),
+                          ),
+                          child: Icon(
+                            iconData,
+                            size: AppSpacing.iconM,
+                            color: isSelected
+                                ? ctrl.selectedColor.value
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  )),
+              const SizedBox(height: AppSpacing.l),
               Text('Pick a Color', style: AppFonts.labelLarge),
               const SizedBox(height: AppSpacing.s),
               Obx(() => Wrap(

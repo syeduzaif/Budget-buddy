@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_fonts.dart';
+import '../../../core/widgets/category_icon.dart';
 import '../../../data/models/category.dart';
 import '../../../utils/currency_utils.dart';
 
@@ -41,12 +42,7 @@ class CategoryCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration:
-                        BoxDecoration(color: color, shape: BoxShape.circle),
-                  ),
+                  CategoryIcon(category: category, size: 28),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(category.name,

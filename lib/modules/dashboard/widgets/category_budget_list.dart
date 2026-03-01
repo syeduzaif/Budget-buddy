@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../core/animations/animations.dart';
+import '../../../core/widgets/category_icon.dart';
 import '../../../data/models/category.dart';
 import '../../../utils/currency_utils.dart';
 
@@ -59,14 +60,7 @@ class CategoryBudgetList extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
+                      CategoryIcon(category: cat, size: 22),
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(

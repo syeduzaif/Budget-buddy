@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
+import '../../core/widgets/category_icon.dart';
 import '../../utils/date_utils.dart';
 import '../../utils/validators.dart';
 import 'transaction_form_controller.dart';
@@ -73,14 +74,7 @@ class TransactionFormView extends StatelessWidget {
                                 onPressed: () => Navigator.pop(ctx, cat),
                                 child: Row(
                                   children: [
-                                    Container(
-                                      width: 12,
-                                      height: 12,
-                                      decoration: BoxDecoration(
-                                        color: Color(cat.colorValue),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
+                                    CategoryIcon(category: cat, size: 24),
                                     const SizedBox(width: AppSpacing.s),
                                     Text(cat.name, style: AppFonts.bodyMedium),
                                   ],
@@ -100,14 +94,7 @@ class TransactionFormView extends StatelessWidget {
                   child: selected != null
                       ? Row(
                           children: [
-                            Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: Color(selected.colorValue),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
+                            CategoryIcon(category: selected, size: 24),
                             const SizedBox(width: AppSpacing.xs),
                             Text(selected.name, style: AppFonts.bodyMedium),
                           ],
