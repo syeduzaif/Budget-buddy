@@ -56,7 +56,7 @@ class Category extends HiveObject {
 
     return categoryTransactions.fold(
       0.0,
-      (sum, transaction) => sum + transaction.amount,
+      (total, transaction) => total + transaction.amount,
     );
   }
 

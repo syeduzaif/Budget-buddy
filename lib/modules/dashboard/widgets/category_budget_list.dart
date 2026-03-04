@@ -71,8 +71,8 @@ class CategoryBudgetList extends StatelessWidget {
                         ),
                       ),
                       if (isOver)
-                        Padding(
-                          padding: const EdgeInsets.only(right: AppSpacing.xxs),
+                        const Padding(
+                          padding: EdgeInsets.only(right: AppSpacing.xxs),
                           child: Icon(Icons.warning_amber_rounded,
                               size: 14, color: AppColors.error),
                         ),

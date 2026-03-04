@@ -109,11 +109,11 @@ class AppTheme {
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: AppColors.border),
+            borderSide: const BorderSide(color: AppColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: AppColors.border),
+            borderSide: const BorderSide(color: AppColors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
@@ -159,7 +159,7 @@ class AppTheme {
           selectedColor: AppColors.primaryLight.withValues(alpha: 0.25),
           disabledColor: AppColors.border,
           labelStyle: AppFonts.labelMedium,
-          side: BorderSide(color: AppColors.border),
+          side: const BorderSide(color: AppColors.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -368,11 +368,11 @@ class AppTheme {
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: AppColors.borderDark),
+            borderSide: const BorderSide(color: AppColors.borderDark),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: AppColors.borderDark),
+            borderSide: const BorderSide(color: AppColors.borderDark),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
@@ -390,7 +390,7 @@ class AppTheme {
         ),
 
         // ── Bottom Navigation ─────────────────────────────────────
-        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: AppColors.surfaceDark,
           selectedItemColor: AppColors.primaryLight,
           unselectedItemColor: AppColors.textMuted,
@@ -403,7 +403,7 @@ class AppTheme {
           backgroundColor: AppColors.surfaceDark,
           selectedColor: AppColors.primaryLight.withValues(alpha: 0.20),
           labelStyle: AppFonts.labelMedium.copyWith(color: AppColors.textDark),
-          side: BorderSide(color: AppColors.borderDark),
+          side: const BorderSide(color: AppColors.borderDark),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -452,7 +452,7 @@ class AppTheme {
         ),
 
         // ── TabBar ────────────────────────────────────────────────
-        tabBarTheme: TabBarThemeData(
+        tabBarTheme: const TabBarThemeData(
           labelColor: AppColors.primaryLight,
           unselectedLabelColor: AppColors.textMuted,
           indicatorColor: AppColors.primaryLight,

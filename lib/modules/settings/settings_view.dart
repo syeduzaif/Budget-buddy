@@ -51,7 +51,7 @@ class SettingsView extends StatelessWidget {
             const Divider(height: 1),
 
             // Preferences
-            _SectionHeader('Preferences'),
+            const _SectionHeader('Preferences'),
             ListTile(
               leading: const Icon(Icons.attach_money),
               title: const Text('Monthly Income'),
@@ -85,7 +85,7 @@ class SettingsView extends StatelessWidget {
             const Divider(height: 1),
 
             // Sign out
-            _SectionHeader('Account'),
+            const _SectionHeader('Account'),
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.error),
               title: Text('Sign Out',
@@ -212,15 +212,13 @@ class SettingsView extends StatelessWidget {
             }.entries)
               ListTile(
                 title: Text(entry.value),
-                leading: Radio<String>(
-                  value: entry.key,
-                  groupValue: ctrl.settings.themeMode.value,
-                  onChanged: (v) {
-                    if (v != null) {
-                      ctrl.setTheme(v);
-                      Get.back();
-                    }
-                  },
+                leading: Icon(
+                  ctrl.settings.themeMode.value == entry.key
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  color: ctrl.settings.themeMode.value == entry.key
+                      ? AppColors.primary
+                      : AppColors.textMuted,
                 ),
                 onTap: () {
                   ctrl.setTheme(entry.key);

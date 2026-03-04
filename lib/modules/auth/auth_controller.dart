@@ -66,18 +66,24 @@ class AuthController extends GetxController {
     _session.closeUserSession();
     // GetX will handle cleanup of permanent services on app exit;
     // on logout we simply delete them so they re-init fresh next login.
-    if (Get.isRegistered<SettingsService>())
+    if (Get.isRegistered<SettingsService>()) {
       Get.delete<SettingsService>(force: true);
-    if (Get.isRegistered<CategoryRepository>())
+    }
+    if (Get.isRegistered<CategoryRepository>()) {
       Get.delete<CategoryRepository>(force: true);
-    if (Get.isRegistered<TransactionRepository>())
+    }
+    if (Get.isRegistered<TransactionRepository>()) {
       Get.delete<TransactionRepository>(force: true);
-    if (Get.isRegistered<IncomeRepository>())
+    }
+    if (Get.isRegistered<IncomeRepository>()) {
       Get.delete<IncomeRepository>(force: true);
-    if (Get.isRegistered<ChatRepository>())
+    }
+    if (Get.isRegistered<ChatRepository>()) {
       Get.delete<ChatRepository>(force: true);
-    if (Get.isRegistered<GeminiService>())
+    }
+    if (Get.isRegistered<GeminiService>()) {
       Get.delete<GeminiService>(force: true);
+    }
   }
 
   Future<void> signOut() async {
