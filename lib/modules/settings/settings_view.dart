@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
@@ -29,7 +30,8 @@ class SettingsView extends StatelessWidget {
                   const CircleAvatar(
                     radius: 28,
                     backgroundColor: AppColors.primaryLight,
-                    child: Icon(Icons.person, size: 32, color: AppColors.primaryDark),
+                    child: Icon(Icons.person,
+                        size: 32, color: AppColors.primaryDark),
                   ),
                   const SizedBox(width: AppSpacing.m),
                   Expanded(
@@ -90,6 +92,16 @@ class SettingsView extends StatelessWidget {
                   style: AppFonts.labelLarge.copyWith(color: AppColors.error)),
               onTap: ctrl.isLoading.value ? null : ctrl.signOut,
             ),
+
+            // Version footer
+            const SizedBox(height: AppSpacing.xxl),
+            Center(
+              child: Text(
+                '${AppConstants.appName} v${AppConstants.appVersion}',
+                style: AppFonts.caption,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.m),
           ],
         );
       }),
@@ -126,7 +138,8 @@ class SettingsView extends StatelessWidget {
             const SizedBox(height: AppSpacing.m),
             TextField(
               controller: ctrl.incomeInputController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               autofocus: true,
               decoration: InputDecoration(
                 labelText: 'Amount',

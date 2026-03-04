@@ -32,37 +32,55 @@ class _LoginViewState extends State<LoginView> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       await Get.find<FirebaseAuthService>().signInWithEmailPassword(
         email: _emailCtrl.text,
         password: _passwordCtrl.text,
       );
     } catch (e) {
-      setState(() { _error = e.toString(); });
+      setState(() {
+        _error = e.toString();
+      });
     } finally {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+        });
     }
   }
 
   Future<void> _googleLogin() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       await Get.find<GoogleAuthService>().signInWithGoogle();
     } catch (e) {
-      setState(() { _error = e.toString(); });
+      setState(() {
+        _error = e.toString();
+      });
     } finally {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+        });
     }
   }
 
   Future<void> _forgotPassword() async {
     if (_emailCtrl.text.trim().isEmpty) {
-      Get.snackbar('Info', 'Enter your email first', snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Info', 'Enter your email first',
+          snackPosition: SnackPosition.BOTTOM);
       return;
     }
     try {
-      await Get.find<FirebaseAuthService>().sendPasswordResetEmail(_emailCtrl.text);
+      await Get.find<FirebaseAuthService>()
+          .sendPasswordResetEmail(_emailCtrl.text);
       Get.snackbar('Email Sent', 'Check your inbox for a password reset link',
           snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
@@ -94,11 +112,12 @@ class _LoginViewState extends State<LoginView> {
                     const Icon(Icons.account_balance_wallet_rounded,
                         size: 64, color: Colors.white),
                     const SizedBox(height: AppSpacing.m),
-                    Text('Budget Buddy',
+                    Text('BuddgetBuddy',
                         style: AppFonts.h2.copyWith(color: Colors.white)),
                     const SizedBox(height: AppSpacing.xs),
                     Text('Smart budgeting, simply done',
-                        style: AppFonts.bodyMedium.copyWith(color: Colors.white70)),
+                        style: AppFonts.bodyMedium
+                            .copyWith(color: Colors.white70)),
                   ],
                 ),
               ),
@@ -113,17 +132,20 @@ class _LoginViewState extends State<LoginView> {
                       Text('Welcome back', style: AppFonts.h4),
                       const SizedBox(height: AppSpacing.s),
                       Text('Sign in to continue',
-                          style: AppFonts.bodyMedium.copyWith(color: colors.onSurfaceVariant)),
+                          style: AppFonts.bodyMedium
+                              .copyWith(color: colors.onSurfaceVariant)),
                       const SizedBox(height: AppSpacing.l),
                       if (_error != null) ...[
                         Container(
                           padding: const EdgeInsets.all(AppSpacing.s),
                           decoration: BoxDecoration(
                             color: AppColors.error.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusM),
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.radiusM),
                           ),
                           child: Text(_error!,
-                              style: AppFonts.bodySmall.copyWith(color: AppColors.error)),
+                              style: AppFonts.bodySmall
+                                  .copyWith(color: AppColors.error)),
                         ),
                         const SizedBox(height: AppSpacing.m),
                       ],
@@ -147,7 +169,8 @@ class _LoginViewState extends State<LoginView> {
                             icon: Icon(_obscure
                                 ? Icons.visibility_outlined
                                 : Icons.visibility_off_outlined),
-                            onPressed: () => setState(() => _obscure = !_obscure),
+                            onPressed: () =>
+                                setState(() => _obscure = !_obscure),
                           ),
                         ),
                         validator: Validators.password,
@@ -167,7 +190,8 @@ class _LoginViewState extends State<LoginView> {
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
                             : const Text('Log In'),
                       ),
                       const SizedBox(height: AppSpacing.l),
@@ -175,9 +199,11 @@ class _LoginViewState extends State<LoginView> {
                         children: [
                           const Expanded(child: Divider()),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s),
                             child: Text('OR',
-                                style: AppFonts.caption.copyWith(color: colors.onSurfaceVariant)),
+                                style: AppFonts.caption
+                                    .copyWith(color: colors.onSurfaceVariant)),
                           ),
                           const Expanded(child: Divider()),
                         ],
@@ -192,7 +218,8 @@ class _LoginViewState extends State<LoginView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text("Don't have an account? ", style: AppFonts.bodyMedium),
+                          Text("Don't have an account? ",
+                              style: AppFonts.bodyMedium),
                           TextButton(
                             onPressed: () => Get.toNamed(AppRoutes.signup),
                             child: const Text('Sign Up'),

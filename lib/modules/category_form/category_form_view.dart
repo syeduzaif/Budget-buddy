@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
+import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../services/app/settings_service.dart';
 import '../../utils/validators.dart';
@@ -56,6 +57,85 @@ class CategoryFormView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Quick-select chips (only when creating, not editing)
+              if (!ctrl.isEditing) ...[
+                Text('Quick Select', style: AppFonts.labelLarge),
+                const SizedBox(height: AppSpacing.s),
+                Obx(() => Wrap(
+                      spacing: AppSpacing.s,
+                      runSpacing: AppSpacing.s,
+                      children: List.generate(
+                        kPredefinedCategories.length,
+                        (i) {
+                          final preset = kPredefinedCategories[i];
+                          final isSelected =
+                              ctrl.selectedPresetIndex.value == i;
+                          final chipColor = Color(preset.colorValue);
+                          return GestureDetector(
+                            onTap: () => ctrl.selectPreset(i),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.m,
+                                vertical: AppSpacing.xs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? chipColor.withValues(alpha: 0.15)
+                                    : Colors.transparent,
+                                borderRadius:
+                                    BorderRadius.circular(AppSpacing.radiusXl),
+                                border: Border.all(
+                                  color:
+                                      isSelected ? chipColor : AppColors.border,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    IconData(preset.iconCodePoint,
+                                        fontFamily: 'MaterialIcons'),
+                                    size: 18,
+                                    color: isSelected
+                                        ? chipColor
+                                        : AppColors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    preset.name,
+                                    style: AppFonts.labelMedium.copyWith(
+                                      color: isSelected
+                                          ? chipColor
+                                          : AppColors.textSecondary,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    )),
+                const SizedBox(height: AppSpacing.l),
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                      child:
+                          Text('or customize below', style: AppFonts.caption),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.l),
+              ],
               TextFormField(
                 controller: ctrl.nameController,
                 decoration: const InputDecoration(
@@ -100,8 +180,7 @@ class CategoryFormView extends StatelessWidget {
                             border: isSelected
                                 ? Border.all(
                                     color: ctrl.selectedColor.value, width: 2)
-                                : Border.all(
-                                    color: AppColors.border, width: 1),
+                                : Border.all(color: AppColors.border, width: 1),
                           ),
                           child: Icon(
                             iconData,

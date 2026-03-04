@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/category.dart';
+import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../services/app/settings_service.dart';
 import '../../utils/date_utils.dart';
@@ -17,14 +18,23 @@ class CategoryFormController extends GetxController {
   final selectedColor = const Color(0xFF2D8B8B).obs;
   final selectedIconCodePoint = Rxn<int>();
   final isLoading = false.obs;
+  final selectedPresetIndex = Rxn<int>();
 
   Category? editingCategory;
 
   static const List<Color> palette = [
-    Color(0xFF2D8B8B), Color(0xFF1B4965), Color(0xFFE74C3C),
-    Color(0xFF2ECC71), Color(0xFFF39C12), Color(0xFF3498DB),
-    Color(0xFF9B59B6), Color(0xFFE67E22), Color(0xFF1ABC9C),
-    Color(0xFFE91E63), Color(0xFF607D8B), Color(0xFF795548),
+    Color(0xFF2D8B8B),
+    Color(0xFF1B4965),
+    Color(0xFFE74C3C),
+    Color(0xFF2ECC71),
+    Color(0xFFF39C12),
+    Color(0xFF3498DB),
+    Color(0xFF9B59B6),
+    Color(0xFFE67E22),
+    Color(0xFF1ABC9C),
+    Color(0xFFE91E63),
+    Color(0xFF607D8B),
+    Color(0xFF795548),
   ];
 
   static const List<IconData> iconPalette = [
@@ -74,6 +84,26 @@ class CategoryFormController extends GetxController {
 
   void selectColor(Color color) => selectedColor.value = color;
   void selectIcon(int? codePoint) => selectedIconCodePoint.value = codePoint;
+
+  /// Toggle a predefined category preset: tap to fill, tap again to clear.
+  void selectPreset(int index) {
+    if (selectedPresetIndex.value == index) {
+      // Deselect — clear all fields
+      selectedPresetIndex.value = null;
+      nameController.clear();
+      budgetController.clear();
+      selectedColor.value = const Color(0xFF2D8B8B);
+      selectedIconCodePoint.value = null;
+    } else {
+      // Select — auto-fill from preset
+      final preset = kPredefinedCategories[index];
+      selectedPresetIndex.value = index;
+      nameController.text = preset.name;
+      budgetController.text = preset.defaultBudget.toString();
+      selectedColor.value = Color(preset.colorValue);
+      selectedIconCodePoint.value = preset.iconCodePoint;
+    }
+  }
 
   Future<void> save() async {
     final name = nameController.text.trim();

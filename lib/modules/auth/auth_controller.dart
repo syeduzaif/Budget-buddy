@@ -32,10 +32,8 @@ class AuthController extends GetxController {
       if (!settings.onboardingComplete.value) {
         Get.offAllNamed(AppRoutes.onboarding);
       } else {
-        // Sync current month if not set
-        if (settings.currentMonth.value.isEmpty) {
-          await settings.setCurrentMonth(AppDateUtils.getCurrentMonthKey());
-        }
+        // Always sync to current month on app load/resume
+        await settings.setCurrentMonth(AppDateUtils.getCurrentMonthKey());
         Get.offAllNamed(AppRoutes.home);
       }
     }
@@ -68,12 +66,18 @@ class AuthController extends GetxController {
     _session.closeUserSession();
     // GetX will handle cleanup of permanent services on app exit;
     // on logout we simply delete them so they re-init fresh next login.
-    if (Get.isRegistered<SettingsService>()) Get.delete<SettingsService>(force: true);
-    if (Get.isRegistered<CategoryRepository>()) Get.delete<CategoryRepository>(force: true);
-    if (Get.isRegistered<TransactionRepository>()) Get.delete<TransactionRepository>(force: true);
-    if (Get.isRegistered<IncomeRepository>()) Get.delete<IncomeRepository>(force: true);
-    if (Get.isRegistered<ChatRepository>()) Get.delete<ChatRepository>(force: true);
-    if (Get.isRegistered<GeminiService>()) Get.delete<GeminiService>(force: true);
+    if (Get.isRegistered<SettingsService>())
+      Get.delete<SettingsService>(force: true);
+    if (Get.isRegistered<CategoryRepository>())
+      Get.delete<CategoryRepository>(force: true);
+    if (Get.isRegistered<TransactionRepository>())
+      Get.delete<TransactionRepository>(force: true);
+    if (Get.isRegistered<IncomeRepository>())
+      Get.delete<IncomeRepository>(force: true);
+    if (Get.isRegistered<ChatRepository>())
+      Get.delete<ChatRepository>(force: true);
+    if (Get.isRegistered<GeminiService>())
+      Get.delete<GeminiService>(force: true);
   }
 
   Future<void> signOut() async {
