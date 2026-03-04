@@ -1,7 +1,7 @@
 # 📋 Product Requirements Document (PRD)
-# BudgetBuddy — Personal Finance Management Platform
+# BuddgetBuddy — Personal Finance Management Platform
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Date:** March 5, 2026  
 **Author:** Syed Uzaif  
 **Status:** Active Development
@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-**BudgetBuddy** is a cross-platform personal finance management solution consisting of a **Flutter mobile application** and a companion **Next.js web application**. It empowers users to track expenses, manage budgets by category, gain AI-powered financial insights, and maintain complete control over their finances — all with a modern, intuitive interface.
+**BuddgetBuddy** is a cross-platform personal finance management solution consisting of a **Flutter mobile application** and a companion **Next.js web application**. It empowers users to track expenses, manage budgets by category, gain AI-powered financial insights, and maintain complete control over their finances — all with a modern, intuitive interface.
 
 > [!IMPORTANT]
 > The platform operates as two interconnected products sharing a common Firebase backend: a mobile-first Flutter app and a feature-rich web dashboard.
@@ -65,6 +65,8 @@ Deliver a beautiful, intelligent, and privacy-respecting budgeting experience th
 | Guided onboarding flow | P1 | Mobile + Web |
 | Currency selection (24+ currencies) | P0 | Mobile + Web |
 | Monthly income setup | P0 | Mobile + Web |
+| Smart onboarding skip (returning users bypass setup) | P1 | Mobile + Web |
+| Animated branded splash screen with post-auth routing | P1 | Mobile |
 
 ### 4.2 Budget Management
 
@@ -73,6 +75,7 @@ Deliver a beautiful, intelligent, and privacy-respecting budgeting experience th
 | Create unlimited expense categories (name, color, budget limit) | P0 | Mobile + Web |
 | Edit and delete categories | P0 | Mobile + Web |
 | Predefined category templates | P1 | Mobile |
+| Category quick-select chips (9 presets with auto-fill) | P1 | Mobile |
 | Color-coded budget progress bars (green/orange/red) | P0 | Mobile + Web |
 | Budget limit warnings (75%, 100% thresholds) | P0 | Mobile + Web |
 | Monthly budget rollover/reset | P1 | Mobile + Web |
@@ -94,6 +97,7 @@ Deliver a beautiful, intelligent, and privacy-respecting budgeting experience th
 | Total income, spent, remaining, unallocated summary | P0 | Mobile + Web |
 | Category breakdown with progress bars | P0 | Mobile + Web |
 | Multi-month navigation (historical data) | P0 | Mobile |
+| Auto-select current month on app startup/resume | P1 | Mobile |
 | Animated number counters | P1 | Web |
 | Spend distribution pie chart | P1 | Web |
 | Pull-to-refresh | P1 | Mobile + Web |
@@ -127,6 +131,7 @@ Deliver a beautiful, intelligent, and privacy-respecting budgeting experience th
 | Theme support (light/dark/system) | P1 | Mobile + Web |
 | User profile management | P1 | Web |
 | Sign-out functionality | P0 | Mobile + Web |
+| Centralized version display (splash + settings footer) | P1 | Mobile + Web |
 
 ### 4.8 App Distribution (CI/CD)
 
@@ -171,18 +176,32 @@ Deliver a beautiful, intelligent, and privacy-respecting budgeting experience th
 ## 6. User Flows
 
 ### 6.1 First-Time User Flow
-1. Open app → Auth screen (login / sign-up)
-2. Sign up with email/password or Google
-3. Onboarding: Select currency → Set monthly income
-4. Redirect to dashboard
+1. Open app → Animated splash screen (logo, app name, tagline, version)
+2. Splash checks auth → Not logged in → Redirect to login
+3. Sign up with email/password or Google
+4. Onboarding: Select currency → Set monthly income → Seed default categories
+5. Redirect to dashboard (current month auto-selected)
 
-### 6.2 Daily Usage Flow
+### 6.2 Returning User Flow
+1. Open app → Animated splash screen (1.5s minimum)
+2. Splash checks auth + onboarding status
+3. If onboarding complete → Skip onboarding, go directly to dashboard
+4. Current month auto-synced to today's date
+
+### 6.3 Daily Usage Flow
 1. Open app → Dashboard (income, spent, remaining)
 2. Tap category → View category transactions
 3. Tap "+" → Add new transaction (amount, note, date)
 4. Return to dashboard → See updated totals
 
-### 6.3 AI Advisor Flow
+### 6.4 Add Category Flow
+1. Tap "Add Category" → Category form opens
+2. Quick-select: Tap a preset chip → Auto-fills name, budget, color, icon
+3. Tap same chip again → Deselects and clears fields
+4. Or customize manually below the divider
+5. Save → Category created for current month
+
+### 6.5 AI Advisor Flow
 1. Navigate to AI Chat
 2. Ask budget question or request insights
 3. AI responds with personalized advice based on spending data
@@ -239,9 +258,10 @@ Deliver a beautiful, intelligent, and privacy-respecting budgeting experience th
 
 | Phase | Features |
 |-------|---------|
-| **v1.1** | Recurring transactions, receipt scanning |
-| **v1.2** | Cloud sync between mobile & web |
-| **v1.3** | Push notification budget alerts |
+| **v1.1** ✅ | App rename to BuddgetBuddy, animated splash screen, category quick-select chips, auto-select current month, centralized version display, smart onboarding skip |
+| **v1.2** | Recurring transactions, receipt scanning |
+| **v1.3** | Cloud sync between mobile & web |
+| **v1.4** | Push notification budget alerts |
 | **v2.0** | Multi-currency support, shared family budgets |
 | **v2.1** | Data export (CSV/PDF), custom reports |
 | **v3.0** | Bank account integration, automatic categorization |

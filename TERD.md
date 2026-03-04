@@ -1,7 +1,7 @@
 # 🏗️ Technical Engineering Requirements Document (TERD)
-# BudgetBuddy — Personal Finance Management Platform
+# BuddgetBuddy — Personal Finance Management Platform
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Date:** March 5, 2026  
 **Author:** Syed Uzaif  
 **Status:** Active Development
@@ -10,7 +10,7 @@
 
 ## 1. System Overview
 
-BudgetBuddy is a dual-platform personal finance management system consisting of:
+BuddgetBuddy is a dual-platform personal finance management system consisting of:
 
 1. **Mobile Application** — Flutter (Dart) targeting Android & iOS
 2. **Web Application** — Next.js 16 (React 19 + TypeScript) deployed on Vercel
@@ -118,6 +118,8 @@ lib/
 ├── core/                               # Foundation layer
 │   ├── animations/                     # Reusable animation widgets
 │   ├── constants/                      # App-wide constants
+│   │   ├── app_constants.dart          #   Centralized app name, version, tagline
+│   │   └── app_icons.dart              #   Icon code point mappings
 │   ├── theme/                          # Design tokens
 │   │   ├── app_theme.dart              #   Light & dark theme definitions
 │   │   ├── app_colors.dart             #   Color palette
@@ -138,7 +140,7 @@ lib/
 │   │   └── chat_repository.dart        #     Chat history persistence
 │   ├── local/                          #   Local storage abstraction
 │   │   └── hive_storage.dart           #     Hive initialization & boxes
-│   └── predefined_categories.dart      #   Default category templates
+│   └── predefined_categories.dart      #   Default category templates (9 presets)
 │
 ├── services/                           # Service layer
 │   ├── app/                            #   Application services
@@ -152,26 +154,27 @@ lib/
 │       └── google_auth_service.dart    #     Google OAuth
 │
 ├── modules/                            # Feature modules (GetX pattern)
+│   ├── splash/                         #   Animated branded splash screen
 │   ├── auth/                           #   Login / Sign-up
 │   ├── onboarding/                     #   First-time setup wizard
 │   ├── home/                           #   Tab navigation shell
 │   ├── dashboard/                      #   Financial overview
 │   ├── categories/                     #   Category list & management
-│   ├── category_form/                  #   Add/edit category form
+│   ├── category_form/                  #   Add/edit category form (quick-select chips)
 │   ├── transactions/                   #   All transactions list
 │   ├── transaction_form/               #   Add transaction form
 │   ├── analytics/                      #   Charts & insights
 │   ├── ai_chat/                        #   AI financial advisor
-│   └── settings/                       #   App settings
+│   └── settings/                       #   App settings (with version footer)
 │
 ├── routes/                             # Navigation
-│   ├── app_routes.dart                 #   Route constants
+│   ├── app_routes.dart                 #   Route constants (incl. splash)
 │   └── app_pages.dart                  #   GetX route bindings
 │
 └── utils/                              # Utilities
-    ├── constants.dart                  #   App constants
     ├── currency_utils.dart             #   Currency formatting
-    └── helpers.dart                    #   General helpers
+    ├── date_utils.dart                 #   Date/month key utilities
+    └── validators.dart                 #   Form validation helpers
 ```
 
 #### Design Patterns Used
@@ -193,6 +196,7 @@ sequenceDiagram
     participant ENV as dotenv
     participant Hive as HiveStorage
     participant DI as GetX DI
+    participant Splash as SplashView
 
     App->>FB: Firebase.initializeApp()
     App->>ENV: dotenv.load('.env')
@@ -202,7 +206,18 @@ sequenceDiagram
     App->>DI: Register FirebaseAuthService
     App->>DI: Register GoogleAuthService
     App->>DI: Register SessionService
-    App->>App: runApp(BudgetBuddyApp)
+    App->>App: runApp(BuddgetBuddyApp)
+    App->>Splash: initialRoute = /splash
+    Splash->>Splash: Animate logo + text (1.5s+)
+    Splash->>DI: Check auth + onboarding state
+    alt Not authenticated
+        Splash->>App: Navigate to /login
+    else Onboarding incomplete
+        Splash->>App: Navigate to /onboarding
+    else Returning user
+        Splash->>DI: Auto-sync current month
+        Splash->>App: Navigate to /home
+    end
 ```
 
 ### 3.2 Web App Architecture (Next.js)
@@ -384,7 +399,7 @@ sequenceDiagram
 
 ### 6.2 System Prompt
 
-> You are a helpful AI financial advisor for a budget management app called "Budget Buddy". Provide concise, practical advice about budgeting, saving, and expense management. Be friendly, encouraging, and supportive. Keep responses under 150 words unless asked for detailed analysis. Focus on actionable tips and positive reinforcement.
+> You are a helpful AI financial advisor for a budget management app called "BuddgetBuddy". Provide concise, practical advice about budgeting, saving, and expense management. Be friendly, encouraging, and supportive. Keep responses under 150 words unless asked for detailed analysis. Focus on actionable tips and positive reinforcement.
 
 ### 6.3 Features
 
