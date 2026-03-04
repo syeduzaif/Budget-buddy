@@ -4,6 +4,7 @@ import '../modules/auth/login_view.dart';
 import '../modules/auth/signup_view.dart';
 import '../modules/onboarding/onboarding_controller.dart';
 import '../modules/onboarding/onboarding_view.dart';
+import '../modules/splash/splash_view.dart';
 import '../modules/home/home_view.dart';
 import '../modules/category_form/category_form_view.dart';
 import '../modules/transactions/transactions_view.dart';
@@ -15,6 +16,12 @@ class AppPages {
   static const _transition = Transition.fadeIn;
 
   static final pages = [
+    GetPage(
+      name: AppRoutes.splash,
+      page: () => const SplashView(),
+      transition: Transition.fade,
+      transitionDuration: const Duration(milliseconds: 400),
+    ),
     GetPage(
       name: AppRoutes.login,
       page: () => const LoginView(),
