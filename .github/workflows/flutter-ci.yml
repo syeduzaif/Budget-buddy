@@ -52,7 +52,7 @@ jobs:
         run: flutter pub get
 
       - name: Code Generation
-        run: flutter pub run build_runner build --delete-conflicting-outputs
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Run Tests
         run: flutter test || true
