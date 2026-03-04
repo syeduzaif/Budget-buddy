@@ -35,7 +35,10 @@ class _SignupViewState extends State<SignupView> {
 
   Future<void> _signup() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final authService = Get.find<FirebaseAuthService>();
       await authService.signUpWithEmailPassword(
@@ -44,20 +47,33 @@ class _SignupViewState extends State<SignupView> {
       );
       await authService.updateDisplayName(_nameCtrl.text.trim());
     } catch (e) {
-      setState(() { _error = e.toString(); });
+      setState(() {
+        _error = e.toString();
+      });
     } finally {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+        });
     }
   }
 
   Future<void> _googleSignup() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       await Get.find<GoogleAuthService>().signInWithGoogle();
     } catch (e) {
-      setState(() { _error = e.toString(); });
+      setState(() {
+        _error = e.toString();
+      });
     } finally {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+        });
     }
   }
 
@@ -85,11 +101,12 @@ class _SignupViewState extends State<SignupView> {
                     const Icon(Icons.account_balance_wallet_rounded,
                         size: 64, color: Colors.white),
                     const SizedBox(height: AppSpacing.m),
-                    Text('Budget Buddy',
+                    Text('BuddgetBuddy',
                         style: AppFonts.h2.copyWith(color: Colors.white)),
                     const SizedBox(height: AppSpacing.xs),
                     Text('Start your financial journey',
-                        style: AppFonts.bodyMedium.copyWith(color: Colors.white70)),
+                        style: AppFonts.bodyMedium
+                            .copyWith(color: Colors.white70)),
                   ],
                 ),
               ),
@@ -104,17 +121,20 @@ class _SignupViewState extends State<SignupView> {
                       Text('Create Account', style: AppFonts.h4),
                       const SizedBox(height: AppSpacing.s),
                       Text('Sign up to get started',
-                          style: AppFonts.bodyMedium.copyWith(color: colors.onSurfaceVariant)),
+                          style: AppFonts.bodyMedium
+                              .copyWith(color: colors.onSurfaceVariant)),
                       const SizedBox(height: AppSpacing.l),
                       if (_error != null) ...[
                         Container(
                           padding: const EdgeInsets.all(AppSpacing.s),
                           decoration: BoxDecoration(
                             color: AppColors.error.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusM),
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.radiusM),
                           ),
                           child: Text(_error!,
-                              style: AppFonts.bodySmall.copyWith(color: AppColors.error)),
+                              style: AppFonts.bodySmall
+                                  .copyWith(color: AppColors.error)),
                         ),
                         const SizedBox(height: AppSpacing.m),
                       ],
@@ -149,7 +169,8 @@ class _SignupViewState extends State<SignupView> {
                             icon: Icon(_obscure
                                 ? Icons.visibility_outlined
                                 : Icons.visibility_off_outlined),
-                            onPressed: () => setState(() => _obscure = !_obscure),
+                            onPressed: () =>
+                                setState(() => _obscure = !_obscure),
                           ),
                         ),
                         validator: Validators.password,
@@ -162,7 +183,8 @@ class _SignupViewState extends State<SignupView> {
                           labelText: 'Confirm Password',
                           prefixIcon: Icon(Icons.lock_outlined),
                         ),
-                        validator: (v) => Validators.confirmPassword(v, _passwordCtrl.text),
+                        validator: (v) =>
+                            Validators.confirmPassword(v, _passwordCtrl.text),
                       ),
                       const SizedBox(height: AppSpacing.l),
                       FilledButton(
@@ -171,7 +193,8 @@ class _SignupViewState extends State<SignupView> {
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
                             : const Text('Create Account'),
                       ),
                       const SizedBox(height: AppSpacing.l),
@@ -179,9 +202,11 @@ class _SignupViewState extends State<SignupView> {
                         children: [
                           const Expanded(child: Divider()),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s),
                             child: Text('OR',
-                                style: AppFonts.caption.copyWith(color: colors.onSurfaceVariant)),
+                                style: AppFonts.caption
+                                    .copyWith(color: colors.onSurfaceVariant)),
                           ),
                           const Expanded(child: Divider()),
                         ],
@@ -196,7 +221,8 @@ class _SignupViewState extends State<SignupView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Already have an account? ', style: AppFonts.bodyMedium),
+                          Text('Already have an account? ',
+                              style: AppFonts.bodyMedium),
                           TextButton(
                             onPressed: () => Get.back(),
                             child: const Text('Log In'),

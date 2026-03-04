@@ -29,7 +29,7 @@ class GeminiService extends GetxService {
           maxOutputTokens: 1024,
         ),
         systemInstruction: Content.system(
-          'You are a helpful AI financial advisor for a budget management app called "Budget Buddy". '
+          'You are a helpful AI financial advisor for a budget management app called "BuddgetBuddy". '
           'Provide concise, practical advice about budgeting, saving, and expense management. '
           'Be friendly, encouraging, and supportive. Keep responses under 150 words unless asked for detailed analysis. '
           'Focus on actionable tips and positive reinforcement.',

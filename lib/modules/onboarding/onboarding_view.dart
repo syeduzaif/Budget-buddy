@@ -63,7 +63,7 @@ class _WelcomePage extends StatelessWidget {
                 size: 64, color: Colors.white),
           ),
           const SizedBox(height: AppSpacing.xxl),
-          Text('Welcome to Budget Buddy',
+          Text('Welcome to BuddgetBuddy',
               style: AppFonts.h3, textAlign: TextAlign.center),
           const SizedBox(height: AppSpacing.m),
           Text(
