@@ -93,6 +93,8 @@ jobs:
           echo "$CHANGELOG" >> $GITHUB_ENV
           echo "ENDOFCHANGELOG" >> $GITHUB_ENV
 
+
+          
           echo "✅ Version: $VERSION"
           echo "✅ Changelog:"
           echo "$CHANGELOG"
