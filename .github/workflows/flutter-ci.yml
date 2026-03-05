@@ -7,6 +7,14 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    env:
+      VERSION: ""
+      BUILD_DATE: ""
+      FOLDER_NAME: ""
+      APK_NAME: ""
+      CHANGELOG: ""
+      FILE_ID: ""
+      DRIVE_LINK: ""
 
     steps:
       # ─────────────────────────────────────────────────────────────
