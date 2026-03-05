@@ -1,80 +1,79 @@
 import 'package:flutter/material.dart';
 
-/// Velvet Glow — Warm plum & amber, dark-first palette
-/// Calm intelligence · Trust · Personal guidance · Premium comfort
-/// Designed for long dark-mode sessions with financial data
+/// Terra Firma — Earthy & natural palette
+/// Grounded · Organic · Warm · Trustworthy
+/// Inspired by sun-baked clay, forest canopy, and golden harvest
 class AppColors {
   AppColors._();
 
   // ─── Brand Colors ──────────────────────────────────────────────
-  static const Color primary = Color(0xFF8B6FC0); // Soft plum
-  static const Color primaryDark = Color(0xFF6B5299); // Deep plum
-  static const Color primaryLight = Color(0xFFB4A0D6); // Lavender mist
+  static const Color primary = Color(0xFF6B7F4E); // Olive green
+  static const Color primaryDark = Color(0xFF4E5E38); // Deep forest
+  static const Color primaryLight = Color(0xFF9DB87C); // Sage green
   static const Color deepNavy =
-      Color(0xFF1C1626); // Deep warm dark (kept name for compat)
+      Color(0xFF2C2518); // Rich espresso (kept name for compat)
 
   // Secondary / Accent
-  static const Color secondary = Color(0xFFD4A05A); // Warm amber-gold
-  static const Color accent = Color(0xFFD4A05A); // Warm amber
-  static const Color accentLight = Color(0xFFEBC88A); // Pale gold
-  static const Color accentDark = Color(0xFFB8873D); // Deep amber
+  static const Color secondary = Color(0xFFBF7B4B); // Terracotta
+  static const Color accent = Color(0xFFBF7B4B); // Terracotta
+  static const Color accentLight = Color(0xFFD9A87C); // Sandy clay
+  static const Color accentDark = Color(0xFF9A5F35); // Burnt sienna
 
   // ─── Background & Surface ─────────────────────────────────────
-  static const Color background =
-      Color(0xFFFAF8FC); // Warm off-white (subtle plum tint)
-  static const Color backgroundDark = Color(0xFF1A1525); // Warm charcoal plum
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceDark = Color(0xFF221D2E); // Warm dark surface
+  static const Color background = Color(0xFFFAF7F2); // Warm linen
+  static const Color backgroundDark = Color(0xFF1E1B15); // Dark loam
+  static const Color surface = Color(0xFFFFFDF8); // Cream white
+  static const Color surfaceDark = Color(0xFF28231B); // Dark walnut
 
   // ─── Card & Container ─────────────────────────────────────────
-  static const Color card = Color(0xFFFFFFFF);
-  static const Color cardDark = Color(0xFF2A2438); // Warm plum card
-  static const Color cardElevated = Color(0xFFF4F1F8); // Light plum tint
+  static const Color card = Color(0xFFFFFDF8); // Cream white
+  static const Color cardDark = Color(0xFF332D23); // Warm dark bark
+  static const Color cardElevated = Color(0xFFF5F0E8); // Parchment
 
   // ─── Semantic Colors (warm-tinted) ────────────────────────────
-  static const Color success = Color(0xFF5CB88A); // Warm sage green
-  static const Color error = Color(0xFFD4605A); // Warm coral red
-  static const Color warning = Color(0xFFD4A05A); // Amber (matches accent)
-  static const Color info = Color(0xFF7B8EC8); // Soft lavender-blue
+  static const Color success = Color(0xFF5A9E6F); // Forest green
+  static const Color error = Color(0xFFC25D4E); // Terra red
+  static const Color warning = Color(0xFFD4A04A); // Harvest gold
+  static const Color info = Color(0xFF6B8DAD); // Dusty sky blue
 
   // ─── Text Colors ──────────────────────────────────────────────
-  static const Color textPrimary = Color(0xFF1E1A28); // Warm near-black
-  static const Color textSecondary = Color(0xFF6B6180); // Muted plum-grey
-  static const Color textMuted = Color(0xFF9590A3); // Light purple-grey
-  static const Color textWhite = Color(0xFFF5F2F8); // Warm white
-  static const Color textDark = Color(0xFFEDE9F3); // On dark surfaces
+  static const Color textPrimary = Color(0xFF2C2518); // Espresso
+  static const Color textSecondary = Color(0xFF6B604E); // Driftwood
+  static const Color textMuted = Color(0xFF9A9182); // Warm stone
+  static const Color textWhite = Color(0xFFF8F4ED); // Warm cream
+  static const Color textDark = Color(0xFFEDE8DF); // On dark surfaces
 
   // ─── Border & Divider ─────────────────────────────────────────
-  static const Color border = Color(0xFFE6E1ED); // Warm light border
-  static const Color borderDark = Color(0xFF3B3450); // Warm dark border
-  static const Color divider = Color(0xFFE6E1ED);
+  static const Color border = Color(0xFFE3DDD2); // Sand
+  static const Color borderDark = Color(0xFF4A4235); // Dark clay
+  static const Color divider = Color(0xFFE3DDD2);
 
   // ─── Overlay & Shadow ─────────────────────────────────────────
-  static const Color overlay = Color(0x801A1525); // Warm overlay
-  static const Color shadow = Color(0x1A1A1525); // Warm shadow
-  static const Color shadowDark = Color(0x401A1525);
+  static const Color overlay = Color(0x801E1B15); // Warm overlay
+  static const Color shadow = Color(0x1A2C2518); // Warm shadow
+  static const Color shadowDark = Color(0x402C2518);
 
   // ─── Gradients ────────────────────────────────────────────────
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF6B5299), Color(0xFF8B6FC0)],
+    colors: [Color(0xFF4E5E38), Color(0xFF6B7F4E)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient accentGradient = LinearGradient(
-    colors: [Color(0xFFD4A05A), Color(0xFFEBC88A)],
+    colors: [Color(0xFFBF7B4B), Color(0xFFD9A87C)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient surfaceGradient = LinearGradient(
-    colors: [Color(0xFFFFFFFF), Color(0xFFF4F1F8)],
+    colors: [Color(0xFFFFFDF8), Color(0xFFF5F0E8)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient darkGradient = LinearGradient(
-    colors: [Color(0xFF1A1525), Color(0xFF221D2E)],
+    colors: [Color(0xFF1E1B15), Color(0xFF28231B)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -82,64 +81,64 @@ class AppColors {
   // ─── Material 3 ColorScheme — Light ───────────────────────────
   static const ColorScheme lightScheme = ColorScheme(
     brightness: Brightness.light,
-    primary: Color(0xFF8B6FC0),
+    primary: Color(0xFF6B7F4E),
     onPrimary: Color(0xFFFFFFFF),
-    primaryContainer: Color(0xFFEDE5F7),
-    onPrimaryContainer: Color(0xFF3D2A61),
-    secondary: Color(0xFFD4A05A),
+    primaryContainer: Color(0xFFE2EDD3),
+    onPrimaryContainer: Color(0xFF2A3520),
+    secondary: Color(0xFFBF7B4B),
     onSecondary: Color(0xFFFFFFFF),
-    secondaryContainer: Color(0xFFFAEDD6),
-    onSecondaryContainer: Color(0xFF5C3F14),
-    tertiary: Color(0xFF5CB88A),
+    secondaryContainer: Color(0xFFF5E1D0),
+    onSecondaryContainer: Color(0xFF5A3018),
+    tertiary: Color(0xFF5A9E6F),
     onTertiary: Color(0xFFFFFFFF),
-    tertiaryContainer: Color(0xFFD9F2E4),
-    onTertiaryContainer: Color(0xFF1B5E3A),
-    error: Color(0xFFD4605A),
+    tertiaryContainer: Color(0xFFD5EDDC),
+    onTertiaryContainer: Color(0xFF1B4D2B),
+    error: Color(0xFFC25D4E),
     onError: Color(0xFFFFFFFF),
-    errorContainer: Color(0xFFFCE4E3),
-    onErrorContainer: Color(0xFF6B1F1B),
-    surface: Color(0xFFFFFFFF),
-    onSurface: Color(0xFF1E1A28),
-    surfaceContainerHighest: Color(0xFFF4F1F8),
-    onSurfaceVariant: Color(0xFF6B6180),
-    outline: Color(0xFF9590A3),
-    outlineVariant: Color(0xFFE6E1ED),
-    shadow: Color(0xFF1A1525),
-    scrim: Color(0xFF1A1525),
-    inverseSurface: Color(0xFF2A2438),
-    onInverseSurface: Color(0xFFF5F2F8),
-    inversePrimary: Color(0xFFB4A0D6),
+    errorContainer: Color(0xFFFCE0DC),
+    onErrorContainer: Color(0xFF5E1F17),
+    surface: Color(0xFFFFFDF8),
+    onSurface: Color(0xFF2C2518),
+    surfaceContainerHighest: Color(0xFFF5F0E8),
+    onSurfaceVariant: Color(0xFF6B604E),
+    outline: Color(0xFF9A9182),
+    outlineVariant: Color(0xFFE3DDD2),
+    shadow: Color(0xFF2C2518),
+    scrim: Color(0xFF2C2518),
+    inverseSurface: Color(0xFF332D23),
+    onInverseSurface: Color(0xFFF8F4ED),
+    inversePrimary: Color(0xFF9DB87C),
   );
 
   // ─── Material 3 ColorScheme — Dark ────────────────────────────
   static const ColorScheme darkScheme = ColorScheme(
     brightness: Brightness.dark,
-    primary: Color(0xFFB4A0D6),
-    onPrimary: Color(0xFF1E1A28),
-    primaryContainer: Color(0xFF3D2A61),
-    onPrimaryContainer: Color(0xFFEDE5F7),
-    secondary: Color(0xFFEBC88A),
-    onSecondary: Color(0xFF1E1A28),
-    secondaryContainer: Color(0xFF5C3F14),
-    onSecondaryContainer: Color(0xFFFAEDD6),
-    tertiary: Color(0xFF8CD4AE),
-    onTertiary: Color(0xFF1E1A28),
-    tertiaryContainer: Color(0xFF1B5E3A),
-    onTertiaryContainer: Color(0xFFD9F2E4),
-    error: Color(0xFFE8918B),
-    onError: Color(0xFF3D0D0A),
-    errorContainer: Color(0xFF6B1F1B),
-    onErrorContainer: Color(0xFFFCE4E3),
-    surface: Color(0xFF1A1525),
-    onSurface: Color(0xFFEDE9F3),
-    surfaceContainerHighest: Color(0xFF2A2438),
-    onSurfaceVariant: Color(0xFF9590A3),
-    outline: Color(0xFF6B6180),
-    outlineVariant: Color(0xFF3B3450),
-    shadow: Color(0xFF0D0A12),
-    scrim: Color(0xFF0D0A12),
-    inverseSurface: Color(0xFFF5F2F8),
-    onInverseSurface: Color(0xFF1E1A28),
-    inversePrimary: Color(0xFF6B5299),
+    primary: Color(0xFF9DB87C),
+    onPrimary: Color(0xFF1E1B15),
+    primaryContainer: Color(0xFF2A3520),
+    onPrimaryContainer: Color(0xFFE2EDD3),
+    secondary: Color(0xFFD9A87C),
+    onSecondary: Color(0xFF1E1B15),
+    secondaryContainer: Color(0xFF5A3018),
+    onSecondaryContainer: Color(0xFFF5E1D0),
+    tertiary: Color(0xFF8CC4A0),
+    onTertiary: Color(0xFF1E1B15),
+    tertiaryContainer: Color(0xFF1B4D2B),
+    onTertiaryContainer: Color(0xFFD5EDDC),
+    error: Color(0xFFE89088),
+    onError: Color(0xFF3D0D08),
+    errorContainer: Color(0xFF5E1F17),
+    onErrorContainer: Color(0xFFFCE0DC),
+    surface: Color(0xFF1E1B15),
+    onSurface: Color(0xFFEDE8DF),
+    surfaceContainerHighest: Color(0xFF332D23),
+    onSurfaceVariant: Color(0xFF9A9182),
+    outline: Color(0xFF6B604E),
+    outlineVariant: Color(0xFF4A4235),
+    shadow: Color(0xFF0F0D0A),
+    scrim: Color(0xFF0F0D0A),
+    inverseSurface: Color(0xFFF8F4ED),
+    onInverseSurface: Color(0xFF2C2518),
+    inversePrimary: Color(0xFF4E5E38),
   );
 }
