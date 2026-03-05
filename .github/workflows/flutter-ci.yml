@@ -212,8 +212,8 @@ jobs:
           mkdir -p public
           echo "$JSON_CONTENT" > public/apk-info.json
 
-          git config user.name "CI Bot"
-          git config user.email "ci-bot@budgetbuddy.app"
+          git config user.name "Syed Uzaif"
+          git config user.email "syeduzaifamin@gmail.com"
           git add public/apk-info.json
           git commit -m "ci: update APK info → v${{ env.VERSION }} (${{ env.BUILD_DATE }})"
           git push
@@ -225,8 +225,8 @@ jobs:
       # ─────────────────────────────────────────────────────────────
       - name: Create Git Tag
         run: |
-          git config user.name "CI Bot"
-          git config user.email "ci-bot@budgetbuddy.app"
+          git config user.name "Syed Uzaif"
+          git config user.email "syeduzaifamin@gmail.com"
           TAG="v${{ env.VERSION }}-build-$(date -u +%Y%m%d%H%M)"
           git tag "$TAG"
           git push origin "$TAG"
