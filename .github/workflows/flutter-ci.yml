@@ -63,7 +63,7 @@ jobs:
         run: flutter test || true
 
       - name: Build Release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
       # ─────────────────────────────────────────────────────────────
       # 5. GENERATE CHANGELOG
