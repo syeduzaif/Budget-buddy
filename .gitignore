@@ -93,8 +93,7 @@ lib/generated_plugin_registrant.dart
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
 
-# Generated files
-*.g.dart
+# Generated files (keep .g.dart committed for CI builds)
 *.freezed.dart
 
 # Hive database files (optional - remove if you want to track them)
