@@ -3,9 +3,11 @@ import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/category.dart';
 import '../../data/models/transaction_item.dart';
+import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../../services/app/settings_service.dart';
+import '../../utils/date_utils.dart';
 
 class TransactionFormController extends GetxController {
   final CategoryRepository categoryRepo;
@@ -65,13 +67,21 @@ class TransactionFormController extends GetxController {
 
   Future<void> save() async {
     final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
-    if (amount <= 0 || selectedCategory.value == null) return;
+    if (amount <= 0) return;
 
     isLoading.value = true;
     try {
+      // If no category is selected, auto-create an "Other" category
+      Category category;
+      if (selectedCategory.value == null) {
+        category = await _getOrCreateOtherCategory();
+      } else {
+        category = selectedCategory.value!;
+      }
+
       final transaction = TransactionItem(
         id: const Uuid().v4(),
-        categoryId: selectedCategory.value!.id,
+        categoryId: category.id,
         amount: amount,
         note: noteController.text.trim(),
         date: selectedDate.value,
@@ -83,5 +93,33 @@ class TransactionFormController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// Returns an existing "Other" category for the current month, or creates one.
+  Future<Category> _getOrCreateOtherCategory() async {
+    final month = settings.currentMonth.value.isNotEmpty
+        ? settings.currentMonth.value
+        : AppDateUtils.getCurrentMonthKey();
+
+    // Check if an "Other" category already exists for this month
+    final monthCats = await categoryRepo.getCategoriesForMonth(month);
+    try {
+      return monthCats.firstWhere((c) => c.name.toLowerCase() == 'other');
+    } catch (_) {
+      // Not found — create one
+    }
+
+    final other = Category(
+      id: const Uuid().v4(),
+      name: kOtherCategory.name,
+      budgetLimit: kOtherCategory.defaultBudget,
+      colorValue: kOtherCategory.colorValue,
+      iconCodePoint: kOtherCategory.iconCodePoint,
+      month: month,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    await categoryRepo.addCategory(other);
+    return other;
   }
 }
