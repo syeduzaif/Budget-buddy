@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/utils/app_icons.dart';
 
 part 'category.g.dart';
 
@@ -45,9 +46,7 @@ class Category extends HiveObject {
     this.iconCodePoint,
   });
 
-  IconData get icon => iconCodePoint != null
-      ? IconData(iconCodePoint!, fontFamily: 'MaterialIcons')
-      : Icons.circle;
+  IconData get icon => AppIcons.fromCodePoint(iconCodePoint);
 
   // Calculate total spent from transactions
   double calculateTotalSpent(List<dynamic> allTransactions) {

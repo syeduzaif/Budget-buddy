@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
+import '../../core/utils/app_icons.dart';
 import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../services/app/settings_service.dart';
@@ -95,8 +96,7 @@ class CategoryFormView extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    IconData(preset.iconCodePoint,
-                                        fontFamily: 'MaterialIcons'),
+                                    AppIcons.fromCodePoint(preset.iconCodePoint),
                                     size: 18,
                                     color: isSelected
                                         ? chipColor
