@@ -48,6 +48,14 @@ class CategoriesController extends GetxController {
     transactionRepo.getTransactions().listen((list) {
       transactions.assignAll(list);
     });
+
+    // Re-filter categories when month changes from the dashboard
+    ever(settings.currentMonth, (_) {
+      categoryRepo.getCategories().first.then((list) {
+        categories.assignAll(
+            list.where((c) => c.month == settings.currentMonth.value).toList());
+      });
+    });
   }
 
   Future<void> deleteCategory(Category category) async {

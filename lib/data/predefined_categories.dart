@@ -70,3 +70,11 @@ final List<PredefinedCategory> kPredefinedCategories = [
     defaultBudget: 400.0,
   ),
 ];
+
+/// Fallback "Other" category used when no category matches a transaction.
+final PredefinedCategory kOtherCategory = PredefinedCategory(
+  name: 'Other',
+  iconCodePoint: Icons.more_horiz.codePoint,
+  colorValue: 0xFF607D8B,
+  defaultBudget: 0.0,
+);
