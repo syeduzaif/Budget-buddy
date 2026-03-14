@@ -62,6 +62,9 @@ class BuddgetBuddyApp extends StatelessWidget {
       initialRoute: AppRoutes.splash,
       initialBinding: InitialBinding(),
       getPages: AppPages.pages,
+      navigatorObservers: [
+        FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+      ],
     );
   }
 }
