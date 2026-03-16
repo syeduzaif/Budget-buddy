@@ -92,6 +92,16 @@ class SettingsView extends StatelessWidget {
                   style: AppFonts.labelLarge.copyWith(color: AppColors.error)),
               onTap: ctrl.isLoading.value ? null : ctrl.signOut,
             ),
+            ListTile(
+              leading: const Icon(Icons.delete_forever_outlined,
+                  color: AppColors.error),
+              title: Text('Delete Account',
+                  style: AppFonts.labelLarge.copyWith(color: AppColors.error)),
+              subtitle: Text('Permanentally delete your data',
+                  style: AppFonts.caption.copyWith(color: AppColors.textMuted)),
+              onTap:
+                  ctrl.isLoading.value ? null : () => _showDeleteDialog(context, ctrl),
+            ),
 
             // Version footer
             const SizedBox(height: AppSpacing.xxl),
@@ -227,6 +237,94 @@ class SettingsView extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, SettingsController ctrl) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Account?'),
+        content: const Text(
+          'This action is permanent and cannot be undone. All your data including expenses, '
+          'categories, and files will be deleted forever.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back(); // Close confirmation dialog
+              try {
+                await ctrl.deleteAccount();
+              } catch (e) {
+                if (e == 'reauthentication-required' && context.mounted) {
+                  _showReauthDialog(context, ctrl);
+                }
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Delete Permanentally'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReauthDialog(BuildContext context, SettingsController ctrl) {
+    final passwordController = TextEditingController();
+
+    if (ctrl.isGoogleUser) {
+      // For Google users, we just call the reauth method which triggers Google sign-in
+      ctrl.reauthenticateAndDelete('');
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text('Re-authenticate'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'For security reasons, please enter your password to confirm account deletion.',
+            ),
+            const SizedBox(height: AppSpacing.m),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                hintText: 'Enter your password',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final pwd = passwordController.text.trim();
+              if (pwd.isNotEmpty) {
+                Get.back();
+                ctrl.reauthenticateAndDelete(pwd);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Confirm Deletion'),
+          ),
+        ],
       ),
     );
   }

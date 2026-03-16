@@ -26,4 +26,21 @@ class FirestoreService extends GetxService {
   CollectionReference? get expensesCollection => currentUserDoc?.collection('expenses');
   CollectionReference? get incomeCollection => currentUserDoc?.collection('income');
   CollectionReference? get chatCollection => currentUserDoc?.collection('ai_chat');
+
+  Future<void> deleteUserData(String uid) async {
+    final userDoc = _firestore.collection('users').doc(uid);
+
+    // List of subcollections to clear
+    final subcollections = ['categories', 'expenses', 'income', 'ai_chat'];
+
+    for (final sub in subcollections) {
+      final snapshot = await userDoc.collection(sub).get();
+      for (final doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+    }
+
+    // Finally delete the user document
+    await userDoc.delete();
+  }
 }

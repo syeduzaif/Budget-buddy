@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../modules/auth/auth_controller.dart';
 import '../../services/app/settings_service.dart';
+import '../../services/firebase/firebase_auth_service.dart';
 import '../../utils/currency_utils.dart';
 
 class SettingsController extends GetxController {
@@ -48,5 +49,53 @@ class SettingsController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<void> deleteAccount() async {
+    isLoading.value = true;
+    try {
+      final authService = Get.find<FirebaseAuthService>();
+      await authService.deleteAccount();
+      Get.snackbar('Success', 'Your account has been deleted permanentally.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.1),
+          colorText: Colors.green);
+    } catch (e) {
+      if (e == 'reauthentication-required') {
+        throw 'reauthentication-required';
+      }
+      Get.snackbar('Error', e.toString(),
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withValues(alpha: 0.1),
+          colorText: Colors.red);
+      rethrow;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> reauthenticateAndDelete(String password) async {
+    isLoading.value = true;
+    try {
+      final authService = Get.find<FirebaseAuthService>();
+      await authService.reauthenticate(password);
+      await authService.deleteAccount();
+      Get.snackbar('Success', 'Your account has been deleted permanentally.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withValues(alpha: 0.1),
+          colorText: Colors.green);
+    } catch (e) {
+      Get.snackbar('Error', e.toString(),
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withValues(alpha: 0.1),
+          colorText: Colors.red);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  bool get isGoogleUser {
+    final user = Get.find<FirebaseAuthService>().currentUser;
+    return user?.providerData.any((p) => p.providerId == 'google.com') ?? false;
   }
 }
