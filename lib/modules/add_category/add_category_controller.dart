@@ -43,7 +43,7 @@ class AddCategoryController extends GetxController {
       id: const Uuid().v4(),
       name: name.trim(),
       budgetLimit: budgetLimit,
-      colorValue: AppConstants.categoryColors[selectedColorIndex.value].value,
+      colorValue: AppConstants.categoryColors[selectedColorIndex.value].toARGB32(),
       month: budgetService.currentMonth.value,
       createdAt: DateTime.now(),
     );

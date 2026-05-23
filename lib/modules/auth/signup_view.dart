@@ -196,7 +196,7 @@ class _SignupViewState extends State<SignupView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
+                        const Text(
                           "Already have an account?",
                           style: AppFonts.bodyMedium,
                         ),

@@ -24,7 +24,7 @@ class TransactionsView extends StatelessWidget {
         final transactions = controller.allTransactions;
 
         if (transactions.isEmpty) {
-          return Center(
+          return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -33,12 +33,12 @@ class TransactionsView extends StatelessWidget {
                   size: 64,
                   color: AppConstants.textSecondary,
                 ),
-                const SizedBox(height: AppConstants.paddingL),
+                SizedBox(height: AppConstants.paddingL),
                 Text(
                   'No Transactions Yet',
                   style: AppConstants.headingMedium,
                 ),
-                const SizedBox(height: AppConstants.paddingM),
+                SizedBox(height: AppConstants.paddingM),
                 Text(
                   'Start adding transactions to see them here',
                   style: AppConstants.bodyMedium,

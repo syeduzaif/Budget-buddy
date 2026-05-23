@@ -41,7 +41,7 @@ class AiAlertService extends GetxService {
     Get.snackbar(
       title,
       message,
-      backgroundColor: color.withOpacity(0.1),
+      backgroundColor: color.withValues(alpha: 0.1),
       colorText: color,
       icon: Icon(Icons.warning_amber_rounded, color: color),
       snackPosition: SnackPosition.TOP,

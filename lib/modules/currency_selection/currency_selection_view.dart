@@ -22,13 +22,13 @@ class CurrencySelectionView extends StatelessWidget {
             children: [
               const SizedBox(height: AppConstants.paddingXL),
               // Title
-              Icon(
+              const Icon(
                 Icons.currency_exchange,
                 size: 64,
                 color: AppConstants.primaryColor,
               ),
               const SizedBox(height: AppConstants.paddingL),
-              Text(
+              const Text(
                 'Select Your Currency',
                 style: AppConstants.headingLarge,
                 textAlign: TextAlign.center,
@@ -109,7 +109,7 @@ class CurrencySelectionView extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppConstants.primaryColor.withOpacity(0.1)
+                      ? AppConstants.primaryColor.withValues(alpha: 0.1)
                       : AppConstants.backgroundColor,
                   borderRadius: BorderRadius.circular(AppConstants.borderRadiusS),
                 ),
@@ -148,7 +148,7 @@ class CurrencySelectionView extends StatelessWidget {
               ),
               // Selection indicator
               if (isSelected)
-                Icon(
+                const Icon(
                   Icons.check_circle,
                   color: AppConstants.primaryColor,
                 ),

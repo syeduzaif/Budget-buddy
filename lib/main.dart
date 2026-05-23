@@ -8,6 +8,7 @@ import 'services/auth_service.dart';
 import 'services/google_auth_service.dart';
 import 'services/user_session_service.dart';
 import 'services/user_service.dart';
+import 'services/remote_config_service.dart';
 import 'modules/auth/auth_controller.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
@@ -47,6 +48,13 @@ class MyApp extends StatelessWidget {
       }),
       initialRoute: AppRoutes.login,
       getPages: AppPages.pages,
+      builder: (context, child) {
+        // Check for updates after the first frame so the dialog has a context
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          RemoteConfigService.checkForUpdate(context);
+        });
+        return child!;
+      },
     );
   }
 }

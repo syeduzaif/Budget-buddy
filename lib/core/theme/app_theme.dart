@@ -22,12 +22,10 @@ class AppTheme {
         secondary: AppColors.accent,
         secondaryContainer: AppColors.accentLight,
         surface: AppColors.surface,
-        background: AppColors.background,
         error: AppColors.error,
         onPrimary: AppColors.textWhite,
         onSecondary: AppColors.textWhite,
         onSurface: AppColors.textPrimary,
-        onBackground: AppColors.textPrimary,
         onError: AppColors.textWhite,
       ),
 
@@ -218,10 +216,10 @@ class AppTheme {
       ),
 
       // Bottom sheet theme
-      bottomSheetTheme: BottomSheetThemeData(
+      bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.surface,
         elevation: AppSpacing.elevationL,
-        shape: const RoundedRectangleBorder(
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppSpacing.radiusL),
           ),

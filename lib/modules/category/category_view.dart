@@ -33,7 +33,7 @@ class CategoryView extends StatelessWidget {
         return RefreshIndicator(
           onRefresh: () async => controller.refreshCategories(),
           child: categories.isEmpty
-              ? Center(
+              ? const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -42,12 +42,12 @@ class CategoryView extends StatelessWidget {
                         size: 64,
                         color: AppConstants.textSecondary,
                       ),
-                      const SizedBox(height: AppConstants.paddingL),
+                      SizedBox(height: AppConstants.paddingL),
                       Text(
                         'No Categories Yet',
                         style: AppConstants.headingMedium,
                       ),
-                      const SizedBox(height: AppConstants.paddingM),
+                      SizedBox(height: AppConstants.paddingM),
                       Text(
                         'Create your first category to start tracking expenses',
                         style: AppConstants.bodyMedium,
@@ -127,13 +127,13 @@ class CategoryView extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.receipt_long,
                       size: 64,
                       color: AppConstants.textSecondary,
                     ),
                     const SizedBox(height: AppConstants.paddingL),
-                    Text(
+                    const Text(
                       'No Transactions Yet',
                       style: AppConstants.headingMedium,
                     ),

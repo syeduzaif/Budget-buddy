@@ -21,7 +21,7 @@ class TransactionTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shadowColor: const Color(0xFF00897B).withOpacity(0.1),
+      shadowColor: const Color(0xFF00897B).withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -37,7 +37,7 @@ class TransactionTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF00897B).withOpacity(0.1),
+                  color: const Color(0xFF00897B).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(

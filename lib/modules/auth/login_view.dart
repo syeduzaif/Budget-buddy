@@ -70,7 +70,7 @@ class _LoginViewState extends State<LoginView> {
                           Container(
                             padding: const EdgeInsets.all(AppSpacing.m),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
+                              color: AppColors.primary.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -210,7 +210,7 @@ class _LoginViewState extends State<LoginView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
+                        const Text(
                           "Don't have an account?",
                           style: AppFonts.bodyMedium,
                         ),

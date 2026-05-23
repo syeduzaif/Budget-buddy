@@ -23,9 +23,9 @@ class CategoryCard extends StatelessWidget {
     return Obx(() {
       // Access observable variables to trigger updates when they change
       // ignore: unused_local_variable
-      final _ = budgetService.categories.length;
+      final dummy1 = budgetService.categories.length;
       // ignore: unused_local_variable
-      final __ = budgetService.transactionUpdateTrigger.value;
+      final dummy2 = budgetService.transactionUpdateTrigger.value;
 
       final spent = budgetService.getCategorySpending(category.id);
       final remaining = category.calculateRemaining(spent);
@@ -46,7 +46,7 @@ class CategoryCard extends StatelessWidget {
       return Card(
         margin: const EdgeInsets.only(bottom: 16),
         elevation: 3,
-        shadowColor: Color(category.colorValue).withOpacity(0.3),
+        shadowColor: Color(category.colorValue).withValues(alpha: 0.3),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -57,8 +57,8 @@ class CategoryCard extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(category.colorValue).withOpacity(0.08),
-                  Color(category.colorValue).withOpacity(0.02),
+                  Color(category.colorValue).withValues(alpha: 0.08),
+                  Color(category.colorValue).withValues(alpha: 0.02),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -77,7 +77,7 @@ class CategoryCard extends StatelessWidget {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: Color(category.colorValue).withOpacity(0.2),
+                        color: Color(category.colorValue).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -128,7 +128,7 @@ class CategoryCard extends StatelessWidget {
                           'left',
                           style: TextStyle(
                             fontSize: 12,
-                            color: statusColor.withOpacity(0.7),
+                            color: statusColor.withValues(alpha: 0.7),
                           ),
                         ),
                       ],

@@ -62,12 +62,12 @@ class AiChatView extends GetView<AiChatController> {
   Widget _buildInputArea(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
         boxShadow: [
           BoxShadow(
             color: AppColors.shadow,
-            offset: const Offset(0, -2),
+            offset: Offset(0, -2),
             blurRadius: 10,
           ),
         ],
@@ -142,11 +142,11 @@ class _MessageBubble extends StatelessWidget {
             bottomRight: Radius.circular(
                 isUser ? AppSpacing.radiusXs : AppSpacing.radiusL),
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               color: AppColors.shadow,
               blurRadius: 5,
-              offset: const Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),
@@ -158,7 +158,7 @@ class _MessageBubble extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     AppIcons.ai,
                     size: AppSpacing.iconXs,
                     color: AppColors.primary,
@@ -186,7 +186,7 @@ class _MessageBubble extends StatelessWidget {
               DateFormat('h:mm a').format(timestamp),
               style: AppFonts.caption.copyWith(
                 color: isUser
-                    ? AppColors.textWhite.withOpacity(0.7)
+                    ? AppColors.textWhite.withValues(alpha: 0.7)
                     : AppColors.textMuted,
               ),
             ),
@@ -207,24 +207,24 @@ class _LoadingBubble extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.m),
         padding: const EdgeInsets.all(AppSpacing.m),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppColors.card,
-          borderRadius: const BorderRadius.only(
+          borderRadius: BorderRadius.only(
             topLeft: Radius.circular(AppSpacing.radiusL),
             topRight: Radius.circular(AppSpacing.radiusL),
             bottomLeft: Radius.circular(AppSpacing.radiusXs),
             bottomRight: Radius.circular(AppSpacing.radiusL),
           ),
         ),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(
+            SizedBox(
               width: AppSpacing.iconXs,
               height: AppSpacing.iconXs,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            const SizedBox(width: AppSpacing.s),
+            SizedBox(width: AppSpacing.s),
             Text('Thinking...', style: AppFonts.bodySmall),
           ],
         ),

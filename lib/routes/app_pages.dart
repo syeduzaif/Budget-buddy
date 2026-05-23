@@ -60,7 +60,7 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.addTransaction,
-      page: () => AddTransactionView(),
+      page: () => const AddTransactionView(),
       binding: BindingsBuilder(() {
         // Controller is created by the parent view
       }),

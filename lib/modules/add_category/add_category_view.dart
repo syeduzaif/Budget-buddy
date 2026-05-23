@@ -103,7 +103,7 @@ class _AddCategoryViewState extends State<AddCategoryView> {
               const SizedBox(height: AppConstants.paddingL),
 
               // Color picker
-              Text(
+              const Text(
                 'Select Color',
                 style: AppConstants.headingSmall,
               ),
