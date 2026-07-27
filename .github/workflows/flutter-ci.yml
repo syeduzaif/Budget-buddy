@@ -48,12 +48,9 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
           FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART_BASE64 }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
           echo "$FIREBASE_OPTIONS_DART" | base64 -d > lib/firebase_options.dart
-          echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
-          echo "APP_ENV=production" >> .env
 
       # ─────────────────────────────────────────────────────────────
       # 4. INSTALL DEPENDENCIES & BUILD
@@ -64,8 +61,14 @@ jobs:
       - name: Run Tests
         run: flutter test || true
 
+      # API_BASE_URL is a repository *variable* (Settings → Actions → Variables),
+      # not a secret: it is the public production web domain that hosts the
+      # authenticated AI proxy, e.g. https://buddgetbuddy.vercel.app (no
+      # trailing slash). The owner MUST set it before builds ship a working AI
+      # feature — when unset the app builds fine and AI shows
+      # "AI isn't configured in this build."
       - name: Build Release APK
-        run: flutter build apk --release --no-tree-shake-icons
+        run: flutter build apk --release --no-tree-shake-icons --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
 
       # ─────────────────────────────────────────────────────────────
       # 5. GENERATE CHANGELOG

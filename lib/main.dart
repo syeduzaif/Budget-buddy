@@ -3,7 +3,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 
 import 'services/app/update_service.dart';
@@ -38,7 +37,6 @@ void main() async {
 
   FirebaseAnalytics.instance; // Initialize Firebase Analytics
 
-  await dotenv.load(fileName: '.env');
   await HiveStorage.init();
 
   // Auth-independent startup services only

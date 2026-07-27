@@ -1,100 +1,221 @@
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'dart:convert';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 
+import '../../core/constants/app_constants.dart';
+import '../../data/models/chat_message_model.dart';
+
+/// Kind of failure returned by the AI proxy, so callers can show the right
+/// message without ever parsing (or displaying) upstream provider text.
+enum AiApiErrorKind {
+  /// `AppConstants.apiBaseUrl` is empty — this build has no backend wired up.
+  notConfigured,
+
+  /// No signed-in Firebase user, so no ID token can be minted.
+  notSignedIn,
+
+  /// 400 — message missing / too long / malformed body.
+  badRequest,
+
+  /// 401 — missing, expired or invalid ID token.
+  unauthorized,
+
+  /// 429 — per-user daily quota exhausted.
+  quotaExceeded,
+
+  /// 5xx, timeout, socket error, or an unparseable response body.
+  unavailable,
+}
+
+/// Failure raised by [GeminiService]. Carries only a coarse [kind] plus an
+/// optional HTTP [status] for logging — deliberately no upstream error text.
+class AiApiException implements Exception {
+  const AiApiException(this.kind, {this.status});
+
+  final AiApiErrorKind kind;
+  final int? status;
+
+  @override
+  String toString() =>
+      'AiApiException(${kind.name}${status == null ? '' : ', status: $status'})';
+}
+
+/// HTTP client for BuddgetBuddy's **own authenticated AI proxy**.
+///
+/// This used to embed the Gemini SDK and read a provider API key out of a
+/// bundled env asset (defects C1/C2: the key shipped inside every APK we
+/// published). It now holds no credential of its own:
+/// every request goes to `{AppConstants.apiBaseUrl}/api/chat` or
+/// `/api/insights` with a Firebase ID token as bearer, and the server owns the
+/// provider credential, the rate limit and the model choice.
+///
+/// Name and DI lifecycle are unchanged on purpose (registered/deleted in
+/// `auth_controller.dart`) to keep the security diff small; renaming to
+/// `AiService` is deferred to a follow-up.
+///
+/// Contract errors are **thrown** as [AiApiException] — this class never
+/// returns an error string as if it were an AI answer (defect H3).
 class GeminiService extends GetxService {
-  late GenerativeModel _model;
-  late ChatSession _chatSession;
+  GeminiService({http.Client? client}) : _client = client ?? http.Client();
 
-  String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
+  final http.Client _client;
 
-  final isInitialized = false.obs;
+  static const Duration _timeout = Duration(seconds: 60);
+
+  /// Max conversation turns sent as context (frozen contract with the proxy).
+  static const int maxHistoryTurns = 20;
+
+  /// Max categories sent to `/api/insights` (frozen contract with the proxy).
+  static const int maxInsightCategories = 50;
+
+  /// Last failure kind, for diagnostics/UI affordances. Empty when healthy.
   final lastError = ''.obs;
 
   @override
-  void onInit() {
-    super.onInit();
-    _initialize();
+  void onClose() {
+    _client.close();
+    super.onClose();
   }
 
-  void _initialize() {
-    try {
-      _model = GenerativeModel(
-        model: 'gemini-2.5-flash',
-        apiKey: _apiKey,
-        generationConfig: GenerationConfig(
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        ),
-        systemInstruction: Content.system(
-          'You are a helpful AI financial advisor for a budget management app called "BuddgetBuddy". '
-          'Provide concise, practical advice about budgeting, saving, and expense management. '
-          'Be friendly, encouraging, and supportive. Keep responses under 150 words unless asked for detailed analysis. '
-          'Focus on actionable tips and positive reinforcement.',
-        ),
-      );
-      _chatSession = _model.startChat();
-      isInitialized.value = true;
-      lastError.value = '';
-    } catch (e) {
-      lastError.value = 'Failed to initialize AI: $e';
-      isInitialized.value = false;
-    }
+  /// Sends [message] plus prior conversation [history] to `/api/chat`.
+  ///
+  /// [history] is the conversation BEFORE [message] (the caller must not
+  /// include the outgoing message); it is trimmed to the last
+  /// [maxHistoryTurns] entries, oldest → newest.
+  Future<String> generateResponse(
+    String message,
+    List<ChatMessageModel> history,
+  ) async {
+    final trimmed = history.length > maxHistoryTurns
+        ? history.sublist(history.length - maxHistoryTurns)
+        : history;
+
+    final body = <String, dynamic>{
+      'message': message,
+      'history': trimmed
+          .map((m) => <String, dynamic>{'message': m.message, 'isUser': m.isUser})
+          .toList(),
+    };
+
+    final json = await _post('/api/chat', body);
+    return _requireString(json, 'response');
   }
 
-  Future<String> generateResponse(String userMessage) async {
-    if (!isInitialized.value) {
-      return 'AI service is not available. Please check your API key configuration.';
-    }
-    try {
-      final response =
-          await _chatSession.sendMessage(Content.text(userMessage));
-      return response.text ?? 'Sorry, I couldn\'t generate a response.';
-    } catch (e) {
-      lastError.value = e.toString();
-      return 'Sorry, I encountered an error: ${e.toString()}';
-    }
-  }
-
+  /// Sends the current month's budget snapshot to `/api/insights`.
+  ///
+  /// [categories] must already be sorted by spent descending and capped at
+  /// [maxInsightCategories]; [truncatedCount] reports how many were dropped.
   Future<String> generateInsights({
+    required String currencyCode,
     required double monthlyIncome,
     required double totalSpent,
     required double totalBudget,
-    required List<Map<String, dynamic>> categorySpending,
+    required List<Map<String, dynamic>> categories,
+    int truncatedCount = 0,
+    String? month,
   }) async {
-    if (!isInitialized.value) return 'AI insights are not available.';
+    final body = <String, dynamic>{
+      'currencyCode': currencyCode,
+      'monthlyIncome': monthlyIncome,
+      'totalSpent': totalSpent,
+      'totalBudget': totalBudget,
+      'categories': categories,
+      if (truncatedCount > 0) 'truncatedCount': truncatedCount,
+      if (month != null && month.isNotEmpty) 'month': month,
+    };
+
+    final json = await _post('/api/insights', body);
+    return _requireString(json, 'insights');
+  }
+
+  /// No-op kept for the clear-chat call site: conversation context now lives in
+  /// Firestore (`ai_chat`), not in a client-side SDK session, so deleting the
+  /// messages *is* the reset. Retained so `clearChat()` reads coherently and so
+  /// a future server-side session cache has a hook.
+  void resetChat() {
+    lastError.value = '';
+  }
+
+  // ── internals ──────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> _post(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    if (!AppConstants.isAiConfigured) {
+      throw _fail(AiApiErrorKind.notConfigured);
+    }
+
+    final token = await _idToken();
+    final uri = Uri.parse('${AppConstants.apiBaseUrl}$path');
+
+    http.Response res;
     try {
-      final prompt = '''
-Analyze this monthly budget data and provide 3-4 key insights:
+      res = await _client
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
+    } catch (_) {
+      // Socket errors, timeouts, DNS failures — no upstream detail to leak.
+      throw _fail(AiApiErrorKind.unavailable);
+    }
 
-Monthly Income: ${monthlyIncome.toStringAsFixed(2)}
-Total Budget Allocated: ${totalBudget.toStringAsFixed(2)}
-Total Spent: ${totalSpent.toStringAsFixed(2)}
-Remaining: ${(monthlyIncome - totalSpent).toStringAsFixed(2)}
+    switch (res.statusCode) {
+      case 200:
+        break;
+      case 400:
+        throw _fail(AiApiErrorKind.badRequest, status: 400);
+      case 401:
+      case 403:
+        throw _fail(AiApiErrorKind.unauthorized, status: res.statusCode);
+      case 429:
+        throw _fail(AiApiErrorKind.quotaExceeded, status: 429);
+      default:
+        throw _fail(AiApiErrorKind.unavailable, status: res.statusCode);
+    }
 
-Category Breakdown:
-${categorySpending.map((c) => '- ${c['name']}: Spent ${c['spent']} / Budget ${c['budget']} (${c['percentage']}%)').join('\n')}
+    final decoded = jsonDecode(res.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw _fail(AiApiErrorKind.unavailable, status: 200);
+    }
+    lastError.value = '';
+    return decoded;
+  }
 
-Provide:
-1. Overall spending health assessment
-2. Top spending category concern (if any)
-3. One actionable recommendation
-4. Positive encouragement
-
-Keep it concise and friendly.
-''';
-      final response = await _model.generateContent([Content.text(prompt)]);
-      return response.text ?? 'Unable to generate insights.';
-    } catch (e) {
-      return 'Error generating insights: ${e.toString()}';
+  Future<String> _idToken() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw _fail(AiApiErrorKind.notSignedIn);
+    }
+    try {
+      final token = await user.getIdToken();
+      if (token == null || token.isEmpty) {
+        throw _fail(AiApiErrorKind.notSignedIn);
+      }
+      return token;
+    } on AiApiException {
+      rethrow;
+    } catch (_) {
+      throw _fail(AiApiErrorKind.unauthorized);
     }
   }
 
-  void resetChat() {
-    if (isInitialized.value) {
-      _chatSession = _model.startChat();
-    }
+  String _requireString(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value is String && value.trim().isNotEmpty) return value;
+    throw _fail(AiApiErrorKind.unavailable, status: 200);
+  }
+
+  AiApiException _fail(AiApiErrorKind kind, {int? status}) {
+    lastError.value = kind.name;
+    return AiApiException(kind, status: status);
   }
 }

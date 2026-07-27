@@ -151,6 +151,19 @@ class AiChatView extends StatelessWidget {
                       isDense: true,
                     ),
                     maxLines: null,
+                    // Server caps the message at 2000 chars — enforce it here
+                    // so the user never gets a 400 back.
+                    maxLength: AiChatController.maxMessageLength,
+                    // Keep the input compact: only warn when close to the cap.
+                    buildCounter: (_,
+                            {required currentLength,
+                            required isFocused,
+                            maxLength}) =>
+                        currentLength < 1800
+                            ? null
+                            : Text('$currentLength/$maxLength',
+                                style: AppFonts.labelSmall
+                                    .copyWith(color: AppColors.textMuted)),
                     textInputAction: TextInputAction.send,
                     onSubmitted: sendAndScroll,
                   ),
