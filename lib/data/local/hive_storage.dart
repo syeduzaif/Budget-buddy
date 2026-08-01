@@ -59,28 +59,47 @@ class HiveStorage {
     await _settingsBox?.clear();
   }
 
-  // --- Settings Accessors ---
-
-  static String getCurrencyCode() => _settingsBox?.get(_keyCurrencyCode, defaultValue: 'USD') ?? 'USD';
-  static String getCurrencySymbol() => _settingsBox?.get(_keyCurrencySymbol, defaultValue: '\$') ?? '\$';
-  /// Monthly income in minor units.
+  /// The open settings box, or a failure.
   ///
-  /// Guarded rather than cast (H2): the box is untyped, so anything could be
-  /// under this key. A value that is not an `int` is treated as "not set"
-  /// instead of throwing on a hot startup path.
-  static int getMonthlyIncomeMinor() {
-    final stored = _settingsBox?.get(_keyMonthlyIncomeMinor);
-    return stored is int ? stored : 0;
+  /// Every write goes through this. The old `_settingsBox?.put(...)` completed
+  /// successfully when the box was not open, so the caller happily reported
+  /// "Saved" for a value that was never written — the H3 defect, at its
+  /// source. Throwing instead lets the controllers' error handling do its job.
+  static Box get _box {
+    final box = _settingsBox;
+    if (box == null) {
+      throw StateError(
+          'HiveStorage.openSettings() must run before settings are written');
+    }
+    return box;
   }
 
-  static String getThemeMode() => _settingsBox?.get(_keyThemeMode, defaultValue: 'system') ?? 'system';
-  static bool isOnboardingComplete() => _settingsBox?.get(_keyOnboardingComplete, defaultValue: false) ?? false;
-  static String getCurrentMonth() => _settingsBox?.get(_keyCurrentMonth, defaultValue: '') ?? '';
+  // --- Settings Accessors ---
+  //
+  // Reads are guarded by type rather than cast (H2): the box is untyped, so a
+  // value of the wrong type must fall back to the default instead of throwing
+  // on the startup path. Writes are not guarded — they must fail loudly.
 
-  static Future<void> setCurrencyCode(String code) async => _settingsBox?.put(_keyCurrencyCode, code);
-  static Future<void> setCurrencySymbol(String symbol) async => _settingsBox?.put(_keyCurrencySymbol, symbol);
-  static Future<void> setMonthlyIncomeMinor(int minorUnits) async => _settingsBox?.put(_keyMonthlyIncomeMinor, minorUnits);
-  static Future<void> setThemeMode(String mode) async => _settingsBox?.put(_keyThemeMode, mode);
-  static Future<void> setOnboardingComplete(bool value) async => _settingsBox?.put(_keyOnboardingComplete, value);
-  static Future<void> setCurrentMonth(String month) async => _settingsBox?.put(_keyCurrentMonth, month);
+  static String getCurrencyCode() => _read<String>(_keyCurrencyCode, 'USD');
+  static String getCurrencySymbol() => _read<String>(_keyCurrencySymbol, '\$');
+
+  /// Monthly income in minor units.
+  static int getMonthlyIncomeMinor() => _read<int>(_keyMonthlyIncomeMinor, 0);
+
+  static String getThemeMode() => _read<String>(_keyThemeMode, 'system');
+  static bool isOnboardingComplete() =>
+      _read<bool>(_keyOnboardingComplete, false);
+  static String getCurrentMonth() => _read<String>(_keyCurrentMonth, '');
+
+  static T _read<T>(String key, T fallback) {
+    final stored = _settingsBox?.get(key);
+    return stored is T ? stored : fallback;
+  }
+
+  static Future<void> setCurrencyCode(String code) => _box.put(_keyCurrencyCode, code);
+  static Future<void> setCurrencySymbol(String symbol) => _box.put(_keyCurrencySymbol, symbol);
+  static Future<void> setMonthlyIncomeMinor(int minorUnits) => _box.put(_keyMonthlyIncomeMinor, minorUnits);
+  static Future<void> setThemeMode(String mode) => _box.put(_keyThemeMode, mode);
+  static Future<void> setOnboardingComplete(bool value) => _box.put(_keyOnboardingComplete, value);
+  static Future<void> setCurrentMonth(String month) => _box.put(_keyCurrentMonth, month);
 }

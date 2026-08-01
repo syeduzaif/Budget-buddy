@@ -68,31 +68,35 @@ class SettingsService extends GetxService {
     }
   }
 
+  // Persist first, then publish. If a write fails the reactive value must not
+  // already be showing the change: a screen that displays what was never
+  // saved is the same lie as a success message for a failed write (H3).
+
   Future<void> setCurrency(String code, String symbol) async {
-    currencyCode.value = code;
-    currencySymbol.value = symbol;
     await HiveStorage.setCurrencyCode(code);
     await HiveStorage.setCurrencySymbol(symbol);
+    currencyCode.value = code;
+    currencySymbol.value = symbol;
   }
 
   Future<void> setMonthlyIncomeMinor(int minorUnits) async {
-    monthlyIncomeMinor.value = minorUnits;
     await HiveStorage.setMonthlyIncomeMinor(minorUnits);
+    monthlyIncomeMinor.value = minorUnits;
   }
 
   Future<void> setThemeMode(String mode) async {
-    themeMode.value = mode;
     await HiveStorage.setThemeMode(mode);
+    themeMode.value = mode;
     Get.changeThemeMode(flutterThemeMode);
   }
 
   Future<void> setCurrentMonth(String month) async {
-    currentMonth.value = month;
     await HiveStorage.setCurrentMonth(month);
+    currentMonth.value = month;
   }
 
   Future<void> completeOnboarding() async {
-    onboardingComplete.value = true;
     await HiveStorage.setOnboardingComplete(true);
+    onboardingComplete.value = true;
   }
 }
