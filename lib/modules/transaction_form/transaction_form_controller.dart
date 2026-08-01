@@ -101,10 +101,24 @@ class TransactionFormController extends GetxController {
         updatedAt: DateTime.now(),
       );
       await transactionRepo.addTransaction(transaction);
-      Get.back();
+    } catch (e, stack) {
+      // Owner-approved mobile convention (2026-07-28): user-visible
+      // failures surface via Get.snackbar. Hive throws on a failed
+      // write, unlike the Firestore calls this code was written
+      // against, which failed silently (H3).
+      debugPrint('[TransactionFormController] save failed: $e\n$stack');
+      Get.snackbar(
+        'Could not save transaction',
+        'Nothing was saved. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
     } finally {
       isLoading.value = false;
     }
+    // The sheet closes only once the write is known to have landed —
+    // dismissing it first would report a success that never happened.
+    Get.back();
   }
 
   /// Returns an existing "Other" category for the current month, or creates one.

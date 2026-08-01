@@ -42,20 +42,49 @@ class SettingsController extends GetxController {
     }
     final incomeMinor =
         CurrencyUtils.tryParseToMinor(incomeInputController.text, currency) ?? 0;
-    await settings.setMonthlyIncomeMinor(incomeMinor);
+    try {
+      await settings.setMonthlyIncomeMinor(incomeMinor);
+    } catch (e, stack) {
+      // Owner-approved mobile convention (2026-07-28): user-visible
+      // failures surface via Get.snackbar. A write that threw must
+      // never be followed by a success message (H3).
+      debugPrint('[SettingsController] saveIncome failed: $e\n$stack');
+      Get.snackbar('Could not save', 'Your income was not changed.',
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
     Get.back();
     Get.snackbar('Saved', 'Monthly income updated',
         snackPosition: SnackPosition.BOTTOM);
   }
 
   Future<void> selectCurrency(Currency currency) async {
-    await settings.setCurrency(currency.code, currency.symbol);
+    try {
+      await settings.setCurrency(currency.code, currency.symbol);
+    } catch (e, stack) {
+      // Owner-approved mobile convention (2026-07-28): user-visible
+      // failures surface via Get.snackbar. A write that threw must
+      // never be followed by a success message (H3).
+      debugPrint('[SettingsController] selectCurrency failed: $e\n$stack');
+      Get.snackbar('Could not save', 'Your currency was not changed.',
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
     Get.snackbar('Currency updated', '${currency.name} (${currency.symbol})',
         snackPosition: SnackPosition.BOTTOM);
   }
 
   Future<void> setTheme(String mode) async {
-    await settings.setThemeMode(mode);
+    try {
+      await settings.setThemeMode(mode);
+    } catch (e, stack) {
+      // Owner-approved mobile convention (2026-07-28): user-visible
+      // failures surface via Get.snackbar. A write that threw must
+      // never be followed by a success message (H3).
+      debugPrint('[SettingsController] setTheme failed: $e\n$stack');
+      Get.snackbar('Could not save', 'Your theme was not changed.',
+          snackPosition: SnackPosition.BOTTOM);
+    }
   }
 
   /// Wipes every local box — categories, transactions and settings — and sends

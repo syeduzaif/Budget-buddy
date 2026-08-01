@@ -83,7 +83,22 @@ class CategoriesController extends GetxController {
   }
 
   Future<void> deleteCategory(Category category) async {
-    await categoryRepo.deleteCategory(category.id);
+    try {
+      await categoryRepo.deleteCategory(category.id);
+    } catch (e, stack) {
+      // Owner-approved mobile convention (2026-07-28): user-visible
+      // failures surface via Get.snackbar. Hive throws on a failed
+      // write, unlike the Firestore calls this code was written
+      // against, which failed silently (H3).
+      debugPrint('[CategoriesController] delete failed: $e\n$stack');
+      // The row has already been swiped away; say plainly that the data has
+      // not, rather than letting the gesture imply a delete that failed.
+      Get.snackbar(
+        'Could not delete "${category.name}"',
+        'It is still saved — reopen this screen to see it.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   Future<void> addCategory({
@@ -100,10 +115,36 @@ class CategoriesController extends GetxController {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
-    await categoryRepo.addCategory(category);
+    try {
+      await categoryRepo.addCategory(category);
+    } catch (e, stack) {
+      // Owner-approved mobile convention (2026-07-28): user-visible
+      // failures surface via Get.snackbar. Hive throws on a failed
+      // write, unlike the Firestore calls this code was written
+      // against, which failed silently (H3).
+      debugPrint('[CategoriesController] add failed: $e\n$stack');
+      Get.snackbar(
+        'Could not save category',
+        'Nothing was saved. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   Future<void> updateCategory(Category updated) async {
-    await categoryRepo.updateCategory(updated);
+    try {
+      await categoryRepo.updateCategory(updated);
+    } catch (e, stack) {
+      // Owner-approved mobile convention (2026-07-28): user-visible
+      // failures surface via Get.snackbar. Hive throws on a failed
+      // write, unlike the Firestore calls this code was written
+      // against, which failed silently (H3).
+      debugPrint('[CategoriesController] update failed: $e\n$stack');
+      Get.snackbar(
+        'Could not save changes',
+        'The category is unchanged. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 }

@@ -142,10 +142,23 @@ class CategoryFormController extends GetxController {
         );
         await categoryRepo.addCategory(category);
       }
-      Get.back();
+    } catch (e, stack) {
+      // Owner-approved mobile convention (2026-07-28): user-visible
+      // failures surface via Get.snackbar. Hive throws on a failed
+      // write, unlike the Firestore calls this code was written
+      // against, which failed silently (H3).
+      debugPrint('[CategoryFormController] save failed: $e\n$stack');
+      Get.snackbar(
+        'Could not save category',
+        'Nothing was saved. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
     } finally {
       isLoading.value = false;
     }
+    // Only leave the form once the write is known to have landed.
+    Get.back();
   }
 
   Future<void> delete() async {
@@ -153,9 +166,21 @@ class CategoryFormController extends GetxController {
     isLoading.value = true;
     try {
       await categoryRepo.deleteCategory(editingCategory!.id);
-      Get.back();
+    } catch (e, stack) {
+      // Owner-approved mobile convention (2026-07-28): user-visible
+      // failures surface via Get.snackbar. Hive throws on a failed
+      // write, unlike the Firestore calls this code was written
+      // against, which failed silently (H3).
+      debugPrint('[CategoryFormController] delete failed: $e\n$stack');
+      Get.snackbar(
+        'Could not delete category',
+        'The category is still there. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
     } finally {
       isLoading.value = false;
     }
+    Get.back();
   }
 }

@@ -52,12 +52,28 @@ class OnboardingController extends GetxController {
     }
     final incomeMinor =
         CurrencyUtils.tryParseToMinor(incomeController.text, currency) ?? 0;
-    await _settings.setCurrency(currency.code, currency.symbol);
-    await _settings.setMonthlyIncomeMinor(incomeMinor);
     final month = AppDateUtils.getCurrentMonthKey();
-    await _settings.setCurrentMonth(month);
-    await _settings.completeOnboarding();
-    await _seedDefaultCategories(month, currency);
+    try {
+      await _settings.setCurrency(currency.code, currency.symbol);
+      await _settings.setMonthlyIncomeMinor(incomeMinor);
+      await _settings.setCurrentMonth(month);
+      await _seedDefaultCategories(month, currency);
+      // Last, and only once the rest landed: this is the flag that stops the
+      // app ever showing onboarding again, so a half-finished setup must not
+      // set it.
+      await _settings.completeOnboarding();
+    } catch (e, stack) {
+      // Owner-approved mobile convention (2026-07-28): user-visible
+      // failures surface via Get.snackbar. A write that threw must
+      // never be followed by a success message (H3).
+      debugPrint('[OnboardingController] finish failed: $e\n$stack');
+      Get.snackbar(
+        'Could not finish setup',
+        'Setup did not complete. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
     Get.offAllNamed(AppRoutes.home);
   }
 

@@ -75,6 +75,21 @@ class TransactionsController extends GetxController {
   }
 
   Future<void> deleteTransaction(String id) async {
-    await transactionRepo.deleteTransaction(id);
+    try {
+      await transactionRepo.deleteTransaction(id);
+    } catch (e, stack) {
+      // Owner-approved mobile convention (2026-07-28): user-visible
+      // failures surface via Get.snackbar. Hive throws on a failed
+      // write, unlike the Firestore calls this code was written
+      // against, which failed silently (H3).
+      debugPrint('[TransactionsController] delete failed: $e\n$stack');
+      // The tile has already been swiped away; say plainly that the data has
+      // not, rather than letting the gesture imply a delete that failed.
+      Get.snackbar(
+        'Could not delete transaction',
+        'It is still saved — reopen this screen to see it.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 }
