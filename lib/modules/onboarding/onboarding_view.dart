@@ -120,11 +120,16 @@ class _CurrencyPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppSpacing.radiusM),
                     child: Container(
                       decoration: BoxDecoration(
-                        color:
-                            selected ? AppColors.primary : Colors.transparent,
+                        // primaryDark, not primary: white on #4E5E38 is 6.9:1,
+                        // where white70 on #6B7F4E was 3.04:1 — below AA for
+                        // 14px text (UI-13).
+                        color: selected
+                            ? AppColors.primaryDark
+                            : Colors.transparent,
                         border: Border.all(
-                          color:
-                              selected ? AppColors.primary : AppColors.border,
+                          color: selected
+                              ? AppColors.primaryDark
+                              : AppColors.border,
                           width: selected ? 2 : 1,
                         ),
                         borderRadius: BorderRadius.circular(AppSpacing.radiusM),
@@ -143,7 +148,7 @@ class _CurrencyPage extends StatelessWidget {
                             child: Text(currency.code,
                                 style: AppFonts.labelMedium.copyWith(
                                     color: selected
-                                        ? Colors.white70
+                                        ? Colors.white
                                         : AppColors.textSecondary),
                                 overflow: TextOverflow.ellipsis),
                           ),

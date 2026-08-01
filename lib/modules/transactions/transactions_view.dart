@@ -72,8 +72,7 @@ class TransactionsView extends StatelessWidget {
                   } catch (_) {}
                   return TransactionTile(
                     transaction: t,
-                    categoryName: cat?.name ?? 'Unknown',
-                    categoryColor: cat?.colorValue ?? AppColors.primary.toARGB32(),
+                    category: cat,
                     currency: currency,
                     onDelete: () => ctrl.deleteTransaction(t.id),
                   );

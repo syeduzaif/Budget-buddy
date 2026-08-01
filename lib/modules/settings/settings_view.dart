@@ -57,10 +57,14 @@ class SettingsView extends StatelessWidget {
 
             const _SectionHeader('Data'),
             ListTile(
-              leading: const Icon(Icons.delete_forever_outlined,
-                  color: AppColors.error),
+              // colorScheme.error, not the raw token: the dark scheme's
+              // lighter error tone (#E89088) reads on #1E1B15 where #C25D4E
+              // sits at ~4.3:1 (UI-20).
+              leading: Icon(Icons.delete_forever_outlined,
+                  color: Theme.of(context).colorScheme.error),
               title: Text('Erase All Data',
-                  style: AppFonts.labelLarge.copyWith(color: AppColors.error)),
+                  style: AppFonts.labelLarge
+                      .copyWith(color: Theme.of(context).colorScheme.error)),
               subtitle: Text(
                   'Delete every category, transaction and preference on this device',
                   style: AppFonts.caption.copyWith(color: AppColors.textMuted)),

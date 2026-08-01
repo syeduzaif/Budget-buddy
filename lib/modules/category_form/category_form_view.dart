@@ -20,6 +20,10 @@ class CategoryFormView extends StatelessWidget {
       settings: Get.find<SettingsService>(),
     ));
     final formKey = GlobalKey<FormState>();
+    // Selection states are hand-built here, but the RESTING states must come
+    // from the scheme: the raw light-theme tokens they used computed to 2.79:1
+    // on the dark background, so 9 chips and 20 icons read as disabled (UI-03c).
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -87,8 +91,9 @@ class CategoryFormView extends StatelessWidget {
                                 borderRadius:
                                     BorderRadius.circular(AppSpacing.radiusXl),
                                 border: Border.all(
-                                  color:
-                                      isSelected ? chipColor : AppColors.border,
+                                  color: isSelected
+                                      ? chipColor
+                                      : colorScheme.outlineVariant,
                                   width: isSelected ? 2 : 1,
                                 ),
                               ),
@@ -100,7 +105,7 @@ class CategoryFormView extends StatelessWidget {
                                     size: 18,
                                     color: isSelected
                                         ? chipColor
-                                        : AppColors.textSecondary,
+                                        : colorScheme.onSurfaceVariant,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -108,7 +113,7 @@ class CategoryFormView extends StatelessWidget {
                                     style: AppFonts.labelMedium.copyWith(
                                       color: isSelected
                                           ? chipColor
-                                          : AppColors.textSecondary,
+                                          : colorScheme.onSurfaceVariant,
                                       fontWeight: isSelected
                                           ? FontWeight.w600
                                           : FontWeight.w500,
@@ -170,10 +175,13 @@ class CategoryFormView extends StatelessWidget {
                           iconData.codePoint;
                       return GestureDetector(
                         onTap: () => ctrl.selectIcon(iconData.codePoint),
+                        // 48×48: a plain GestureDetector's hit area is exactly
+                        // its box, so 44 was 4dp under the minimum target
+                        // (UI-30). The glyph stays at 24.
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
-                          width: 44,
-                          height: 44,
+                          width: 48,
+                          height: 48,
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? ctrl.selectedColor.value
@@ -183,14 +191,16 @@ class CategoryFormView extends StatelessWidget {
                             border: isSelected
                                 ? Border.all(
                                     color: ctrl.selectedColor.value, width: 2)
-                                : Border.all(color: AppColors.border, width: 1),
+                                : Border.all(
+                                    color: colorScheme.outlineVariant,
+                                    width: 1),
                           ),
                           child: Icon(
                             iconData,
                             size: AppSpacing.iconM,
                             color: isSelected
                                 ? ctrl.selectedColor.value
-                                : AppColors.textSecondary,
+                                : colorScheme.onSurfaceVariant,
                           ),
                         ),
                       );
@@ -207,30 +217,42 @@ class CategoryFormView extends StatelessWidget {
                           color.toARGB32();
                       return GestureDetector(
                         onTap: () => ctrl.selectColor(color),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: selected
-                                ? Border.all(
-                                    color: AppColors.textPrimary, width: 3)
-                                : null,
-                            boxShadow: selected
-                                ? [
-                                    BoxShadow(
-                                        color: color.withValues(alpha: 0.4),
-                                        blurRadius: 8,
-                                        spreadRadius: 2)
-                                  ]
-                                : null,
+                        // 48×48 hit box around an unchanged 40dp swatch: the
+                        // target meets the minimum without the swatch grid
+                        // growing (UI-30).
+                        child: SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Center(
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: selected
+                                    // Espresso was invisible on the dark
+                                    // background; the scheme's onSurface reads
+                                    // in both (UI-03c).
+                                    ? Border.all(
+                                        color: colorScheme.onSurface, width: 3)
+                                    : null,
+                                boxShadow: selected
+                                    ? [
+                                        BoxShadow(
+                                            color: color.withValues(alpha: 0.4),
+                                            blurRadius: 8,
+                                            spreadRadius: 2)
+                                      ]
+                                    : null,
+                              ),
+                              child: selected
+                                  ? const Icon(Icons.check,
+                                      color: Colors.white, size: 20)
+                                  : null,
+                            ),
                           ),
-                          child: selected
-                              ? const Icon(Icons.check,
-                                  color: Colors.white, size: 20)
-                              : null,
                         ),
                       );
                     }).toList(),

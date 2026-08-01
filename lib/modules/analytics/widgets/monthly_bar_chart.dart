@@ -86,7 +86,9 @@ class MonthlyBarChart extends StatelessWidget {
               barRods: [
                 BarChartRodData(
                   toY: CurrencyUtils.toMajor(data[i].totalMinor, currency),
-                  color: AppColors.primary,
+                  // From the scheme: the raw token is the light-theme olive,
+                  // which in dark mode sat on a dark card (UI-23).
+                  color: Theme.of(context).colorScheme.primary,
                   width: 20,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusS),
                 ),

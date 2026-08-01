@@ -26,6 +26,9 @@ class CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The dark scheme defines a lighter error (#E89088) that the raw token
+    // never used; #C25D4E on dark sits at ~4.3:1 (UI-20).
+    final errorColor = Theme.of(context).colorScheme.error;
     final color = Color(category.colorValue);
     // int / int is a double in Dart, so the ratio needs no conversion.
     final pct = category.budgetLimitMinor > 0
@@ -54,10 +57,12 @@ class CategoryCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis),
                   ),
                   IconButton(
+                    // The overrides that used to be here (zero padding, empty
+                    // constraints) stripped the 48dp minimum target off an
+                    // 18dp glyph (UI-07). The glyph stays small; the target
+                    // does not.
                     icon: const Icon(Icons.edit_outlined, size: 18),
                     onPressed: onEdit,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
                     color: AppColors.textMuted,
                   ),
                 ],
@@ -68,8 +73,8 @@ class CategoryCard extends StatelessWidget {
                 children: [
                   Text(
                     CurrencyUtils.formatAmount(spentMinor, currency),
-                    style: AppFonts.h6
-                        .copyWith(color: isOver ? AppColors.error : null),
+                    style:
+                        AppFonts.h6.copyWith(color: isOver ? errorColor : null),
                   ),
                   Text(
                     'of ${CurrencyUtils.formatAmount(category.budgetLimitMinor, currency)}',
@@ -83,15 +88,14 @@ class CategoryCard extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: pct,
                   backgroundColor: color.withValues(alpha: 0.15),
-                  color: isOver ? AppColors.error : color,
+                  color: isOver ? errorColor : color,
                   minHeight: 6,
                 ),
               ),
               if (isOver) ...[
                 const SizedBox(height: AppSpacing.xxs),
                 Text('Over budget!',
-                    style:
-                        AppFonts.labelSmall.copyWith(color: AppColors.error)),
+                    style: AppFonts.labelSmall.copyWith(color: errorColor)),
               ],
             ],
           ),
