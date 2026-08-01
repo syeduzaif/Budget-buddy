@@ -1,69 +1,83 @@
 import 'package:intl/intl.dart';
 
+/// Dates, and the one place a month key is built.
+///
+/// A **month key** is the string `"YYYY-MM"` — zero-padded, four-digit year,
+/// in the DEVICE-LOCAL timezone. Categories are stamped with one at write
+/// time; a transaction's month is derived from its `date` at read time. Both
+/// paths must produce byte-identical strings or a transaction silently drops
+/// out of its own month, so every one of them goes through [monthKey].
+///
+/// [monthKey] is deliberately plain string arithmetic rather than
+/// `DateFormat('yyyy-MM')`: `DateFormat` renders digits in the ambient locale,
+/// and several real locales do not use ASCII ones — measured 2026-08-01,
+/// `DateFormat('yyyy-MM')` returns `۲۰۲۶-۰۳` under `fa`, `٢٠٢٦-٠٣` under
+/// `ar_EG`, `২০২৬-০৩` under `bn`. Setting `Intl.defaultLocale` (which the app
+/// does not do today, but a localisation pass would) would silently start
+/// writing keys that never match the ones already stored. The `DateFormat`
+/// calls left below are all human-facing labels, where localisation is the
+/// point.
 class AppDateUtils {
-  static String getCurrentMonthKey() {
-    return DateFormat('yyyy-MM').format(DateTime.now());
+  /// THE month-key builder. Device-local, zero-padded, ASCII.
+  static String monthKey(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}';
+
+  static String getCurrentMonthKey() => monthKey(DateTime.now());
+
+  static String getMonthKeyFromDate(DateTime date) => monthKey(date);
+
+  /// Parses a month key back to the first of that month, or null if the string
+  /// is not one. Callers decide what an unparseable key means.
+  static DateTime? parseMonthKey(String key) {
+    final parts = key.split('-');
+    if (parts.length != 2) return null;
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    if (year == null || month == null) return null;
+    if (month < 1 || month > 12) return null;
+    return DateTime(year, month);
   }
 
-  static String getMonthKeyFromDate(DateTime date) {
-    return DateFormat('yyyy-MM').format(date);
-  }
+  /// The month before [monthKeyString], rolling the year over at January.
+  /// An unparseable key is returned unchanged rather than throwing.
+  static String getPreviousMonthKey(String monthKeyString) =>
+      _shiftMonth(monthKeyString, -1);
 
-  static String formatMonthKey(String monthKey) {
-    try {
-      final parts = monthKey.split('-');
-      final date = DateTime(int.parse(parts[0]), int.parse(parts[1]));
-      return DateFormat('MMMM yyyy').format(date);
-    } catch (_) {
-      return monthKey;
-    }
-  }
+  /// The month after [monthKeyString], rolling the year over at December.
+  static String getNextMonthKey(String monthKeyString) =>
+      _shiftMonth(monthKeyString, 1);
 
-  static String getPreviousMonthKey(String monthKey) {
-    try {
-      final parts = monthKey.split('-');
-      final date = DateTime(int.parse(parts[0]), int.parse(parts[1]), 1);
-      final prev = DateTime(date.year, date.month - 1, 1);
-      return DateFormat('yyyy-MM').format(prev);
-    } catch (_) {
-      return monthKey;
-    }
-  }
-
-  static String getNextMonthKey(String monthKey) {
-    try {
-      final parts = monthKey.split('-');
-      final date = DateTime(int.parse(parts[0]), int.parse(parts[1]), 1);
-      final next = DateTime(date.year, date.month + 1, 1);
-      return DateFormat('yyyy-MM').format(next);
-    } catch (_) {
-      return monthKey;
-    }
-  }
-
-  static String formatDate(DateTime date) {
-    return DateFormat('MMM dd, yyyy').format(date);
-  }
-
-  static String formatDateShort(DateTime date) {
-    return DateFormat('MM/dd').format(date);
-  }
-
-  static String formatMonthShort(String monthKey) {
-    try {
-      final parts = monthKey.split('-');
-      final date = DateTime(int.parse(parts[0]), int.parse(parts[1]));
-      return DateFormat('MMM yy').format(date);
-    } catch (_) {
-      return monthKey;
-    }
-  }
-
+  /// [n] month keys ending with the current month, newest first.
   static List<String> getLastNMonthKeys(int n) {
     final now = DateTime.now();
-    return List.generate(n, (i) {
-      final d = DateTime(now.year, now.month - i, 1);
-      return DateFormat('yyyy-MM').format(d);
-    });
+    return List.generate(n, (i) => monthKey(DateTime(now.year, now.month - i)));
   }
+
+  /// `DateTime` normalises month 0 to December of the previous year and month
+  /// 13 to January of the next, so the rollover needs no special case.
+  static String _shiftMonth(String monthKeyString, int delta) {
+    final parsed = parseMonthKey(monthKeyString);
+    if (parsed == null) return monthKeyString;
+    return monthKey(DateTime(parsed.year, parsed.month + delta));
+  }
+
+  // --- Human-facing labels (localised on purpose) ---------------------------
+
+  static String formatMonthKey(String monthKeyString) {
+    final parsed = parseMonthKey(monthKeyString);
+    if (parsed == null) return monthKeyString;
+    return DateFormat('MMMM yyyy').format(parsed);
+  }
+
+  static String formatMonthShort(String monthKeyString) {
+    final parsed = parseMonthKey(monthKeyString);
+    if (parsed == null) return monthKeyString;
+    return DateFormat('MMM yy').format(parsed);
+  }
+
+  static String formatDate(DateTime date) =>
+      DateFormat('MMM dd, yyyy').format(date);
+
+  static String formatDateShort(DateTime date) => DateFormat('MM/dd').format(date);
 }

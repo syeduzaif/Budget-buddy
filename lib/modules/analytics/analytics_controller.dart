@@ -32,9 +32,7 @@ class AnalyticsController extends GetxController {
   }
 
   List<String> _activeMonths() {
-    final current = settings.currentMonth.value.isNotEmpty
-        ? settings.currentMonth.value
-        : AppDateUtils.getCurrentMonthKey();
+    final current = settings.effectiveMonth;
     switch (selectedRange.value) {
       case 1:
         return List.generate(3, (i) {
