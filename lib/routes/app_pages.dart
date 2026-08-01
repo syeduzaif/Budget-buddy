@@ -1,14 +1,16 @@
 import 'package:get/get.dart';
-import '../modules/auth/auth_controller.dart';
-import '../modules/auth/login_view.dart';
-import '../modules/auth/signup_view.dart';
+import '../data/repositories/category_repository.dart';
+import '../data/repositories/transaction_repository.dart';
 import '../modules/onboarding/onboarding_controller.dart';
 import '../modules/onboarding/onboarding_view.dart';
+import '../modules/splash/splash_controller.dart';
 import '../modules/splash/splash_view.dart';
 import '../modules/home/home_view.dart';
 import '../modules/category_form/category_form_view.dart';
 import '../modules/transactions/transactions_view.dart';
 import '../modules/settings/settings_view.dart';
+import '../services/app/settings_service.dart';
+import '../services/local/local_store_service.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -19,20 +21,11 @@ class AppPages {
     GetPage(
       name: AppRoutes.splash,
       page: () => const SplashView(),
+      binding: BindingsBuilder(() {
+        Get.put(SplashController());
+      }),
       transition: Transition.fade,
       transitionDuration: const Duration(milliseconds: 400),
-    ),
-    GetPage(
-      name: AppRoutes.login,
-      page: () => const LoginView(),
-      transition: _transition,
-      transitionDuration: _duration,
-    ),
-    GetPage(
-      name: AppRoutes.signup,
-      page: () => const SignupView(),
-      transition: _transition,
-      transitionDuration: _duration,
     ),
     GetPage(
       name: AppRoutes.onboarding,
@@ -70,10 +63,17 @@ class AppPages {
   ];
 }
 
-// Initial binding — registers AuthController at startup
-class InitialBinding extends Bindings {
-  @override
-  void dependencies() {
-    Get.put(AuthController(), permanent: true);
+/// Process-wide dependency registration.
+///
+/// The app is local-only, so nothing here is gated on a sign-in event: every
+/// service and repository exists for the whole process lifetime. Awaited in
+/// `main()` before `runApp`, because [LocalStoreService] has to finish opening
+/// its Hive boxes before any repository reads from it.
+class AppBindings {
+  static Future<void> register() async {
+    await Get.putAsync(() => LocalStoreService().init(), permanent: true);
+    Get.put(SettingsService(), permanent: true);
+    Get.put(CategoryRepository(), permanent: true);
+    Get.put(TransactionRepository(), permanent: true);
   }
 }

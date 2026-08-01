@@ -5,10 +5,7 @@ import 'package:get/get.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_fonts.dart';
-import '../../services/app/settings_service.dart';
-import '../../services/firebase/firebase_auth_service.dart';
-import '../../routes/app_routes.dart';
-import '../../utils/date_utils.dart';
+import 'splash_controller.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -100,33 +97,9 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
     Future.delayed(const Duration(milliseconds: 1800), _navigate);
   }
 
-  Future<void> _navigate() async {
+  void _navigate() {
     if (!mounted) return;
-
-    final authService = Get.find<FirebaseAuthService>();
-    final user = authService.currentUser;
-
-    if (user == null) {
-      Get.offAllNamed(AppRoutes.login);
-    } else {
-      // User is authenticated — check onboarding
-      if (Get.isRegistered<SettingsService>()) {
-        final settings = Get.find<SettingsService>();
-
-        // Auto-sync current month
-        await settings.setCurrentMonth(AppDateUtils.getCurrentMonthKey());
-
-        if (!settings.onboardingComplete.value) {
-          Get.offAllNamed(AppRoutes.onboarding);
-        } else {
-          Get.offAllNamed(AppRoutes.home);
-        }
-      } else {
-        // Settings not yet loaded — auth controller will handle routing
-        // Just wait for auth state listener to fire
-        Get.offAllNamed(AppRoutes.login);
-      }
-    }
+    Get.find<SplashController>().routeToNextScreen();
   }
 
   @override

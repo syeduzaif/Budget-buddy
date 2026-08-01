@@ -6,8 +6,6 @@ import '../categories/categories_controller.dart';
 import '../categories/categories_view.dart';
 import '../analytics/analytics_controller.dart';
 import '../analytics/analytics_view.dart';
-import '../ai_chat/ai_chat_controller.dart';
-import '../ai_chat/ai_chat_view.dart';
 import '../transaction_form/transaction_form_controller.dart';
 import '../transaction_form/transaction_form_view.dart';
 import '../../data/repositories/category_repository.dart';
@@ -37,21 +35,16 @@ class HomeView extends StatelessWidget {
           categoryRepo: Get.find<CategoryRepository>(),
           settings: Get.find<SettingsService>(),
         ));
-    Get.lazyPut(() => AiChatController());
 
-    // Tab index mapping: nav 0→Dashboard, 1→Categories, 2→(Add, handled separately),
-    // 3→Analytics, 4→AiChat. IndexedStack uses 0-3.
-    int stackIndex(int navIdx) {
-      if (navIdx <= 1) return navIdx;
-      if (navIdx >= 3) return navIdx - 1;
-      return 0;
-    }
+    // Nav bar has 4 destinations: 0→Dashboard, 1→Categories,
+    // 2→Add (opens a sheet, never a tab), 3→Analytics.
+    // `views` holds only the three real tabs, so nav 3 maps to view 2.
+    int stackIndex(int navIdx) => navIdx >= 3 ? navIdx - 1 : navIdx;
 
     const views = [
       DashboardView(),
       CategoriesView(),
       AnalyticsView(),
-      AiChatView(),
     ];
 
     return Obx(() => Scaffold(
@@ -91,11 +84,6 @@ class HomeView extends StatelessWidget {
                 icon: Icon(Icons.bar_chart_outlined),
                 selectedIcon: Icon(Icons.bar_chart),
                 label: 'Analytics',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.auto_awesome_outlined),
-                selectedIcon: Icon(Icons.auto_awesome),
-                label: 'AI',
               ),
             ],
           ),
