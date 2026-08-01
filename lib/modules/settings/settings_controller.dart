@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../modules/auth/auth_controller.dart';
+import '../../data/repositories/category_repository.dart';
+import '../../data/repositories/transaction_repository.dart';
+import '../../routes/app_routes.dart';
 import '../../services/app/settings_service.dart';
-import '../../services/firebase/firebase_auth_service.dart';
 import '../../utils/currency_utils.dart';
 
 class SettingsController extends GetxController {
   final SettingsService settings = Get.find<SettingsService>();
+  final CategoryRepository _categoryRepo = Get.find<CategoryRepository>();
+  final TransactionRepository _transactionRepo =
+      Get.find<TransactionRepository>();
 
   final incomeInputController = TextEditingController();
   final isLoading = false.obs;
@@ -42,60 +46,34 @@ class SettingsController extends GetxController {
     await settings.setThemeMode(mode);
   }
 
-  Future<void> signOut() async {
+  /// Wipes every local box — categories, transactions and settings — and sends
+  /// the user back through onboarding. Nothing is stored off-device, so this is
+  /// the whole of the user's data.
+  Future<void> eraseAllData() async {
+    if (isLoading.value) return;
     isLoading.value = true;
     try {
-      await Get.find<AuthController>().signOut();
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> deleteAccount() async {
-    isLoading.value = true;
-    try {
-      final authService = Get.find<FirebaseAuthService>();
-      await authService.deleteAccount();
-      Get.snackbar('Success', 'Your account has been deleted permanentally.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withValues(alpha: 0.1),
-          colorText: Colors.green);
+      await _transactionRepo.deleteAll();
+      await _categoryRepo.deleteAll();
+      await settings.resetToDefaults();
     } catch (e) {
-      if (e == 'reauthentication-required') {
-        throw 'reauthentication-required';
-      }
-      Get.snackbar('Error', e.toString(),
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.1),
-          colorText: Colors.red);
-      rethrow;
+      // Owner-approved mobile convention (2026-07-28): user-visible failures
+      // surface via Get.snackbar. Stay on this screen — a partial wipe must
+      // not be reported as success.
+      Get.snackbar(
+        'Could not erase data',
+        'Something went wrong. Some data may not have been erased — '
+            'please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      debugPrint('[SettingsController] eraseAllData failed: $e');
+      return;
     } finally {
       isLoading.value = false;
     }
-  }
 
-  Future<void> reauthenticateAndDelete(String password) async {
-    isLoading.value = true;
-    try {
-      final authService = Get.find<FirebaseAuthService>();
-      await authService.reauthenticate(password);
-      await authService.deleteAccount();
-      Get.snackbar('Success', 'Your account has been deleted permanentally.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withValues(alpha: 0.1),
-          colorText: Colors.green);
-    } catch (e) {
-      Get.snackbar('Error', e.toString(),
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.withValues(alpha: 0.1),
-          colorText: Colors.red);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  bool get isGoogleUser {
-    final user = Get.find<FirebaseAuthService>().currentUser;
-    return user?.providerData.any((p) => p.providerId == 'google.com') ?? false;
+    // Navigate only after the loading state is settled: this route (and this
+    // controller) are disposed by offAllNamed.
+    Get.offAllNamed(AppRoutes.onboarding);
   }
 }

@@ -19,6 +19,14 @@ class SettingsService extends GetxService {
     _load();
   }
 
+  /// Wipe every stored preference and drop the reactive values back to their
+  /// first-run defaults. Controllers must come through here rather than
+  /// touching HiveStorage.
+  Future<void> resetToDefaults() async {
+    await HiveStorage.clearSettings();
+    _load();
+  }
+
   void _load() {
     currencyCode.value = HiveStorage.getCurrencyCode();
     currencySymbol.value = HiveStorage.getCurrencySymbol();
