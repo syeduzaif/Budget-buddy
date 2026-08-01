@@ -67,8 +67,13 @@ class TransactionTile extends StatelessWidget {
               TextButton(
                   onPressed: () => Navigator.pop(dialogContext, false),
                   child: const Text('Cancel')),
-              FilledButton(
+              // Destroying is not the affirmative action: a green FilledButton
+              // means "safe/go" everywhere else in this app. Error-coloured
+              // text, matching the erase-all dialog (N9).
+              TextButton(
                   onPressed: () => Navigator.pop(dialogContext, true),
+                  style: TextButton.styleFrom(
+                      foregroundColor: colorScheme.error),
                   child: const Text('Delete')),
             ],
           ),
@@ -94,10 +99,12 @@ class TransactionTile extends StatelessWidget {
             style: AppFonts.labelLarge,
             overflow: TextOverflow.ellipsis,
           ),
-          // No date: the group header above the row owns it. And no category
-          // on the filtered screen, where the app bar already says it — the
-          // row used to repeat both (UI-04).
-          subtitle: showCategory
+          // No date: the group header above the row owns it. No category on
+          // the filtered screen, where the app bar already says it (UI-04).
+          // And nothing at all when the title has already fallen back to the
+          // category name — a note-less transaction was showing "Shopping"
+          // over "Shopping" (N4).
+          subtitle: showCategory && transaction.note.isNotEmpty
               ? Text(
                   categoryName,
                   style: AppFonts.labelSmall,

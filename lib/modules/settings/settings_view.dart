@@ -26,10 +26,13 @@ class SettingsView extends StatelessWidget {
               // Not a dollar glyph: wrong for 22 of the 23 currencies (UI-08).
               leading: const Icon(Icons.payments_outlined),
               title: const Text('Monthly Income'),
+              // No inline style on any of these three subtitles: the inline
+              // AppFonts.bodySmall baked the light-theme textSecondary
+              // (2.79:1 in dark), while listTileTheme.subtitleTextStyle
+              // already carries the right colour for each theme (N6).
               subtitle: Obx(() => Text(
                     CurrencyUtils.formatAmount(
                         settings.monthlyIncomeMinor.value, settings.currency),
-                    style: AppFonts.bodySmall,
                   )),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _showIncomeSheet(context, ctrl),
@@ -44,7 +47,6 @@ class SettingsView extends StatelessWidget {
               title: const Text('Currency'),
               subtitle: Obx(() => Text(
                     '${settings.currencyCode.value} (${settings.currency.symbol})',
-                    style: AppFonts.bodySmall,
                   )),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _showCurrencySheet(context, ctrl),
@@ -54,7 +56,6 @@ class SettingsView extends StatelessWidget {
               title: const Text('Theme'),
               subtitle: Obx(() => Text(
                     _themeLabel(settings.themeMode.value),
-                    style: AppFonts.bodySmall,
                   )),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _showThemeSheet(context, ctrl),
@@ -244,7 +245,11 @@ class SettingsView extends StatelessWidget {
               Get.back(); // Close the confirmation dialog first.
               ctrl.eraseAllData();
             },
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            // The pattern the other three delete dialogs now copy (N9) — with
+            // the scheme's error, since this text sits on a dark dialog
+            // surface where the raw token is 3.22:1.
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Erase Everything'),
           ),
         ],

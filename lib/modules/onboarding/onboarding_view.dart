@@ -11,6 +11,7 @@ class OnboardingView extends GetView<OnboardingController> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -18,8 +19,12 @@ class OnboardingView extends GetView<OnboardingController> {
             // Progress indicator
             Obx(() => LinearProgressIndicator(
                   value: (controller.currentPage.value + 1) / 3,
-                  backgroundColor: AppColors.border,
-                  color: AppColors.primary,
+                  // The bar read BACKWARDS in dark: the unfilled track was
+                  // AppColors.border (#E3DDD2, 12.7:1) while the filled part
+                  // was 3.9:1 — the empty part 3× brighter than the progress
+                  // (N7).
+                  backgroundColor: colorScheme.onSurface.withValues(alpha: 0.12),
+                  color: colorScheme.primary,
                   minHeight: 3,
                 )),
             Expanded(
@@ -47,6 +52,7 @@ class _WelcomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ctrl = Get.find<OnboardingController>();
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
@@ -71,7 +77,10 @@ class _WelcomePage extends StatelessWidget {
             // a feature that does not exist (UI-24).
             'Track your spending, set a budget per category, and see where the '
             'month went.',
-            style: AppFonts.bodyLarge.copyWith(color: AppColors.textSecondary),
+            // textSecondary is a light-theme token: 2.79:1 on the dark
+            // background (N6).
+            style:
+                AppFonts.bodyLarge.copyWith(color: colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.xxxl),
@@ -91,6 +100,7 @@ class _CurrencyPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ctrl = Get.find<OnboardingController>();
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.l),
       child: Column(
@@ -100,8 +110,8 @@ class _CurrencyPage extends StatelessWidget {
           Text('Pick Your Currency', style: AppFonts.h3),
           const SizedBox(height: AppSpacing.s),
           Text('Choose the currency you use for your budget.',
-              style:
-                  AppFonts.bodyMedium.copyWith(color: AppColors.textSecondary)),
+              style: AppFonts.bodyMedium
+                  .copyWith(color: colorScheme.onSurfaceVariant)),
           const SizedBox(height: AppSpacing.l),
           Expanded(
             child: Obx(() {
@@ -141,18 +151,23 @@ class _CurrencyPage extends StatelessWidget {
                           horizontal: AppSpacing.s, vertical: AppSpacing.xs),
                       child: Row(
                         children: [
+                          // Unselected cards sit on the page background, so
+                          // their text must come from the scheme: textPrimary
+                          // (#2C2518) on backgroundDark was 1.13:1 —
+                          // invisible — and the code beside it 2.79:1 (N2).
+                          // Selected keeps white on primaryDark, 6.9:1.
                           Text(currency.symbol,
                               style: AppFonts.labelLarge.copyWith(
                                   color: selected
                                       ? Colors.white
-                                      : AppColors.textPrimary)),
+                                      : colorScheme.onSurface)),
                           const SizedBox(width: AppSpacing.xs),
                           Expanded(
                             child: Text(currency.code,
                                 style: AppFonts.labelMedium.copyWith(
                                     color: selected
                                         ? Colors.white
-                                        : AppColors.textSecondary),
+                                        : colorScheme.onSurfaceVariant),
                                 overflow: TextOverflow.ellipsis),
                           ),
                         ],
@@ -180,6 +195,7 @@ class _IncomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ctrl = Get.find<OnboardingController>();
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
@@ -195,10 +211,11 @@ class _IncomePage extends StatelessWidget {
                 Text('Set Monthly Income', style: AppFonts.h3),
                 const SizedBox(height: AppSpacing.s),
                 Text(
-                  'What is your approximate monthly income? You can change '
-                  'this later.',
+                  // The caption below already says it can be changed later
+                  // (N11).
+                  'What is your approximate monthly income?',
                   style: AppFonts.bodyMedium
-                      .copyWith(color: AppColors.textSecondary),
+                      .copyWith(color: colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 Obx(() => TextFormField(
@@ -211,12 +228,13 @@ class _IncomePage extends StatelessWidget {
                         prefixText: '${ctrl.selectedCurrency.value.symbol} ',
                         prefixStyle:
                             AppFonts.h4.copyWith(color: AppColors.primary),
-                        // Flutter hides prefixText until focus, so at rest the
-                        // field has to say the unit itself — and it has to say
-                        // it in the user's currency, never a literal '0.00'
-                        // (UI-17).
-                        hintText: CurrencyUtils.formatAmount(
-                            0, ctrl.selectedCurrency.value),
+                        // The unit at rest, without the doubled "₨ ₨0.00" the
+                        // UI-17 hint produced (N1): Flutter drives the prefix's
+                        // opacity off the floating label, so an always-floating
+                        // label is what makes `prefixText` paint on an empty,
+                        // unfocused field — measured 0.0 → 1.0 opacity. No hint
+                        // needed, and no second symbol.
+                        floatingLabelBehavior: FloatingLabelBehavior.always,
                       ),
                     )),
                 const SizedBox(height: AppSpacing.s),

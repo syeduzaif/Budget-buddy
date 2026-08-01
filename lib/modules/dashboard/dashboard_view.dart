@@ -69,6 +69,11 @@ class DashboardView extends StatelessWidget {
         ],
       ),
       body: Obx(() {
+        // The summary cards' accent drives their label text, so the raw tokens
+        // were light-theme colours on a dark card: primary 3.10:1, success
+        // 4.25:1, error 3.22:1 (N6/N8). The scheme's equivalents are identical
+        // in light and readable in dark.
+        final colorScheme = Theme.of(context).colorScheme;
         final currency = ctrl.settings.currency;
         final spentMinorByCategory = {
           for (final cat in ctrl.categories)
@@ -94,7 +99,7 @@ class DashboardView extends StatelessWidget {
                     amount: CurrencyUtils.formatAmount(
                         ctrl.settings.monthlyIncomeMinor.value, currency),
                     icon: Icons.account_balance_wallet_outlined,
-                    color: AppColors.primary,
+                    color: colorScheme.primary,
                     isLarge: true,
                   ),
                 ),
@@ -113,7 +118,7 @@ class DashboardView extends StatelessWidget {
                           // int vs int — an exact comparison now.
                           color: ctrl.totalSpentMinor >
                                   ctrl.settings.monthlyIncomeMinor.value
-                              ? AppColors.error
+                              ? colorScheme.error
                               : AppColors.warning,
                           // No arguments → the unfiltered "All Transactions"
                           // mode, which nothing else in the app could reach
@@ -130,8 +135,8 @@ class DashboardView extends StatelessWidget {
                               ctrl.remainingMinor, currency),
                           icon: Icons.savings_outlined,
                           color: ctrl.remainingMinor >= 0
-                              ? AppColors.success
-                              : AppColors.error,
+                              ? colorScheme.tertiary
+                              : colorScheme.error,
                         ),
                       ),
                     ],

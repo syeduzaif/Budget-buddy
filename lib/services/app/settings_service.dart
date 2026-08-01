@@ -45,6 +45,12 @@ class SettingsService extends GetxService {
   Future<void> resetToDefaults() async {
     await HiveStorage.clearSettings();
     _load();
+    // Republished, not just reset: [_load] puts `themeMode` back to 'system'
+    // but only Get.changeThemeMode makes a theme change take effect in the
+    // running app (see [setThemeMode]). Without this, "Erase all data"
+    // promises to delete every preference while the erased theme stays on
+    // screen for the rest of the session (N3).
+    Get.changeThemeMode(flutterThemeMode);
   }
 
   void _load() {

@@ -7,7 +7,6 @@ import '../../core/utils/app_icons.dart';
 import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../services/app/settings_service.dart';
-import '../../utils/currency_utils.dart';
 import '../../utils/validators.dart';
 import 'category_form_controller.dart';
 
@@ -45,8 +44,12 @@ class CategoryFormView extends StatelessWidget {
                       TextButton(
                           onPressed: () => Get.back(result: false),
                           child: const Text('Cancel')),
-                      FilledButton(
+                      // Error-coloured text, not a green FilledButton: green
+                      // reads as "safe/go" everywhere else in this app (N9).
+                      TextButton(
                           onPressed: () => Get.back(result: true),
+                          style: TextButton.styleFrom(
+                              foregroundColor: colorScheme.error),
                           child: const Text('Delete')),
                     ],
                   ),
@@ -163,10 +166,10 @@ class CategoryFormView extends StatelessWidget {
                   // icon, which was wrong for 22 of the 23 currencies. Matches
                   // the transaction form's amount field.
                   prefixText: '${ctrl.settings.currency.symbol} ',
-                  // prefixText only appears on focus, so the resting field says
-                  // the unit itself, in the user's currency (UI-17).
-                  hintText:
-                      CurrencyUtils.formatAmount(0, ctrl.settings.currency),
+                  // An always-floating label is what makes `prefixText` paint
+                  // on an empty field; the UI-17 hint that used to do this job
+                  // duplicated the symbol once focused ("₨ ₨0.00") — N1.
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
                 ),
                 validator: Validators.amount(ctrl.settings.currency),
               ),

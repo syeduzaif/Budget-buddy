@@ -119,8 +119,14 @@ class CategoriesView extends StatelessWidget {
                             TextButton(
                                 onPressed: () => Get.back(result: false),
                                 child: const Text('Cancel')),
-                            FilledButton(
+                            // Error-coloured text, not a green FilledButton:
+                            // green reads as "safe/go" everywhere else in this
+                            // app (N9).
+                            TextButton(
                                 onPressed: () => Get.back(result: true),
+                                style: TextButton.styleFrom(
+                                    foregroundColor:
+                                        Theme.of(context).colorScheme.error),
                                 child: const Text('Delete')),
                           ],
                         ),

@@ -4,7 +4,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../core/widgets/category_icon.dart';
-import '../../utils/currency_utils.dart';
 import '../../utils/date_utils.dart';
 import '../../utils/validators.dart';
 import 'transaction_form_controller.dart';
@@ -44,10 +43,10 @@ class TransactionFormView extends StatelessWidget {
                 labelText: 'Amount',
                 prefixText: '${ctrl.settings.currency.symbol} ',
                 prefixStyle: AppFonts.h4.copyWith(color: AppColors.primary),
-                // prefixText only appears on focus, so the resting field says
-                // the unit itself, in the user's currency (UI-17).
-                hintText:
-                    CurrencyUtils.formatAmount(0, ctrl.settings.currency),
+                // An always-floating label is what makes `prefixText` paint on
+                // an empty field; the UI-17 hint that used to do this job
+                // duplicated the symbol once focused ("₨ ₨0.00") — N1.
+                floatingLabelBehavior: FloatingLabelBehavior.always,
               ),
               validator: Validators.amount(ctrl.settings.currency),
             ),

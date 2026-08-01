@@ -25,6 +25,10 @@ class CategoryBudgetList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // UI-20 residue: these rows sit on a dark CARD, where raw AppColors.error
+    // is 3.22:1 — an AA failure on the over-budget signal, and inconsistent
+    // with the same fact on the Categories tab at ~7:1 (N8).
+    final errorColor = Theme.of(context).colorScheme.error;
     final shown = categories.take(4).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,17 +79,17 @@ class CategoryBudgetList extends StatelessWidget {
                         ),
                       ),
                       if (isOver)
-                        const Padding(
-                          padding: EdgeInsets.only(right: AppSpacing.xxs),
+                        Padding(
+                          padding: const EdgeInsets.only(right: AppSpacing.xxs),
                           child: Icon(Icons.warning_amber_rounded,
-                              size: 14, color: AppColors.error),
+                              size: 14, color: errorColor),
                         ),
                       Text(
                         '${CurrencyUtils.formatAmountCompact(spent, currency)}'
                         ' / '
                         '${CurrencyUtils.formatAmountCompact(cat.budgetLimitMinor, currency)}',
                         style: AppFonts.labelSmall.copyWith(
-                          color: isOver ? AppColors.error : null,
+                          color: isOver ? errorColor : null,
                         ),
                       ),
                     ],
@@ -93,7 +97,7 @@ class CategoryBudgetList extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xxs),
                   AnimatedProgressBar(
                     value: pct,
-                    color: isOver ? AppColors.error : color,
+                    color: isOver ? errorColor : color,
                     backgroundColor: color.withValues(alpha: 0.15),
                   ),
                 ],

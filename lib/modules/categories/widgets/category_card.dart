@@ -28,7 +28,8 @@ class CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // The dark scheme defines a lighter error (#E89088) that the raw token
     // never used; #C25D4E on dark sits at ~4.3:1 (UI-20).
-    final errorColor = Theme.of(context).colorScheme.error;
+    final colorScheme = Theme.of(context).colorScheme;
+    final errorColor = colorScheme.error;
     final color = Color(category.colorValue);
     // int / int is a double in Dart, so the ratio needs no conversion.
     final pct = category.budgetLimitMinor > 0
@@ -78,7 +79,12 @@ class CategoryCard extends StatelessWidget {
                   ),
                   Text(
                     'of ${CurrencyUtils.formatAmount(category.budgetLimitMinor, currency)}',
-                    style: AppFonts.bodySmall,
+                    // AppFonts.bodySmall BAKES textSecondary, a light-theme
+                    // token: 2.21:1 on a dark card. Same defect class as
+                    // UI-01, one layer down — there the colour was null, here
+                    // it is baked (N6).
+                    style: AppFonts.bodySmall
+                        .copyWith(color: colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),

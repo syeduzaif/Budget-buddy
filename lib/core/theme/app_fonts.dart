@@ -16,6 +16,15 @@ import 'app_colors.dart';
 /// default — white, i.e. invisible on the light theme's cream surfaces. That
 /// was UI-01 (Settings titles, every dialog title and body, incl. the erase-all
 /// warning). `test/theme_text_style_test.dart` pins it.
+///
+/// ⚠️ **And the mirror image: the getters that DO carry a colour bake a
+/// LIGHT-THEME one.** `bodySmall`, `labelMedium`, `labelSmall`, `caption`,
+/// `overline` and the `button*` styles hardcode `textSecondary`/`textMuted`/
+/// `textWhite`, which on a dark surface measure 2.21:1–2.79:1. Any of them
+/// used inside a widget that renders in both themes needs
+/// `.copyWith(color: Theme.of(context).colorScheme.…)` — that was N6, the same
+/// defect one layer down. Prefer the scheme; reach for a raw token only when
+/// the surface it sits on is fixed by the same token set.
 class AppFonts {
   AppFonts._();
 

@@ -40,6 +40,10 @@ class CategoryLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // AppFonts.bodySmall and labelMedium both BAKE textSecondary, a
+    // light-theme token — 2.21:1 on a dark card, which made the legend the
+    // dimmest text on the dashboard (N6).
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Column(
       children: entries.map((e) {
         final cat = e.category;
@@ -59,11 +63,11 @@ class CategoryLegend extends StatelessWidget {
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(cat?.name ?? 'Unknown',
-                    style: AppFonts.bodySmall,
+                    style: AppFonts.bodySmall.copyWith(color: onSurface),
                     overflow: TextOverflow.ellipsis),
               ),
               Text(CurrencyUtils.formatAmount(e.spentMinor, currency),
-                  style: AppFonts.labelMedium),
+                  style: AppFonts.labelMedium.copyWith(color: onSurface)),
             ],
           ),
         );

@@ -105,10 +105,14 @@ class MonthlyBarChart extends StatelessWidget {
                   // A month with no spending gets an empty track instead of
                   // nothing at all, so a sparse chart reads as empty rather
                   // than broken (UI-18).
+                  // surfaceContainerHighest was #332D23 in dark — the card
+                  // fill's exact hex, so the track was invisible by
+                  // construction at 1.00:1 (N5). A translucent onSurface
+                  // reads on both themes.
                   backDrawRodData: BackgroundBarChartRodData(
                     show: true,
                     toY: safeMax,
-                    color: colorScheme.surfaceContainerHighest,
+                    color: colorScheme.onSurface.withValues(alpha: 0.12),
                   ),
                 ),
               ],
