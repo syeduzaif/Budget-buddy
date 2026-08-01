@@ -74,6 +74,9 @@ class TransactionsView extends StatelessWidget {
                     transaction: t,
                     category: cat,
                     currency: currency,
+                    // Only worth naming when the screen is not already about
+                    // one category (UI-04).
+                    showCategory: ctrl.filterCategoryName == null,
                     onDelete: () => ctrl.deleteTransaction(t.id),
                   );
                 }),

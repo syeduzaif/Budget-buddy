@@ -6,7 +6,6 @@ import '../../../core/widgets/category_icon.dart';
 import '../../../data/models/category.dart';
 import '../../../data/models/transaction_item.dart';
 import '../../../utils/currency_utils.dart';
-import '../../../utils/date_utils.dart';
 
 class TransactionTile extends StatelessWidget {
   final TransactionItem transaction;
@@ -16,6 +15,10 @@ class TransactionTile extends StatelessWidget {
   /// rebuilding its own dot (UI-03b).
   final Category? category;
   final Currency currency;
+
+  /// False on the per-category screen, where the screen title already names
+  /// the category (UI-04).
+  final bool showCategory;
   final VoidCallback onDelete;
 
   const TransactionTile({
@@ -24,6 +27,7 @@ class TransactionTile extends StatelessWidget {
     required this.category,
     required this.currency,
     required this.onDelete,
+    this.showCategory = true,
   });
 
   @override
@@ -44,6 +48,32 @@ class TransactionTile extends StatelessWidget {
         ),
         child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
+      // The device is the only copy of this record, so a swipe asks first —
+      // the same pattern category delete already uses (UI-28). The dialog
+      // names the amount, because that is what identifies the row.
+      confirmDismiss: (_) async {
+        // Popped with the dialog's own context rather than the repo's usual
+        // `Get.back(result:)` so this leaf widget needs no GetX import;
+        // same result.
+        return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Delete Transaction'),
+            content: Text(
+                'Delete ${CurrencyUtils.formatAmount(transaction.amountMinor, currency)}'
+                '${transaction.note.isNotEmpty ? ' — "${transaction.note}"' : ''}?'
+                ' This cannot be undone.'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancel')),
+              FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Delete')),
+            ],
+          ),
+        );
+      },
       onDismissed: (_) => onDelete(),
       child: Card(
         elevation: AppSpacing.elevationS,
@@ -64,11 +94,16 @@ class TransactionTile extends StatelessWidget {
             style: AppFonts.labelLarge,
             overflow: TextOverflow.ellipsis,
           ),
-          subtitle: Text(
-            '$categoryName · ${AppDateUtils.formatDate(transaction.date)}',
-            style: AppFonts.labelSmall,
-            overflow: TextOverflow.ellipsis,
-          ),
+          // No date: the group header above the row owns it. And no category
+          // on the filtered screen, where the app bar already says it — the
+          // row used to repeat both (UI-04).
+          subtitle: showCategory
+              ? Text(
+                  categoryName,
+                  style: AppFonts.labelSmall,
+                  overflow: TextOverflow.ellipsis,
+                )
+              : null,
           trailing: Text(
             CurrencyUtils.formatAmount(transaction.amountMinor, currency),
             // Neutral: every transaction is an expense, so red carried no
