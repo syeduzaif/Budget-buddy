@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/widgets/category_icon.dart';
+import '../../../core/widgets/category_legend.dart';
 import '../../../utils/currency_utils.dart';
 import '../analytics_controller.dart';
 
@@ -32,8 +32,6 @@ class CategoryPieChart extends StatelessWidget {
       );
     }
 
-    final totalMinor = nonZero.fold(0, (s, e) => s + e.spentMinor);
-
     return Column(
       children: [
         SizedBox(
@@ -44,50 +42,31 @@ class CategoryPieChart extends StatelessWidget {
               centerSpaceRadius: 48,
               sections: nonZero.map((e) {
                 final cat = e.category;
-                // Ratio of two ints — a double, and exact.
-                final pct =
-                    totalMinor > 0 ? e.spentMinor / totalMinor * 100 : 0.0;
                 final color =
                     cat != null ? Color(cat.colorValue) : AppColors.primary;
                 return PieChartSectionData(
                   color: color,
                   value: CurrencyUtils.toMajor(e.spentMinor, currency),
-                  title: '${pct.toStringAsFixed(0)}%',
+                  // No in-slice label: it was hardcoded white, ~2:1 on the
+                  // amber slice, and the legend below states the exact amount
+                  // anyway (UI-09).
+                  showTitle: false,
                   radius: 32,
-                  titleStyle: AppFonts.labelSmall.copyWith(color: Colors.white),
                 );
               }).toList(),
             ),
           ),
         ),
         const SizedBox(height: AppSpacing.m),
-        ...nonZero.map((e) {
-          final cat = e.category;
-          final color = cat != null ? Color(cat.colorValue) : AppColors.primary;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-            child: Row(
-              children: [
-                if (cat != null)
-                  CategoryIcon(category: cat, size: 20)
-                else
-                  Container(
-                      width: 10,
-                      height: 10,
-                      decoration:
-                          BoxDecoration(color: color, shape: BoxShape.circle)),
-                const SizedBox(width: AppSpacing.xs),
-                Expanded(
-                  child: Text(cat?.name ?? 'Unknown',
-                      style: AppFonts.bodySmall,
-                      overflow: TextOverflow.ellipsis),
-                ),
-                Text(CurrencyUtils.formatAmount(e.spentMinor, currency),
-                    style: AppFonts.labelMedium),
-              ],
-            ),
-          );
-        }),
+        // These rows now live in core/widgets so the dashboard donut can show
+        // the same legend (UI-09).
+        CategoryLegend(
+          entries: nonZero
+              .map((e) => CategoryLegendEntry(
+                  category: e.category, spentMinor: e.spentMinor))
+              .toList(),
+          currency: currency,
+        ),
       ],
     );
   }

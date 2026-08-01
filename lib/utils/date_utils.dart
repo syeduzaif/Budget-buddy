@@ -70,10 +70,13 @@ class AppDateUtils {
     return DateFormat('MMMM yyyy').format(parsed);
   }
 
+  /// `Aug '26`. The apostrophe is deliberate: `MMM yy` renders "Aug 26",
+  /// which reads as the 26th of August on a chart axis (UI-12). `''` is an
+  /// escaped literal apostrophe in an ICU pattern; the rest stays localised.
   static String formatMonthShort(String monthKeyString) {
     final parsed = parseMonthKey(monthKeyString);
     if (parsed == null) return monthKeyString;
-    return DateFormat('MMM yy').format(parsed);
+    return DateFormat("MMM ''yy").format(parsed);
   }
 
   static String formatDate(DateTime date) =>

@@ -7,6 +7,7 @@ import '../../core/utils/app_icons.dart';
 import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../services/app/settings_service.dart';
+import '../../utils/currency_utils.dart';
 import '../../utils/validators.dart';
 import 'category_form_controller.dart';
 
@@ -155,11 +156,17 @@ class CategoryFormView extends StatelessWidget {
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Budget Limit',
+                  // The limit is per month and per category — the record is
+                  // stamped with a month (UI-31).
+                  labelText: 'Monthly budget limit',
                   // The currency symbol replaces the old hardcoded dollar
                   // icon, which was wrong for 22 of the 23 currencies. Matches
                   // the transaction form's amount field.
                   prefixText: '${ctrl.settings.currency.symbol} ',
+                  // prefixText only appears on focus, so the resting field says
+                  // the unit itself, in the user's currency (UI-17).
+                  hintText:
+                      CurrencyUtils.formatAmount(0, ctrl.settings.currency),
                 ),
                 validator: Validators.amount(ctrl.settings.currency),
               ),

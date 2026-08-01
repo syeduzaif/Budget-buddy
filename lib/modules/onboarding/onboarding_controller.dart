@@ -57,7 +57,7 @@ class OnboardingController extends GetxController {
       await _settings.setCurrency(currency.code, currency.symbol);
       await _settings.setMonthlyIncomeMinor(incomeMinor);
       await _settings.setCurrentMonth(month);
-      await _seedDefaultCategories(month, currency);
+      await _seedDefaultCategories(month, currency, incomeMinor);
       // Last, and only once the rest landed: this is the flag that stops the
       // app ever showing onboarding again, so a half-finished setup must not
       // set it.
@@ -77,9 +77,12 @@ class OnboardingController extends GetxController {
     Get.offAllNamed(AppRoutes.home);
   }
 
-  /// Seeds the preset categories, converting each preset's whole-major-unit
-  /// budget into the chosen currency's minor units.
-  Future<void> _seedDefaultCategories(String month, Currency currency) async {
+  /// Seeds the preset categories, sizing each limit to the income just
+  /// entered (`PredefinedCategory.seedLimitMinor`) in the chosen currency's
+  /// minor units. Skipped/zero income falls back to the presets' own
+  /// major-unit figures.
+  Future<void> _seedDefaultCategories(
+      String month, Currency currency, int incomeMinor) async {
     final categoryRepo = Get.find<CategoryRepository>();
     const uuid = Uuid();
     final now = DateTime.now();
@@ -88,8 +91,7 @@ class OnboardingController extends GetxController {
         .map((preset) => Category(
               id: uuid.v4(),
               name: preset.name,
-              budgetLimitMinor:
-                  CurrencyUtils.fromMajor(preset.defaultBudgetMajor, currency),
+              budgetLimitMinor: preset.seedLimitMinor(incomeMinor, currency),
               colorValue: preset.colorValue,
               iconCodePoint: preset.iconCodePoint,
               month: month,

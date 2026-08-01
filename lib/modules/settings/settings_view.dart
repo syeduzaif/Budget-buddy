@@ -23,7 +23,8 @@ class SettingsView extends StatelessWidget {
             // Preferences
             const _SectionHeader('Preferences'),
             ListTile(
-              leading: const Icon(Icons.attach_money),
+              // Not a dollar glyph: wrong for 22 of the 23 currencies (UI-08).
+              leading: const Icon(Icons.payments_outlined),
               title: const Text('Monthly Income'),
               subtitle: Obx(() => Text(
                     CurrencyUtils.formatAmount(
@@ -34,7 +35,12 @@ class SettingsView extends StatelessWidget {
               onTap: () => _showIncomeSheet(context, ctrl),
             ),
             ListTile(
-              leading: const Icon(Icons.currency_exchange),
+              // The live symbol instead of a `$`-inside-arrows glyph — exactly
+              // what the currency sheet's own rows do below (UI-08).
+              leading: Obx(() => Text(
+                    settings.currency.symbol,
+                    style: AppFonts.h6.copyWith(color: AppColors.primary),
+                  )),
               title: const Text('Currency'),
               subtitle: Obx(() => Text(
                     '${settings.currencyCode.value} (${settings.currency.symbol})',

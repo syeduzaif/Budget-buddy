@@ -120,17 +120,21 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
           // Gradient background
           Container(
             decoration: BoxDecoration(
+              // Terra Firma tokens. The lavenders that used to be here
+              // (#FAF8FC/#F0EBF7, #1A1525/#221D2E) exist in no palette — the
+              // first impression of the product was in a different colour
+              // family from the product (UI-33).
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        const Color(0xFF1A1525),
-                        const Color(0xFF221D2E),
+                        AppColors.backgroundDark,
+                        AppColors.surfaceDark,
                       ]
                     : [
-                        const Color(0xFFFAF8FC),
-                        const Color(0xFFF0EBF7),
+                        AppColors.background,
+                        AppColors.surface,
                       ],
               ),
             ),
@@ -150,8 +154,9 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
             left: -80,
             child: _GradientBlob(
               size: 300,
-              color: const Color(0xFF1ABC9C)
-                  .withValues(alpha: isDark ? 0.12 : 0.08),
+              // Was an off-palette teal (#1ABC9C) (UI-33).
+              color:
+                  AppColors.secondary.withValues(alpha: isDark ? 0.12 : 0.08),
             ),
           ),
           Positioned(

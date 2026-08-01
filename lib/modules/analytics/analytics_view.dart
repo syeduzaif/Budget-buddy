@@ -39,6 +39,10 @@ class AnalyticsView extends StatelessWidget {
                       .toList(),
                   selected: {ctrl.selectedRange.value},
                   onSelectionChanged: (s) => ctrl.setRange(s.first),
+                  // The check icon stole enough width to wrap "This Month"
+                  // onto two lines; the fill already says which is selected
+                  // (UI-15).
+                  showSelectedIcon: false,
                 ),
               ),
               const SizedBox(height: AppSpacing.l),
@@ -51,6 +55,9 @@ class AnalyticsView extends StatelessWidget {
                     Expanded(
                       child: _StatCard(
                         label: 'Total Spent',
+                        // Both cards name their period: without it two ranges
+                        // can show identical numbers and look correct (UI-10).
+                        period: ctrl.rangePeriodLabel,
                         value: CurrencyUtils.formatAmount(
                             ctrl.totalSpentMinor, currency),
                         icon: Icons.trending_up,
@@ -61,6 +68,7 @@ class AnalyticsView extends StatelessWidget {
                     Expanded(
                       child: _StatCard(
                         label: 'Savings Rate',
+                        period: ctrl.rangePeriodLabel,
                         value: '${ctrl.savingsRate.toStringAsFixed(1)}%',
                         icon: Icons.savings_outlined,
                         color: AppColors.success,
@@ -123,12 +131,16 @@ class AnalyticsView extends StatelessWidget {
 
 class _StatCard extends StatelessWidget {
   final String label;
+
+  /// The period the [value] covers, e.g. "Last 3 months".
+  final String period;
   final String value;
   final IconData icon;
   final Color color;
 
   const _StatCard({
     required this.label,
+    required this.period,
     required this.value,
     required this.icon,
     required this.color,
@@ -147,6 +159,8 @@ class _StatCard extends StatelessWidget {
             Text(label,
                 style:
                     AppFonts.labelSmall.copyWith(color: AppColors.textMuted)),
+            Text(period,
+                style: AppFonts.caption, overflow: TextOverflow.ellipsis),
             const SizedBox(height: AppSpacing.xxs),
             Text(value, style: AppFonts.h5, overflow: TextOverflow.ellipsis),
           ],

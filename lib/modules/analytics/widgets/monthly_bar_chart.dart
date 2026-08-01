@@ -31,6 +31,7 @@ class MonthlyBarChart extends StatelessWidget {
       );
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
     final maxMinor = data.fold(0, (m, e) => e.totalMinor > m ? e.totalMinor : m);
     final maxY = CurrencyUtils.toMajor(maxMinor, currency);
     final safeMax = maxY > 0 ? maxY * 1.2 : 100.0;
@@ -55,6 +56,16 @@ class MonthlyBarChart extends StatelessWidget {
             ),
           ),
           titlesData: FlTitlesData(
+            // UI-18, second half: a 3-tick y-axis through
+            // `formatAmountCompact` was built and MEASURED, then dropped. At
+            // `reservedSize: 44` on a ~296dp-wide card every non-zero tick
+            // clipped — the labels needed 1.8×–3× the width they had (worst
+            // realistic cases: "₨750,000", "₫14,400,000"), and reserving
+            // enough would have cost ~20% of the plot for three numbers the
+            // tooltip already gives exactly. The empty tracks below carry the
+            // "this month is zero, not broken" signal on their own. Revisit
+            // with an abbreviated money format (k/M), which is a CurrencyUtils
+            // decision, not a chart one.
             leftTitles:
                 const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             rightTitles:
@@ -88,9 +99,17 @@ class MonthlyBarChart extends StatelessWidget {
                   toY: CurrencyUtils.toMajor(data[i].totalMinor, currency),
                   // From the scheme: the raw token is the light-theme olive,
                   // which in dark mode sat on a dark card (UI-23).
-                  color: Theme.of(context).colorScheme.primary,
+                  color: colorScheme.primary,
                   width: 20,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusS),
+                  // A month with no spending gets an empty track instead of
+                  // nothing at all, so a sparse chart reads as empty rather
+                  // than broken (UI-18).
+                  backDrawRodData: BackgroundBarChartRodData(
+                    show: true,
+                    toY: safeMax,
+                    color: colorScheme.surfaceContainerHighest,
+                  ),
                 ),
               ],
             );

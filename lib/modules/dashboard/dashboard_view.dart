@@ -53,11 +53,16 @@ class DashboardView extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
+            // A person glyph promised a profile in an app with no accounts,
+            // and the button announced itself as an unlabelled "button"
+            // (UI-11).
             icon: const CircleAvatar(
               radius: 14,
               backgroundColor: AppColors.primaryLight,
-              child: Icon(Icons.person, size: 18, color: AppColors.primaryDark),
+              child: Icon(Icons.settings_outlined,
+                  size: 18, color: AppColors.primaryDark),
             ),
+            tooltip: 'Settings',
             onPressed: () => Get.toNamed(AppRoutes.settings),
           ),
           const SizedBox(width: AppSpacing.xs),
@@ -149,6 +154,7 @@ class DashboardView extends StatelessWidget {
                             child: SpendingDonutChart(
                               categories: ctrl.categories,
                               spentMinorByCategory: spentMinorByCategory,
+                              currency: currency,
                             ),
                           ),
                         ),

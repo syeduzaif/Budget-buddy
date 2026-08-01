@@ -101,8 +101,14 @@ class CategoryFormController extends GetxController {
       final preset = kPredefinedCategories[index];
       selectedPresetIndex.value = index;
       nameController.text = preset.name;
-      // Presets are already whole major units — the field takes major units.
-      budgetController.text = preset.defaultBudgetMajor.toString();
+      // The same share-of-income seed the onboarding flow uses, so a preset
+      // picked here prefills the figure the app would have seeded rather than
+      // a dollar-shaped constant (UI-35). Rendered as plain major-unit text,
+      // which is what the field parses back.
+      budgetController.text = CurrencyUtils.formatForInput(
+          preset.seedLimitMinor(
+              settings.monthlyIncomeMinor.value, settings.currency),
+          settings.currency);
       selectedColor.value = Color(preset.colorValue);
       selectedIconCodePoint.value = preset.iconCodePoint;
     }

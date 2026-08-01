@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../core/widgets/category_icon.dart';
+import '../../utils/currency_utils.dart';
 import '../../utils/date_utils.dart';
 import '../../utils/validators.dart';
 import 'transaction_form_controller.dart';
@@ -43,6 +44,10 @@ class TransactionFormView extends StatelessWidget {
                 labelText: 'Amount',
                 prefixText: '${ctrl.settings.currency.symbol} ',
                 prefixStyle: AppFonts.h4.copyWith(color: AppColors.primary),
+                // prefixText only appears on focus, so the resting field says
+                // the unit itself, in the user's currency (UI-17).
+                hintText:
+                    CurrencyUtils.formatAmount(0, ctrl.settings.currency),
               ),
               validator: Validators.amount(ctrl.settings.currency),
             ),
@@ -76,7 +81,19 @@ class TransactionFormView extends StatelessWidget {
                                   children: [
                                     CategoryIcon(category: cat, size: 24),
                                     const SizedBox(width: AppSpacing.s),
-                                    Text(cat.name, style: AppFonts.bodyMedium),
+                                    Expanded(
+                                      child: Text(cat.name,
+                                          style: AppFonts.bodyMedium,
+                                          overflow: TextOverflow.ellipsis),
+                                    ),
+                                    // Says which one is already chosen — the
+                                    // list gave no marker at all (UI-27).
+                                    if (cat.id == selected?.id)
+                                      Icon(Icons.check,
+                                          size: AppSpacing.iconS,
+                                          color: Theme.of(ctx)
+                                              .colorScheme
+                                              .primary),
                                   ],
                                 ),
                               ))

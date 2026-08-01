@@ -24,6 +24,18 @@ class AnalyticsController extends GetxController {
 
   static const ranges = ['This Month', 'Last 3M', 'Last 6M'];
 
+  /// The period each range covers, spelled out for the stat cards. Two ranges
+  /// can otherwise show the same number with nothing to tell them apart
+  /// (UI-10) — which is how the F4 savings-rate defect hides.
+  static const rangePeriodLabels = [
+    'This month',
+    'Last 3 months',
+    'Last 6 months',
+  ];
+
+  /// The selected range's period label.
+  String get rangePeriodLabel => rangePeriodLabels[selectedRange.value];
+
   List<TransactionItem> get filteredTransactions {
     final months = _activeMonths();
     return transactions.where((t) {

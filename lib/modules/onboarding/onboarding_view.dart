@@ -67,7 +67,10 @@ class _WelcomePage extends StatelessWidget {
               style: AppFonts.h3, textAlign: TextAlign.center),
           const SizedBox(height: AppSpacing.m),
           Text(
-            'Smart budgeting made simple. Track your spending, manage categories, and reach your financial goals.',
+            // Describes what ships. The old copy promised "financial goals",
+            // a feature that does not exist (UI-24).
+            'Track your spending, set a budget per category, and see where the '
+            'month went.',
             style: AppFonts.bodyLarge.copyWith(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
@@ -182,27 +185,49 @@ class _IncomePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: AppSpacing.xl),
-          Text('Set Monthly Income', style: AppFonts.h3),
-          const SizedBox(height: AppSpacing.s),
-          Text(
-            'What is your approximate monthly income? You can change this later.',
-            style: AppFonts.bodyMedium.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          Obx(() => TextFormField(
-                controller: ctrl.incomeController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                style: AppFonts.h3,
-                decoration: InputDecoration(
-                  labelText: 'Monthly Income',
-                  prefixText: '${ctrl.selectedCurrency.value.symbol} ',
-                  prefixStyle: AppFonts.h4.copyWith(color: AppColors.primary),
-                  hintText: '0.00',
+          // Centred rather than pinned to the top with ~700px of dead space
+          // below the field, and the space spent on the "why" instead (UI-25).
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Set Monthly Income', style: AppFonts.h3),
+                const SizedBox(height: AppSpacing.s),
+                Text(
+                  'What is your approximate monthly income? You can change '
+                  'this later.',
+                  style: AppFonts.bodyMedium
+                      .copyWith(color: AppColors.textSecondary),
                 ),
-              )),
-          const Spacer(),
+                const SizedBox(height: AppSpacing.xl),
+                Obx(() => TextFormField(
+                      controller: ctrl.incomeController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      style: AppFonts.h3,
+                      decoration: InputDecoration(
+                        labelText: 'Monthly Income',
+                        prefixText: '${ctrl.selectedCurrency.value.symbol} ',
+                        prefixStyle:
+                            AppFonts.h4.copyWith(color: AppColors.primary),
+                        // Flutter hides prefixText until focus, so at rest the
+                        // field has to say the unit itself — and it has to say
+                        // it in the user's currency, never a literal '0.00'
+                        // (UI-17).
+                        hintText: CurrencyUtils.formatAmount(
+                            0, ctrl.selectedCurrency.value),
+                      ),
+                    )),
+                const SizedBox(height: AppSpacing.s),
+                Text(
+                  'Used to work out what\'s left this month. You can change it '
+                  'any time.',
+                  style: AppFonts.caption,
+                ),
+              ],
+            ),
+          ),
           FilledButton(
             onPressed: ctrl.finish,
             child: const Text('Start Budgeting'),
