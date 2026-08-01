@@ -32,9 +32,33 @@ class LocalStoreService extends GetxService {
   /// Opens both boxes. Call once at startup, before any repository is used.
   /// Hive adapters must already be registered (see `HiveStorage.init`).
   Future<LocalStoreService> init() async {
-    _categories = await Hive.openBox<Category>(categoriesBoxName);
-    _transactions = await Hive.openBox<TransactionItem>(transactionsBoxName);
+    _categories = await _openOrReset<Category>(categoriesBoxName);
+    _transactions = await _openOrReset<TransactionItem>(transactionsBoxName);
     return this;
+  }
+
+  /// Opens a box; if it cannot be read, deletes it from disk and opens a fresh
+  /// one rather than crashing at startup.
+  ///
+  /// The case this exists for: the C4 money migration redefined field 2 of
+  /// both models from `double` to `int` minor units, so a box written by a
+  /// pre-C4 build fails its adapter's type check the moment it is opened. That
+  /// can only happen on a developer's device — these boxes have never shipped
+  /// (the app was still on Firestore) — so wiping is the honest, simple
+  /// answer.
+  ///
+  /// PRE-RELEASE ONLY. The first real install ends this: from then on a
+  /// schema change needs a versioned migration, because this method would
+  /// silently delete someone's records. Revisit before shipping to Play.
+  Future<Box<T>> _openOrReset<T>(String name) async {
+    try {
+      return await Hive.openBox<T>(name);
+    } catch (e, s) {
+      debugPrint('[LocalStoreService] could not open "$name" ($e)\n$s');
+      debugPrint('[LocalStoreService] resetting "$name" — pre-release only');
+      await Hive.deleteBoxFromDisk(name);
+      return Hive.openBox<T>(name);
+    }
   }
 
   // --- Categories -----------------------------------------------------------

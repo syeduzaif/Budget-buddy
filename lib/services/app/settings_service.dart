@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/local/hive_storage.dart';
+import '../../utils/currency_utils.dart';
 import '../../utils/date_utils.dart';
 
 /// Reactive wrapper over HiveStorage settings.
@@ -8,10 +9,26 @@ import '../../utils/date_utils.dart';
 class SettingsService extends GetxService {
   final RxString currencyCode = 'USD'.obs;
   final RxString currencySymbol = '\$'.obs;
-  final RxDouble monthlyIncome = 0.0.obs;
+
+  /// Monthly income in integer MINOR UNITS of [currency].
+  final RxInt monthlyIncomeMinor = 0.obs;
+
   final RxString themeMode = 'system'.obs;
   final RxString currentMonth = ''.obs;
   final RxBool onboardingComplete = false.obs;
+
+  /// The selected currency, resolved from the stored code (falls back to USD).
+  ///
+  /// The single source of `decimalDigits` for every format, parse and
+  /// conversion in the app — read this, not the bare symbol. Reading it inside
+  /// an `Obx` tracks [currencyCode], so the UI reformats when it changes.
+  Currency get currency => CurrencyUtils.resolve(currencyCode.value);
+
+  /// The month key writes should be stamped with. One place, so a stamped
+  /// month and a derived month can never disagree.
+  String get effectiveMonth => currentMonth.value.isNotEmpty
+      ? currentMonth.value
+      : AppDateUtils.getCurrentMonthKey();
 
   @override
   void onInit() {
@@ -30,7 +47,7 @@ class SettingsService extends GetxService {
   void _load() {
     currencyCode.value = HiveStorage.getCurrencyCode();
     currencySymbol.value = HiveStorage.getCurrencySymbol();
-    monthlyIncome.value = HiveStorage.getMonthlyIncome();
+    monthlyIncomeMinor.value = HiveStorage.getMonthlyIncomeMinor();
     themeMode.value = HiveStorage.getThemeMode();
     onboardingComplete.value = HiveStorage.isOnboardingComplete();
     final stored = HiveStorage.getCurrentMonth();
@@ -55,9 +72,9 @@ class SettingsService extends GetxService {
     await HiveStorage.setCurrencySymbol(symbol);
   }
 
-  Future<void> setMonthlyIncome(double amount) async {
-    monthlyIncome.value = amount;
-    await HiveStorage.setMonthlyIncome(amount);
+  Future<void> setMonthlyIncomeMinor(int minorUnits) async {
+    monthlyIncomeMinor.value = minorUnits;
+    await HiveStorage.setMonthlyIncomeMinor(minorUnits);
   }
 
   Future<void> setThemeMode(String mode) async {

@@ -21,7 +21,7 @@ class AnalyticsView extends StatelessWidget {
         title: Text('Analytics', style: AppFonts.h6),
       ),
       body: Obx(() {
-        final sym = ctrl.settings.currencySymbol.value;
+        final currency = ctrl.settings.currency;
         return SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.m),
           child: Column(
@@ -51,7 +51,8 @@ class AnalyticsView extends StatelessWidget {
                     Expanded(
                       child: _StatCard(
                         label: 'Total Spent',
-                        value: CurrencyUtils.formatAmount(ctrl.totalSpent, sym),
+                        value: CurrencyUtils.formatAmount(
+                            ctrl.totalSpentMinor, currency),
                         icon: Icons.trending_up,
                         color: AppColors.warning,
                       ),
@@ -83,7 +84,7 @@ class AnalyticsView extends StatelessWidget {
                         const SizedBox(height: AppSpacing.m),
                         MonthlyBarChart(
                           data: ctrl.monthlyTotals,
-                          currencySymbol: sym,
+                          currency: currency,
                         ),
                       ],
                     ),
@@ -105,7 +106,7 @@ class AnalyticsView extends StatelessWidget {
                         const SizedBox(height: AppSpacing.m),
                         CategoryPieChart(
                           data: ctrl.categoryTotals,
-                          currencySymbol: sym,
+                          currency: currency,
                         ),
                       ],
                     ),

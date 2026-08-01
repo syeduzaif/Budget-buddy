@@ -20,7 +20,7 @@ void main() {
     return Category(
       id: id,
       name: 'Cat $id',
-      budgetLimit: 100.0,
+      budgetLimitMinor: 10000,
       colorValue: 0xFF2D8B8B,
       month: month,
       createdAt: now,
@@ -32,7 +32,7 @@ void main() {
       TransactionItem(
         id: id,
         categoryId: 'c1',
-        amount: 10.0,
+        amountMinor: 1000,
         note: 'note $id',
         date: date,
         createdAt: date,

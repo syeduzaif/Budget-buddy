@@ -64,7 +64,12 @@ class _FadeSlideItemState extends State<FadeSlideItem>
 }
 
 /// Animates a value from 0 to [end] with a counting effect.
-/// Great for financial amounts on dashboard cards.
+///
+/// NOT money-safe as written, and currently unused: [end] is a `double` and
+/// [decimals] defaults to 2, so wiring it to an amount would re-introduce C4
+/// (and show "1234.00" for a zero-decimal currency like JPY). To animate an
+/// amount, drive it from minor units and format each frame through
+/// `CurrencyUtils.formatAmount`.
 class AnimatedCounter extends StatefulWidget {
   final double end;
   final TextStyle? style;

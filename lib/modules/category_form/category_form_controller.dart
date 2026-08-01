@@ -4,7 +4,7 @@ import '../../data/models/category.dart';
 import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../services/app/settings_service.dart';
-import '../../utils/date_utils.dart';
+import '../../utils/currency_utils.dart';
 import 'package:uuid/uuid.dart';
 
 class CategoryFormController extends GetxController {
@@ -69,7 +69,9 @@ class CategoryFormController extends GetxController {
     if (arg is Category) {
       editingCategory = arg;
       nameController.text = arg.name;
-      budgetController.text = arg.budgetLimit.toString();
+      // Minor units are never shown raw: back to major-unit text for editing.
+      budgetController.text = CurrencyUtils.formatForInput(
+          arg.budgetLimitMinor, settings.currency);
       selectedColor.value = Color(arg.colorValue);
       selectedIconCodePoint.value = arg.iconCodePoint;
     }
@@ -99,7 +101,8 @@ class CategoryFormController extends GetxController {
       final preset = kPredefinedCategories[index];
       selectedPresetIndex.value = index;
       nameController.text = preset.name;
-      budgetController.text = preset.defaultBudget.toString();
+      // Presets are already whole major units — the field takes major units.
+      budgetController.text = preset.defaultBudgetMajor.toString();
       selectedColor.value = Color(preset.colorValue);
       selectedIconCodePoint.value = preset.iconCodePoint;
     }
@@ -107,8 +110,10 @@ class CategoryFormController extends GetxController {
 
   Future<void> save() async {
     final name = nameController.text.trim();
-    final budget = double.tryParse(budgetController.text.trim()) ?? 0.0;
-    if (name.isEmpty || budget <= 0) return;
+    // Text → minor units directly (C4): no double.parse, no multiply by 100.
+    final budgetMinor = CurrencyUtils.tryParseToMinor(
+        budgetController.text, settings.currency);
+    if (name.isEmpty || budgetMinor == null || budgetMinor <= 0) return;
 
     isLoading.value = true;
     try {
@@ -116,7 +121,7 @@ class CategoryFormController extends GetxController {
         final updated = Category(
           id: editingCategory!.id,
           name: name,
-          budgetLimit: budget,
+          budgetLimitMinor: budgetMinor,
           colorValue: selectedColor.value.toARGB32(),
           iconCodePoint: selectedIconCodePoint.value,
           month: editingCategory!.month,
@@ -128,12 +133,10 @@ class CategoryFormController extends GetxController {
         final category = Category(
           id: const Uuid().v4(),
           name: name,
-          budgetLimit: budget,
+          budgetLimitMinor: budgetMinor,
           colorValue: selectedColor.value.toARGB32(),
           iconCodePoint: selectedIconCodePoint.value,
-          month: settings.currentMonth.value.isNotEmpty
-              ? settings.currentMonth.value
-              : AppDateUtils.getCurrentMonthKey(),
+          month: settings.effectiveMonth,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );

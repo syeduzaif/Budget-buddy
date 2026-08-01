@@ -21,24 +21,28 @@ class DashboardController extends GetxController {
   final categories = <Category>[].obs;
   final transactions = <TransactionItem>[].obs;
 
-  double get totalBudget =>
-      categories.fold(0.0, (sum, c) => sum + c.budgetLimit);
+  // Every total below is in integer minor units — exact addition, no float
+  // accumulator (C4).
 
-  double get totalSpent => transactions
+  int get totalBudgetMinor =>
+      categories.fold(0, (sum, c) => sum + c.budgetLimitMinor);
+
+  int get totalSpentMinor => transactions
       .where((t) => _isCurrentMonth(t))
-      .fold(0.0, (sum, t) => sum + t.amount);
+      .fold(0, (sum, t) => sum + t.amountMinor);
 
-  double get remaining => settings.monthlyIncome.value - totalSpent;
+  int get remainingMinor => settings.monthlyIncomeMinor.value - totalSpentMinor;
 
+  /// A ratio, not money: `int / int` is a `double` in Dart.
   double get savingsRate {
-    final income = settings.monthlyIncome.value;
+    final income = settings.monthlyIncomeMinor.value;
     if (income <= 0) return 0;
-    return ((income - totalSpent) / income * 100).clamp(0, 100);
+    return ((income - totalSpentMinor) / income * 100).clamp(0, 100);
   }
 
-  double spentForCategory(String categoryId) => transactions
+  int spentForCategoryMinor(String categoryId) => transactions
       .where((t) => t.categoryId == categoryId && _isCurrentMonth(t))
-      .fold(0.0, (sum, t) => sum + t.amount);
+      .fold(0, (sum, t) => sum + t.amountMinor);
 
   bool _isCurrentMonth(TransactionItem t) =>
       AppDateUtils.getMonthKeyFromDate(t.date) == settings.currentMonth.value;
@@ -102,7 +106,7 @@ class DashboardController extends GetxController {
         .map((cat) => Category(
               id: uuid.v4(),
               name: cat.name,
-              budgetLimit: cat.budgetLimit,
+              budgetLimitMinor: cat.budgetLimitMinor,
               colorValue: cat.colorValue,
               iconCodePoint: cat.iconCodePoint,
               month: targetMonth,

@@ -4,22 +4,24 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/category_icon.dart';
-import '../../../data/models/category.dart';
 import '../../../utils/currency_utils.dart';
+import '../analytics_controller.dart';
 
 class CategoryPieChart extends StatelessWidget {
-  final List<Map<String, dynamic>> data; // [{category, categoryId, spent}]
-  final String currencySymbol;
+  /// Biggest spend first. Amounts are minor units; they are converted to major
+  /// units once, here, because fl_chart takes doubles.
+  final List<CategorySpend> data;
+  final Currency currency;
 
   const CategoryPieChart({
     super.key,
     required this.data,
-    required this.currencySymbol,
+    required this.currency,
   });
 
   @override
   Widget build(BuildContext context) {
-    final nonZero = data.where((e) => (e['spent'] as double) > 0).toList();
+    final nonZero = data.where((e) => e.spentMinor > 0).toList();
     if (nonZero.isEmpty) {
       return SizedBox(
         height: 160,
@@ -30,7 +32,7 @@ class CategoryPieChart extends StatelessWidget {
       );
     }
 
-    final total = nonZero.fold(0.0, (s, e) => s + (e['spent'] as double));
+    final totalMinor = nonZero.fold(0, (s, e) => s + e.spentMinor);
 
     return Column(
       children: [
@@ -41,15 +43,15 @@ class CategoryPieChart extends StatelessWidget {
               sectionsSpace: 2,
               centerSpaceRadius: 48,
               sections: nonZero.map((e) {
-                final cat = e['category'] as Category?;
-                final spent = e['spent'] as double;
-                final pct = total > 0 ? spent / total * 100 : 0.0;
-                final color = cat != null
-                    ? Color(cat.colorValue)
-                    : AppColors.primary;
+                final cat = e.category;
+                // Ratio of two ints — a double, and exact.
+                final pct =
+                    totalMinor > 0 ? e.spentMinor / totalMinor * 100 : 0.0;
+                final color =
+                    cat != null ? Color(cat.colorValue) : AppColors.primary;
                 return PieChartSectionData(
                   color: color,
-                  value: spent,
+                  value: CurrencyUtils.toMajor(e.spentMinor, currency),
                   title: '${pct.toStringAsFixed(0)}%',
                   radius: 32,
                   titleStyle: AppFonts.labelSmall.copyWith(color: Colors.white),
@@ -60,8 +62,7 @@ class CategoryPieChart extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.m),
         ...nonZero.map((e) {
-          final cat = e['category'] as Category?;
-          final spent = e['spent'] as double;
+          final cat = e.category;
           final color = cat != null ? Color(cat.colorValue) : AppColors.primary;
           return Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.xs),
@@ -81,7 +82,7 @@ class CategoryPieChart extends StatelessWidget {
                       style: AppFonts.bodySmall,
                       overflow: TextOverflow.ellipsis),
                 ),
-                Text(CurrencyUtils.formatAmount(spent, currencySymbol),
+                Text(CurrencyUtils.formatAmount(e.spentMinor, currency),
                     style: AppFonts.labelMedium),
               ],
             ),

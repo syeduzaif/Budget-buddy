@@ -5,6 +5,7 @@ import '../../data/repositories/transaction_repository.dart';
 import '../../routes/app_routes.dart';
 import '../../services/app/settings_service.dart';
 import '../../utils/currency_utils.dart';
+import '../../utils/validators.dart';
 
 class SettingsController extends GetxController {
   final SettingsService settings = Get.find<SettingsService>();
@@ -18,8 +19,9 @@ class SettingsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    incomeInputController.text =
-        settings.monthlyIncome.value.toStringAsFixed(0);
+    // Minor units are never shown raw: back to major-unit text for editing.
+    incomeInputController.text = CurrencyUtils.formatForInput(
+        settings.monthlyIncomeMinor.value, settings.currency);
   }
 
   @override
@@ -29,8 +31,18 @@ class SettingsController extends GetxController {
   }
 
   Future<void> saveIncome() async {
-    final v = double.tryParse(incomeInputController.text.trim()) ?? 0.0;
-    await settings.setMonthlyIncome(v);
+    final currency = settings.currency;
+    // Text → minor units directly (C4). A value we cannot read is reported,
+    // never silently stored as zero.
+    final problem = Validators.amountOrZero(currency)(incomeInputController.text);
+    if (problem != null) {
+      Get.snackbar('Check the amount', problem,
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+    final incomeMinor =
+        CurrencyUtils.tryParseToMinor(incomeInputController.text, currency) ?? 0;
+    await settings.setMonthlyIncomeMinor(incomeMinor);
     Get.back();
     Get.snackbar('Saved', 'Monthly income updated',
         snackPosition: SnackPosition.BOTTOM);

@@ -53,44 +53,46 @@ class AnalyticsController extends GetxController {
     }
   }
 
-  /// Returns list of {month, total} sorted oldest→newest
-  List<Map<String, dynamic>> get monthlyTotals {
+  /// Spend per month, oldest→newest.
+  List<MonthlyTotal> get monthlyTotals {
     final months = _activeMonths().reversed.toList();
     return months.map((month) {
       final total = transactions
           .where((t) => AppDateUtils.getMonthKeyFromDate(t.date) == month)
-          .fold(0.0, (sum, t) => sum + t.amount);
-      return {'month': month, 'total': total};
+          .fold(0, (sum, t) => sum + t.amountMinor);
+      return MonthlyTotal(month: month, totalMinor: total);
     }).toList();
   }
 
-  /// Returns list of {category, spent} sorted by spent desc
-  List<Map<String, dynamic>> get categoryTotals {
+  /// Spend per category, biggest first.
+  List<CategorySpend> get categoryTotals {
     final activeMonths = _activeMonths();
-    final map = <String, double>{};
+    final spentByCategoryId = <String, int>{};
     for (final t in transactions) {
       if (activeMonths.contains(AppDateUtils.getMonthKeyFromDate(t.date))) {
-        map[t.categoryId] = (map[t.categoryId] ?? 0) + t.amount;
+        spentByCategoryId[t.categoryId] =
+            (spentByCategoryId[t.categoryId] ?? 0) + t.amountMinor;
       }
     }
-    final result = map.entries.map((e) {
+    return spentByCategoryId.entries.map((e) {
       Category? cat;
       try {
         cat = categories.firstWhere((c) => c.id == e.key);
       } catch (_) {}
-      return {'category': cat, 'categoryId': e.key, 'spent': e.value};
+      return CategorySpend(
+          category: cat, categoryId: e.key, spentMinor: e.value);
     }).toList()
-      ..sort((a, b) => (b['spent'] as double).compareTo(a['spent'] as double));
-    return result;
+      ..sort((a, b) => b.spentMinor.compareTo(a.spentMinor));
   }
 
-  double get totalSpent =>
-      filteredTransactions.fold(0.0, (sum, t) => sum + t.amount);
+  int get totalSpentMinor =>
+      filteredTransactions.fold(0, (sum, t) => sum + t.amountMinor);
 
+  /// A ratio, not money: `int / int` is a `double` in Dart.
   double get savingsRate {
-    final income = settings.monthlyIncome.value;
+    final income = settings.monthlyIncomeMinor.value;
     if (income <= 0) return 0;
-    return ((income - totalSpent) / income * 100).clamp(0, 100);
+    return ((income - totalSpentMinor) / income * 100).clamp(0, 100);
   }
 
   @override
@@ -101,4 +103,32 @@ class AnalyticsController extends GetxController {
   }
 
   void setRange(int index) => selectedRange.value = index;
+}
+
+/// One bar of the monthly chart.
+///
+/// A type, not a `Map<String, dynamic>`: the old shape forced every reader to
+/// write `data[i]['total'] as double`, a cast the compiler could not check and
+/// which would have kept compiling — and started throwing at runtime — the
+/// moment money became an `int` (H2).
+class MonthlyTotal {
+  /// Canonical `"YYYY-MM"` key.
+  final String month;
+  final int totalMinor;
+
+  const MonthlyTotal({required this.month, required this.totalMinor});
+}
+
+/// One slice/row of the category breakdown.
+class CategorySpend {
+  /// Null when the transaction's category has since been deleted.
+  final Category? category;
+  final String categoryId;
+  final int spentMinor;
+
+  const CategorySpend({
+    required this.category,
+    required this.categoryId,
+    required this.spentMinor,
+  });
 }

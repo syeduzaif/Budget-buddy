@@ -19,7 +19,7 @@ class TransactionItemAdapter extends TypeAdapter<TransactionItem> {
     return TransactionItem(
       id: fields[0] as String,
       categoryId: fields[1] as String,
-      amount: fields[2] as double,
+      amountMinor: fields[2] as int,
       note: fields[3] as String,
       date: fields[4] as DateTime,
       createdAt: fields[5] as DateTime,
@@ -37,7 +37,7 @@ class TransactionItemAdapter extends TypeAdapter<TransactionItem> {
       ..writeByte(1)
       ..write(obj.categoryId)
       ..writeByte(2)
-      ..write(obj.amount)
+      ..write(obj.amountMinor)
       ..writeByte(3)
       ..write(obj.note)
       ..writeByte(4)

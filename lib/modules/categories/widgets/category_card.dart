@@ -8,16 +8,18 @@ import '../../../utils/currency_utils.dart';
 
 class CategoryCard extends StatelessWidget {
   final Category category;
-  final double spent;
-  final String currencySymbol;
+
+  /// Spend against this category, in minor units.
+  final int spentMinor;
+  final Currency currency;
   final VoidCallback onTap;
   final VoidCallback onEdit;
 
   const CategoryCard({
     super.key,
     required this.category,
-    required this.spent,
-    required this.currencySymbol,
+    required this.spentMinor,
+    required this.currency,
     required this.onTap,
     required this.onEdit,
   });
@@ -25,10 +27,12 @@ class CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Color(category.colorValue);
-    final pct = category.budgetLimit > 0
-        ? (spent / category.budgetLimit).clamp(0.0, 1.0)
+    // int / int is a double in Dart, so the ratio needs no conversion.
+    final pct = category.budgetLimitMinor > 0
+        ? (spentMinor / category.budgetLimitMinor).clamp(0.0, 1.0)
         : 0.0;
-    final isOver = spent > category.budgetLimit && category.budgetLimit > 0;
+    final isOver = spentMinor > category.budgetLimitMinor &&
+        category.budgetLimitMinor > 0;
 
     return Card(
       elevation: AppSpacing.elevationS,
@@ -63,12 +67,12 @@ class CategoryCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    CurrencyUtils.formatAmount(spent, currencySymbol),
+                    CurrencyUtils.formatAmount(spentMinor, currency),
                     style: AppFonts.h6
                         .copyWith(color: isOver ? AppColors.error : null),
                   ),
                   Text(
-                    'of ${CurrencyUtils.formatAmount(category.budgetLimit, currencySymbol)}',
+                    'of ${CurrencyUtils.formatAmount(category.budgetLimitMinor, currency)}',
                     style: AppFonts.bodySmall,
                   ),
                 ],

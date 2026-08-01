@@ -3,16 +3,20 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../utils/currency_utils.dart';
 import '../../../utils/date_utils.dart';
+import '../analytics_controller.dart';
 
 class MonthlyBarChart extends StatelessWidget {
-  final List<Map<String, dynamic>> data; // [{month: String, total: double}]
-  final String currencySymbol;
+  /// Oldest→newest. Amounts are minor units; they are converted to major units
+  /// once, here, because fl_chart takes doubles.
+  final List<MonthlyTotal> data;
+  final Currency currency;
 
   const MonthlyBarChart({
     super.key,
     required this.data,
-    required this.currencySymbol,
+    required this.currency,
   });
 
   @override
@@ -27,8 +31,8 @@ class MonthlyBarChart extends StatelessWidget {
       );
     }
 
-    final maxY =
-        data.fold(0.0, (m, e) => e['total'] > m ? e['total'] as double : m);
+    final maxMinor = data.fold(0, (m, e) => e.totalMinor > m ? e.totalMinor : m);
+    final maxY = CurrencyUtils.toMajor(maxMinor, currency);
     final safeMax = maxY > 0 ? maxY * 1.2 : 100.0;
 
     return SizedBox(
@@ -39,10 +43,12 @@ class MonthlyBarChart extends StatelessWidget {
           barTouchData: BarTouchData(
             touchTooltipData: BarTouchTooltipData(
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                final month = data[groupIndex]['month'] as String;
-                final amount = rod.toY;
+                final entry = data[groupIndex];
+                // Formatted from the exact minor-unit value, not from the
+                // chart's geometry.
                 return BarTooltipItem(
-                  '${AppDateUtils.formatMonthShort(month)}\n$currencySymbol${amount.toStringAsFixed(0)}',
+                  '${AppDateUtils.formatMonthShort(entry.month)}\n'
+                  '${CurrencyUtils.formatAmountCompact(entry.totalMinor, currency)}',
                   AppFonts.labelSmall.copyWith(color: Colors.white),
                 );
               },
@@ -64,7 +70,7 @@ class MonthlyBarChart extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(top: AppSpacing.xxs),
                     child: Text(
-                      AppDateUtils.formatMonthShort(data[i]['month'] as String),
+                      AppDateUtils.formatMonthShort(data[i].month),
                       style: AppFonts.labelSmall,
                     ),
                   );
@@ -75,12 +81,11 @@ class MonthlyBarChart extends StatelessWidget {
           gridData: const FlGridData(show: false),
           borderData: FlBorderData(show: false),
           barGroups: List.generate(data.length, (i) {
-            final total = data[i]['total'] as double;
             return BarChartGroupData(
               x: i,
               barRods: [
                 BarChartRodData(
-                  toY: total,
+                  toY: CurrencyUtils.toMajor(data[i].totalMinor, currency),
                   color: AppColors.primary,
                   width: 20,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusS),

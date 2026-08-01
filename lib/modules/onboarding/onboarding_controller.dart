@@ -8,6 +8,7 @@ import '../../services/app/settings_service.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/currency_utils.dart';
 import '../../utils/date_utils.dart';
+import '../../utils/validators.dart';
 
 class OnboardingController extends GetxController {
   final SettingsService _settings = Get.find<SettingsService>();
@@ -15,7 +16,7 @@ class OnboardingController extends GetxController {
   final pageController = PageController();
   final currentPage = 0.obs;
 
-  final selectedCurrency = const Currency(code: 'USD', name: 'US Dollar', symbol: '\$').obs;
+  final selectedCurrency = CurrencyUtils.usd.obs;
   final incomeController = TextEditingController();
 
   @override
@@ -39,17 +40,30 @@ class OnboardingController extends GetxController {
   void selectCurrency(Currency currency) => selectedCurrency.value = currency;
 
   Future<void> finish() async {
-    final income = double.tryParse(incomeController.text.trim()) ?? 0.0;
-    await _settings.setCurrency(selectedCurrency.value.code, selectedCurrency.value.symbol);
-    await _settings.setMonthlyIncome(income);
+    final currency = selectedCurrency.value;
+    // Text → minor units in the currency just chosen (C4). "Skip for now"
+    // leaves the field empty — a deliberate zero. Anything else that will not
+    // parse is shown to the user, never silently stored as zero income.
+    final problem = Validators.amountOrZero(currency)(incomeController.text);
+    if (problem != null) {
+      Get.snackbar('Check the amount', problem,
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+    final incomeMinor =
+        CurrencyUtils.tryParseToMinor(incomeController.text, currency) ?? 0;
+    await _settings.setCurrency(currency.code, currency.symbol);
+    await _settings.setMonthlyIncomeMinor(incomeMinor);
     final month = AppDateUtils.getCurrentMonthKey();
     await _settings.setCurrentMonth(month);
     await _settings.completeOnboarding();
-    await _seedDefaultCategories(month);
+    await _seedDefaultCategories(month, currency);
     Get.offAllNamed(AppRoutes.home);
   }
 
-  Future<void> _seedDefaultCategories(String month) async {
+  /// Seeds the preset categories, converting each preset's whole-major-unit
+  /// budget into the chosen currency's minor units.
+  Future<void> _seedDefaultCategories(String month, Currency currency) async {
     final categoryRepo = Get.find<CategoryRepository>();
     const uuid = Uuid();
     final now = DateTime.now();
@@ -58,7 +72,8 @@ class OnboardingController extends GetxController {
         .map((preset) => Category(
               id: uuid.v4(),
               name: preset.name,
-              budgetLimit: preset.defaultBudget,
+              budgetLimitMinor:
+                  CurrencyUtils.fromMajor(preset.defaultBudgetMajor, currency),
               colorValue: preset.colorValue,
               iconCodePoint: preset.iconCodePoint,
               month: month,

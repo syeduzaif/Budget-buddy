@@ -149,11 +149,12 @@ class CategoryFormView extends StatelessWidget {
                 controller: ctrl.budgetController,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Budget Limit',
-                  prefixIcon: Icon(Icons.attach_money),
+                  prefixText: '${ctrl.settings.currency.symbol} ',
+                  prefixIcon: const Icon(Icons.attach_money),
                 ),
-                validator: Validators.amount,
+                validator: Validators.amount(ctrl.settings.currency),
               ),
               const SizedBox(height: AppSpacing.l),
               Text('Pick an Icon', style: AppFonts.labelLarge),

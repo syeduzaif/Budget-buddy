@@ -54,10 +54,10 @@ class DashboardView extends StatelessWidget {
         ],
       ),
       body: Obx(() {
-        final sym = ctrl.settings.currencySymbol.value;
-        final spentMap = {
+        final currency = ctrl.settings.currency;
+        final spentMinorByCategory = {
           for (final cat in ctrl.categories)
-            cat.id: ctrl.spentForCategory(cat.id)
+            cat.id: ctrl.spentForCategoryMinor(cat.id)
         };
 
         return RefreshIndicator(
@@ -77,7 +77,7 @@ class DashboardView extends StatelessWidget {
                   child: SummaryCard(
                     label: 'Monthly Income',
                     amount: CurrencyUtils.formatAmount(
-                        ctrl.settings.monthlyIncome.value, sym),
+                        ctrl.settings.monthlyIncomeMinor.value, currency),
                     icon: Icons.account_balance_wallet_outlined,
                     color: AppColors.primary,
                     isLarge: true,
@@ -92,11 +92,12 @@ class DashboardView extends StatelessWidget {
                       Expanded(
                         child: SummaryCard(
                           label: 'Spent',
-                          amount:
-                              CurrencyUtils.formatAmount(ctrl.totalSpent, sym),
+                          amount: CurrencyUtils.formatAmount(
+                              ctrl.totalSpentMinor, currency),
                           icon: Icons.trending_up,
-                          color: ctrl.totalSpent >
-                                  ctrl.settings.monthlyIncome.value
+                          // int vs int — an exact comparison now.
+                          color: ctrl.totalSpentMinor >
+                                  ctrl.settings.monthlyIncomeMinor.value
                               ? AppColors.error
                               : AppColors.warning,
                         ),
@@ -105,10 +106,10 @@ class DashboardView extends StatelessWidget {
                       Expanded(
                         child: SummaryCard(
                           label: 'Remaining',
-                          amount:
-                              CurrencyUtils.formatAmount(ctrl.remaining, sym),
+                          amount: CurrencyUtils.formatAmount(
+                              ctrl.remainingMinor, currency),
                           icon: Icons.savings_outlined,
-                          color: ctrl.remaining >= 0
+                          color: ctrl.remainingMinor >= 0
                               ? AppColors.success
                               : AppColors.error,
                         ),
@@ -132,7 +133,7 @@ class DashboardView extends StatelessWidget {
                             padding: const EdgeInsets.all(AppSpacing.m),
                             child: SpendingDonutChart(
                               categories: ctrl.categories,
-                              spentMap: spentMap,
+                              spentMinorByCategory: spentMinorByCategory,
                             ),
                           ),
                         ),
@@ -150,8 +151,8 @@ class DashboardView extends StatelessWidget {
                       padding: const EdgeInsets.all(AppSpacing.m),
                       child: CategoryBudgetList(
                         categories: ctrl.categories,
-                        spentMap: spentMap,
-                        currencySymbol: sym,
+                        spentMinorByCategory: spentMinorByCategory,
+                        currency: currency,
                         onSeeAll: ctrl.categories.length > 4
                             ? () => Get.toNamed(AppRoutes.categoryForm)
                             : null,

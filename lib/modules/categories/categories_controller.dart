@@ -31,12 +31,13 @@ class CategoriesController extends GetxController {
               c.name.toLowerCase().contains(searchQuery.value.toLowerCase()))
           .toList();
 
-  double spentForCategory(String categoryId) => transactions
+  /// Spend for one category this month, in minor units (exact integer sum).
+  int spentForCategoryMinor(String categoryId) => transactions
       .where((t) =>
           t.categoryId == categoryId &&
           AppDateUtils.getMonthKeyFromDate(t.date) ==
               settings.currentMonth.value)
-      .fold(0.0, (sum, t) => sum + t.amount);
+      .fold(0, (sum, t) => sum + t.amountMinor);
 
   @override
   void onInit() {
@@ -64,17 +65,15 @@ class CategoriesController extends GetxController {
 
   Future<void> addCategory({
     required String name,
-    required double budgetLimit,
+    required int budgetLimitMinor,
     required int colorValue,
   }) async {
     final category = Category(
       id: const Uuid().v4(),
       name: name,
-      budgetLimit: budgetLimit,
+      budgetLimitMinor: budgetLimitMinor,
       colorValue: colorValue,
-      month: settings.currentMonth.value.isNotEmpty
-          ? settings.currentMonth.value
-          : AppDateUtils.getCurrentMonthKey(),
+      month: settings.effectiveMonth,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );

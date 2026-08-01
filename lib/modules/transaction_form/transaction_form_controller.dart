@@ -7,7 +7,7 @@ import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../../services/app/settings_service.dart';
-import '../../utils/date_utils.dart';
+import '../../utils/currency_utils.dart';
 
 class TransactionFormController extends GetxController {
   final CategoryRepository categoryRepo;
@@ -66,8 +66,11 @@ class TransactionFormController extends GetxController {
   void selectCategory(Category cat) => selectedCategory.value = cat;
 
   Future<void> save() async {
-    final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
-    if (amount <= 0) return;
+    // Text → minor units directly. No double.parse, no multiply by 100: the
+    // currency's own exponent decides the scale (C4).
+    final amountMinor = CurrencyUtils.tryParseToMinor(
+        amountController.text, settings.currency);
+    if (amountMinor == null || amountMinor <= 0) return;
 
     isLoading.value = true;
     try {
@@ -82,7 +85,7 @@ class TransactionFormController extends GetxController {
       final transaction = TransactionItem(
         id: const Uuid().v4(),
         categoryId: category.id,
-        amount: amount,
+        amountMinor: amountMinor,
         note: noteController.text.trim(),
         date: selectedDate.value,
         createdAt: DateTime.now(),
@@ -97,9 +100,7 @@ class TransactionFormController extends GetxController {
 
   /// Returns an existing "Other" category for the current month, or creates one.
   Future<Category> _getOrCreateOtherCategory() async {
-    final month = settings.currentMonth.value.isNotEmpty
-        ? settings.currentMonth.value
-        : AppDateUtils.getCurrentMonthKey();
+    final month = settings.effectiveMonth;
 
     // Check if an "Other" category already exists for this month
     final monthCats = await categoryRepo.getCategoriesForMonth(month);
@@ -112,7 +113,8 @@ class TransactionFormController extends GetxController {
     final other = Category(
       id: const Uuid().v4(),
       name: kOtherCategory.name,
-      budgetLimit: kOtherCategory.defaultBudget,
+      budgetLimitMinor: CurrencyUtils.fromMajor(
+          kOtherCategory.defaultBudgetMajor, settings.currency),
       colorValue: kOtherCategory.colorValue,
       iconCodePoint: kOtherCategory.iconCodePoint,
       month: month,

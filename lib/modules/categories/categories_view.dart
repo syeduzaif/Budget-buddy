@@ -53,7 +53,7 @@ class CategoriesView extends StatelessWidget {
           Expanded(
             child: Obx(() {
               final list = ctrl.filtered;
-              final sym = ctrl.settings.currencySymbol.value;
+              final currency = ctrl.settings.currency;
 
               if (list.isEmpty) {
                 return Center(
@@ -122,8 +122,8 @@ class CategoriesView extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: AppSpacing.s),
                         child: CategoryCard(
                           category: cat,
-                          spent: ctrl.spentForCategory(cat.id),
-                          currencySymbol: sym,
+                          spentMinor: ctrl.spentForCategoryMinor(cat.id),
+                          currency: currency,
                           onTap: () => Get.toNamed(
                             AppRoutes.transactions,
                             arguments: {

@@ -26,7 +26,8 @@ class SettingsView extends StatelessWidget {
               leading: const Icon(Icons.attach_money),
               title: const Text('Monthly Income'),
               subtitle: Obx(() => Text(
-                    '${settings.currencySymbol.value} ${settings.monthlyIncome.value.toStringAsFixed(0)}',
+                    CurrencyUtils.formatAmount(
+                        settings.monthlyIncomeMinor.value, settings.currency),
                     style: AppFonts.bodySmall,
                   )),
               trailing: const Icon(Icons.chevron_right),

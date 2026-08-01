@@ -6,18 +6,20 @@ import '../../../data/models/category.dart';
 
 class SpendingDonutChart extends StatelessWidget {
   final List<Category> categories;
-  final Map<String, double> spentMap;
+
+  /// Spend per category id, in minor units.
+  final Map<String, int> spentMinorByCategory;
 
   const SpendingDonutChart({
     super.key,
     required this.categories,
-    required this.spentMap,
+    required this.spentMinorByCategory,
   });
 
   @override
   Widget build(BuildContext context) {
     final data = categories
-        .map((c) => MapEntry(c, spentMap[c.id] ?? 0.0))
+        .map((c) => MapEntry(c, spentMinorByCategory[c.id] ?? 0))
         .where((e) => e.value > 0)
         .toList();
 
@@ -31,7 +33,7 @@ class SpendingDonutChart extends StatelessWidget {
       );
     }
 
-    final total = data.fold(0.0, (s, e) => s + e.value);
+    final total = data.fold(0, (s, e) => s + e.value);
 
     return SizedBox(
       height: 200,
@@ -40,10 +42,13 @@ class SpendingDonutChart extends StatelessWidget {
           sectionsSpace: 2,
           centerSpaceRadius: 44,
           sections: data.map((e) {
+            // Percentages are unit-invariant, so this chart never needs the
+            // currency: minor units go in as relative slice weights and only
+            // the share is ever drawn. No amount is displayed here.
             final pct = total > 0 ? e.value / total * 100 : 0.0;
             return PieChartSectionData(
               color: Color(e.key.colorValue),
-              value: e.value,
+              value: e.value.toDouble(),
               title: pct >= 5 ? '${pct.toStringAsFixed(0)}%' : '',
               radius: 40,
               titleStyle: AppFonts.labelSmall.copyWith(

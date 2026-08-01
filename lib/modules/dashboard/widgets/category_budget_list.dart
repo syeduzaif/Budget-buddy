@@ -9,15 +9,17 @@ import '../../../utils/currency_utils.dart';
 
 class CategoryBudgetList extends StatelessWidget {
   final List<Category> categories;
-  final Map<String, double> spentMap;
-  final String currencySymbol;
+
+  /// Spend per category id, in minor units.
+  final Map<String, int> spentMinorByCategory;
+  final Currency currency;
   final VoidCallback? onSeeAll;
 
   const CategoryBudgetList({
     super.key,
     required this.categories,
-    required this.spentMap,
-    required this.currencySymbol,
+    required this.spentMinorByCategory,
+    required this.currency,
     this.onSeeAll,
   });
 
@@ -47,11 +49,13 @@ class CategoryBudgetList extends StatelessWidget {
           )
         else
           ...shown.map((cat) {
-            final spent = spentMap[cat.id] ?? 0.0;
-            final pct = cat.budgetLimit > 0
-                ? (spent / cat.budgetLimit).clamp(0.0, 1.0)
+            final spent = spentMinorByCategory[cat.id] ?? 0;
+            // int / int is a double in Dart, so the ratio needs no conversion.
+            final pct = cat.budgetLimitMinor > 0
+                ? (spent / cat.budgetLimitMinor).clamp(0.0, 1.0)
                 : 0.0;
-            final isOver = spent > cat.budgetLimit && cat.budgetLimit > 0;
+            final isOver =
+                spent > cat.budgetLimitMinor && cat.budgetLimitMinor > 0;
             final color = Color(cat.colorValue);
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.s),
@@ -77,7 +81,9 @@ class CategoryBudgetList extends StatelessWidget {
                               size: 14, color: AppColors.error),
                         ),
                       Text(
-                        '${CurrencyUtils.formatAmountCompact(spent, currencySymbol)} / ${CurrencyUtils.formatAmountCompact(cat.budgetLimit, currencySymbol)}',
+                        '${CurrencyUtils.formatAmountCompact(spent, currency)}'
+                        ' / '
+                        '${CurrencyUtils.formatAmountCompact(cat.budgetLimitMinor, currency)}',
                         style: AppFonts.labelSmall.copyWith(
                           color: isOver ? AppColors.error : null,
                         ),

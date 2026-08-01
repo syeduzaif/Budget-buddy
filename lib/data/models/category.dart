@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import '../../core/utils/app_icons.dart';
+import 'transaction_item.dart';
 
 part 'category.g.dart';
 
@@ -12,8 +13,15 @@ class Category extends HiveObject {
   @HiveField(1)
   late String name;
 
+  /// Budget ceiling in integer MINOR UNITS of the user's currency (cents for
+  /// USD, whole yen for JPY) — see `utils/currency_utils.dart`.
+  ///
+  /// Field index 2 is unchanged from the pre-C4 `double budgetLimit`: the
+  /// boxes have never existed on a real device, so this redefines an unused
+  /// slot rather than migrating one (`LocalStoreService` resets a box that
+  /// still holds the old shape).
   @HiveField(2)
-  late double budgetLimit;
+  late int budgetLimitMinor;
 
   @HiveField(3)
   late int colorValue;
@@ -39,7 +47,7 @@ class Category extends HiveObject {
   Category({
     required this.id,
     required this.name,
-    required this.budgetLimit,
+    required this.budgetLimitMinor,
     required this.colorValue,
     required this.month,
     required this.createdAt,
@@ -50,30 +58,28 @@ class Category extends HiveObject {
 
   IconData get icon => AppIcons.fromCodePoint(iconCodePoint);
 
-  // Calculate total spent from transactions
-  double calculateTotalSpent(List<dynamic> allTransactions) {
-    final categoryTransactions =
-        allTransactions.where((t) => t.categoryId == id).toList();
+  /// Total spent against this category, in minor units. Typed input, integer
+  /// arithmetic — no `dynamic`, no float accumulator.
+  int calculateTotalSpentMinor(Iterable<TransactionItem> allTransactions) =>
+      allTransactions
+          .where((t) => t.categoryId == id)
+          .fold(0, (total, t) => total + t.amountMinor);
 
-    return categoryTransactions.fold(
-      0.0,
-      (total, transaction) => total + transaction.amount,
-    );
+  int calculateRemainingMinor(int spentMinor) => budgetLimitMinor - spentMinor;
+
+  /// Percentage of the budget used. A ratio, not money: `int / int` is a
+  /// `double` in Dart, so this needs no conversion.
+  double calculatePercentage(int spentMinor) {
+    if (budgetLimitMinor == 0) return 0;
+    return (spentMinor / budgetLimitMinor) * 100;
   }
 
-  double calculateRemaining(double spent) {
-    return budgetLimit - spent;
-  }
-
-  double calculatePercentage(double spent) {
-    if (budgetLimit == 0) return 0;
-    return (spent / budgetLimit) * 100;
-  }
-
+  /// The key is `budgetLimitMinor`, not `budgetLimit`: anything reading an
+  /// exported file must be told the unit, or it will guess wrong.
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
-        'budgetLimit': budgetLimit,
+        'budgetLimitMinor': budgetLimitMinor,
         'colorValue': colorValue,
         'month': month,
         'createdAt': createdAt.toIso8601String(),
@@ -85,7 +91,8 @@ class Category extends HiveObject {
   factory Category.fromJson(Map<String, dynamic> json) => Category(
         id: json['id'],
         name: json['name'],
-        budgetLimit: json['budgetLimit'],
+        budgetLimitMinor:
+            _minorUnits(json['budgetLimitMinor'], 'budgetLimitMinor'),
         colorValue: json['colorValue'],
         month: json['month'],
         createdAt: DateTime.parse(json['createdAt']),
@@ -95,4 +102,14 @@ class Category extends HiveObject {
         synced: json['synced'] ?? false,
         iconCodePoint: json['iconCodePoint'] as int?,
       );
+}
+
+/// Guarded read of a money field (H2: no bare casts on untyped input).
+///
+/// Throws rather than defaulting: a JSON budget we cannot read is missing
+/// money, and silently importing it as 0 would be worse than refusing.
+int _minorUnits(Object? value, String field) {
+  if (value is int) return value;
+  throw FormatException(
+      '$field must be an integer of minor units, got ${value.runtimeType}');
 }

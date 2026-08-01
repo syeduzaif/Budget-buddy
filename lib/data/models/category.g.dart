@@ -19,7 +19,7 @@ class CategoryAdapter extends TypeAdapter<Category> {
     return Category(
       id: fields[0] as String,
       name: fields[1] as String,
-      budgetLimit: fields[2] as double,
+      budgetLimitMinor: fields[2] as int,
       colorValue: fields[3] as int,
       month: fields[4] as String,
       createdAt: fields[5] as DateTime,
@@ -38,7 +38,7 @@ class CategoryAdapter extends TypeAdapter<Category> {
       ..writeByte(1)
       ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.budgetLimit)
+      ..write(obj.budgetLimitMinor)
       ..writeByte(3)
       ..write(obj.colorValue)
       ..writeByte(4)

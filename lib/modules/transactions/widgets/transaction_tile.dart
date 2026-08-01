@@ -10,7 +10,7 @@ class TransactionTile extends StatelessWidget {
   final TransactionItem transaction;
   final String categoryName;
   final int categoryColor;
-  final String currencySymbol;
+  final Currency currency;
   final VoidCallback onDelete;
 
   const TransactionTile({
@@ -18,7 +18,7 @@ class TransactionTile extends StatelessWidget {
     required this.transaction,
     required this.categoryName,
     required this.categoryColor,
-    required this.currencySymbol,
+    required this.currency,
     required this.onDelete,
   });
 
@@ -68,7 +68,7 @@ class TransactionTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           trailing: Text(
-            CurrencyUtils.formatAmount(transaction.amount, currencySymbol),
+            CurrencyUtils.formatAmount(transaction.amountMinor, currency),
             style: AppFonts.h6.copyWith(color: AppColors.error),
           ),
         ),

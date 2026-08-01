@@ -28,7 +28,7 @@ class TransactionsView extends StatelessWidget {
       ),
       body: Obx(() {
         final grouped = ctrl.groupedByDate;
-        final sym = settings.currencySymbol.value;
+        final currency = settings.currency;
 
         if (grouped.isEmpty) {
           return Center(
@@ -74,7 +74,7 @@ class TransactionsView extends StatelessWidget {
                     transaction: t,
                     categoryName: cat?.name ?? 'Unknown',
                     categoryColor: cat?.colorValue ?? AppColors.primary.toARGB32(),
-                    currencySymbol: sym,
+                    currency: currency,
                     onDelete: () => ctrl.deleteTransaction(t.id),
                   );
                 }),
