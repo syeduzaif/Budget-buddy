@@ -5,6 +5,17 @@ import 'app_colors.dart';
 /// Ocean Depths Typography System
 /// Display/Headlines: Merriweather (serif — authoritative, trustworthy)
 /// Body/Labels: Source Sans Pro (clean, highly readable)
+///
+/// ⚠️ **Any style handed to a `ThemeData` component must carry an explicit
+/// colour.** Several getters below (`h1`–`h6`, `bodyLarge`, `bodyMedium`,
+/// `labelLarge`) deliberately set none, which is fine for inline
+/// `Text(style: …)` — that MERGES with the ambient `DefaultTextStyle`. A
+/// component theme (`listTileTheme.titleTextStyle`, `dialogTheme`,
+/// `navigationBarTheme.labelTextStyle`, …) instead REPLACES the ambient style,
+/// so a null colour has nothing to inherit from and paints in the engine
+/// default — white, i.e. invisible on the light theme's cream surfaces. That
+/// was UI-01 (Settings titles, every dialog title and body, incl. the erase-all
+/// warning). `test/theme_text_style_test.dart` pins it.
 class AppFonts {
   AppFonts._();
 

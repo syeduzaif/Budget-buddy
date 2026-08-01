@@ -145,12 +145,51 @@ class AppTheme {
         ),
 
         // ── Navigation Bar (M3) ──────────────────────────────────
+        // M3 selects with secondaryContainer/onSecondaryContainer — terracotta
+        // in this palette — so the selected icon and label must be named
+        // explicitly or the app ends up with two selection colour families
+        // (olive where hand-built, brown wherever M3 decides). Same reason for
+        // segmentedButtonTheme below.
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: AppColors.surface,
           indicatorColor: AppColors.primaryLight.withValues(alpha: 0.25),
           elevation: 4,
           shadowColor: AppColors.shadow,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          iconTheme: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? const IconThemeData(color: AppColors.primaryDark, size: 26)
+                : const IconThemeData(color: AppColors.textSecondary, size: 24),
+          ),
+          labelTextStyle: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? AppFonts.labelSmall.copyWith(
+                    color: AppColors.primaryDark,
+                    fontWeight: AppFonts.semiBold,
+                  )
+                : AppFonts.labelSmall
+                    .copyWith(color: AppColors.textSecondary),
+          ),
+        ),
+
+        // ── Segmented Button ─────────────────────────────────────
+        segmentedButtonTheme: SegmentedButtonThemeData(
+          style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? AppColors.primary
+                  : Colors.transparent,
+            ),
+            foregroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? AppColors.textWhite
+                  : AppColors.textSecondary,
+            ),
+            side: WidgetStatePropertyAll(
+              BorderSide(color: AppColors.primary.withValues(alpha: 0.50)),
+            ),
+            textStyle: WidgetStatePropertyAll(AppFonts.labelMedium),
+          ),
         ),
 
         // ── Chips ─────────────────────────────────────────────────
@@ -180,8 +219,12 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          titleTextStyle: AppFonts.h5,
-          contentTextStyle: AppFonts.bodyMedium,
+          // A component theme style REPLACES the ambient DefaultTextStyle, so
+          // a null colour has nothing to inherit and paints in the engine
+          // default (white) — invisible on cream. See the note atop AppFonts.
+          titleTextStyle: AppFonts.h5.copyWith(color: AppColors.textPrimary),
+          contentTextStyle:
+              AppFonts.bodyMedium.copyWith(color: AppColors.textSecondary),
         ),
 
         // ── Bottom Sheet ──────────────────────────────────────────
@@ -225,7 +268,11 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          titleTextStyle: AppFonts.bodyLarge,
+          // Explicit colour for the same reason as dialogTheme above: the
+          // subtitle was visible only because AppFonts.bodySmall happens to
+          // carry one.
+          titleTextStyle:
+              AppFonts.bodyLarge.copyWith(color: AppColors.textPrimary),
           subtitleTextStyle: AppFonts.bodySmall,
           iconColor: AppColors.primary,
         ),
@@ -283,7 +330,9 @@ class AppTheme {
           foregroundColor: AppColors.textDark,
           elevation: 0,
           centerTitle: false,
-          systemOverlayStyle: SystemUiOverlayStyle.dark,
+          // Both themes' app bars are dark surfaces, so both want light
+          // status-bar icons. `.dark` here painted a dark clock on #28231B.
+          systemOverlayStyle: SystemUiOverlayStyle.light,
           titleTextStyle: AppFonts.h5.copyWith(
             color: AppColors.textDark,
           ),
@@ -302,7 +351,10 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: AppColors.primaryLight.withValues(alpha: 0.10),
+              // cardDark on backgroundDark is only 1.26:1, so in dark mode
+              // this border is the whole surface hierarchy — 0.10 was not
+              // enough to carry it.
+              color: AppColors.primaryLight.withValues(alpha: 0.20),
               width: 1,
             ),
           ),
@@ -396,6 +448,52 @@ class AppTheme {
           unselectedItemColor: AppColors.textMuted,
           type: BottomNavigationBarType.fixed,
           elevation: 8,
+        ),
+
+        // ── Navigation Bar (M3) ──────────────────────────────────
+        // The dark theme defined none at all, so the indicator pill fell back
+        // to raw M3 `secondaryContainer` (terracotta). Named explicitly, same
+        // as light.
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: AppColors.surfaceDark,
+          indicatorColor: AppColors.primaryLight.withValues(alpha: 0.20),
+          elevation: 4,
+          shadowColor: Colors.black26,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          iconTheme: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? const IconThemeData(color: AppColors.primaryLight, size: 26)
+                : const IconThemeData(color: AppColors.textMuted, size: 24),
+          ),
+          labelTextStyle: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? AppFonts.labelSmall.copyWith(
+                    color: AppColors.primaryLight,
+                    fontWeight: AppFonts.semiBold,
+                  )
+                : AppFonts.labelSmall.copyWith(color: AppColors.textMuted),
+          ),
+        ),
+
+        // ── Segmented Button ─────────────────────────────────────
+        segmentedButtonTheme: SegmentedButtonThemeData(
+          style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? AppColors.primaryLight
+                  : Colors.transparent,
+            ),
+            foregroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? AppColors.deepNavy
+                  : AppColors.textDark,
+            ),
+            side: WidgetStatePropertyAll(
+              BorderSide(color: AppColors.primaryLight.withValues(alpha: 0.40)),
+            ),
+            textStyle: WidgetStatePropertyAll(
+                AppFonts.labelMedium.copyWith(color: AppColors.textDark)),
+          ),
         ),
 
         // ── Chips ─────────────────────────────────────────────────

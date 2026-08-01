@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'data/local/hive_storage.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
+import 'services/app/settings_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,7 +32,11 @@ class BuddgetBuddyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      // The persisted choice, applied at startup rather than only when the
+      // user next opens the theme sheet: SettingsService has already read the
+      // settings box by the time this builds (see main() above). Later changes
+      // come through Get.changeThemeMode in SettingsService.setThemeMode.
+      themeMode: Get.find<SettingsService>().flutterThemeMode,
       initialRoute: AppRoutes.splash,
       getPages: AppPages.pages,
     );
