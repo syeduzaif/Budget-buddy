@@ -99,6 +99,9 @@ lib/generated_plugin_registrant.dart
 # Hive database files (optional - remove if you want to track them)
 **/*.hive
 **/*.lock
+# ...but the dependency lockfile IS tracked: CI must resolve the same versions
+# the app was built and tested against (owner-approved 2026-08-01).
+!pubspec.lock
 
 # ========================================
 # 🔒 SECURITY: Environment & API Keys
