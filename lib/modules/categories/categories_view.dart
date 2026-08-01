@@ -54,6 +54,17 @@ class CategoriesView extends StatelessWidget {
             child: Obx(() {
               final list = ctrl.filtered;
               final currency = ctrl.settings.currency;
+              // Materialised HERE, inside the Obx body, exactly as the
+              // dashboard does it (dashboard_view.dart). Reading `transactions`
+              // only inside `itemBuilder` runs after the observer scope has
+              // closed, so the transaction list was never registered as a
+              // dependency of this Obx: spend stayed at 0 until the tab was
+              // re-entered, which reads as "the save failed" on a money screen
+              // (UI-02).
+              final spentMinorByCategory = {
+                for (final cat in list)
+                  cat.id: ctrl.spentForCategoryMinor(cat.id)
+              };
 
               if (list.isEmpty) {
                 return Center(
@@ -122,7 +133,7 @@ class CategoriesView extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: AppSpacing.s),
                         child: CategoryCard(
                           category: cat,
-                          spentMinor: ctrl.spentForCategoryMinor(cat.id),
+                          spentMinor: spentMinorByCategory[cat.id] ?? 0,
                           currency: currency,
                           onTap: () => Get.toNamed(
                             AppRoutes.transactions,

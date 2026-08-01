@@ -7,6 +7,7 @@ import '../../core/animations/animations.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/currency_utils.dart';
 import '../../utils/date_utils.dart';
+import '../home/home_controller.dart';
 import 'dashboard_controller.dart';
 import 'widgets/summary_card.dart';
 import 'widgets/category_budget_list.dart';
@@ -21,25 +22,34 @@ class DashboardView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Obx(() => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: ctrl.goToPreviousMonth,
-                  padding: EdgeInsets.zero,
-                ),
-                Text(
-                  AppDateUtils.formatMonthKey(ctrl.settings.currentMonth.value),
-                  style: AppFonts.h6,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: ctrl.goToNextMonth,
-                  padding: EdgeInsets.zero,
-                ),
-              ],
-            )),
+        title: Obx(() {
+          // Browsing forward CREATES data: goToNextMonth clones every category
+          // into the month it lands on. Stop at the real current month — the
+          // date picker already refuses future dates, so a future month could
+          // only ever hold cloned categories and no transactions (UI-06).
+          final atCurrentMonth = ctrl.settings.currentMonth.value ==
+              AppDateUtils.monthKey(DateTime.now());
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: ctrl.goToPreviousMonth,
+                padding: EdgeInsets.zero,
+              ),
+              Text(
+                AppDateUtils.formatMonthKey(ctrl.settings.currentMonth.value),
+                style: AppFonts.h6,
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                // null gives the built-in disabled treatment.
+                onPressed: atCurrentMonth ? null : ctrl.goToNextMonth,
+                padding: EdgeInsets.zero,
+              ),
+            ],
+          );
+        }),
         centerTitle: true,
         actions: [
           IconButton(
@@ -100,6 +110,11 @@ class DashboardView extends StatelessWidget {
                                   ctrl.settings.monthlyIncomeMinor.value
                               ? AppColors.error
                               : AppColors.warning,
+                          // No arguments → the unfiltered "All Transactions"
+                          // mode, which nothing else in the app could reach
+                          // (UI-19). Remaining stays non-interactive: there is
+                          // no list of "remaining" to open.
+                          onTap: () => Get.toNamed(AppRoutes.transactions),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.s),
@@ -153,8 +168,10 @@ class DashboardView extends StatelessWidget {
                         categories: ctrl.categories,
                         spentMinorByCategory: spentMinorByCategory,
                         currency: currency,
+                        // The Categories tab, not the New Category form
+                        // (UI-05).
                         onSeeAll: ctrl.categories.length > 4
-                            ? () => Get.toNamed(AppRoutes.categoryForm)
+                            ? () => Get.find<HomeController>().changeTab(1)
                             : null,
                       ),
                     ),
