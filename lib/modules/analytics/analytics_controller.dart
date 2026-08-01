@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:get/get.dart';
 import '../../data/models/category.dart';
 import '../../data/models/transaction_item.dart';
@@ -96,8 +97,26 @@ class AnalyticsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    transactionRepo.getTransactions().listen((list) => transactions.assignAll(list));
-    categoryRepo.getCategories().listen((list) => categories.assignAll(list));
+    transactionRepo.getTransactions().listen(
+      (list) => transactions.assignAll(list),
+      onError: (Object e, StackTrace s) {
+        // The local store swallows read failures and re-emits the last
+        // good snapshot, so this should never fire — but every listener
+        // carries onError so a future failing source cannot kill the
+        // stream silently (H2).
+        debugPrint('[AnalyticsController] transaction stream failed: $e\n$s');
+      },
+    );
+    categoryRepo.getCategories().listen(
+      (list) => categories.assignAll(list),
+      onError: (Object e, StackTrace s) {
+        // The local store swallows read failures and re-emits the last
+        // good snapshot, so this should never fire — but every listener
+        // carries onError so a future failing source cannot kill the
+        // stream silently (H2).
+        debugPrint('[AnalyticsController] category stream failed: $e\n$s');
+      },
+    );
   }
 
   void setRange(int index) => selectedRange.value = index;

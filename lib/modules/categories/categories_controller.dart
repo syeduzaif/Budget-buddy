@@ -42,20 +42,43 @@ class CategoriesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    categoryRepo.getCategories().listen((list) {
-      categories.assignAll(
-          list.where((c) => c.month == settings.currentMonth.value).toList());
-    });
-    transactionRepo.getTransactions().listen((list) {
-      transactions.assignAll(list);
-    });
+    categoryRepo.getCategories().listen(
+      (list) {
+        categories.assignAll(
+            list.where((c) => c.month == settings.currentMonth.value).toList());
+      },
+      onError: (Object e, StackTrace s) {
+        // The local store swallows read failures and re-emits the last
+        // good snapshot, so this should never fire — but every listener
+        // carries onError so a future failing source cannot kill the
+        // stream silently (H2).
+        debugPrint('[CategoriesController] category stream failed: $e\n$s');
+      },
+    );
+    transactionRepo.getTransactions().listen(
+      (list) => transactions.assignAll(list),
+      onError: (Object e, StackTrace s) {
+        // The local store swallows read failures and re-emits the last
+        // good snapshot, so this should never fire — but every listener
+        // carries onError so a future failing source cannot kill the
+        // stream silently (H2).
+        debugPrint('[CategoriesController] transaction stream failed: $e\n$s');
+      },
+    );
 
     // Re-filter categories when month changes from the dashboard
     ever(settings.currentMonth, (_) {
-      categoryRepo.getCategories().first.then((list) {
-        categories.assignAll(
-            list.where((c) => c.month == settings.currentMonth.value).toList());
-      });
+      categoryRepo.getCategories().first.then(
+        (list) {
+          categories.assignAll(list
+              .where((c) => c.month == settings.currentMonth.value)
+              .toList());
+        },
+        // A `then` without this is an unhandled async error (H2).
+        onError: (Object e, StackTrace s) {
+          debugPrint('[CategoriesController] month re-filter failed: $e\n$s');
+        },
+      );
     });
   }
 

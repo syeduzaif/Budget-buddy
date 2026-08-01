@@ -1,3 +1,6 @@
+// `show debugPrint` only: foundation also exports a `Category`
+// annotation, which would collide with our model.
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/category.dart';
@@ -50,13 +53,29 @@ class DashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    categoryRepo.getCategories().listen((list) {
-      categories.assignAll(
-          list.where((c) => c.month == settings.currentMonth.value).toList());
-    });
-    transactionRepo.getTransactions().listen((list) {
-      transactions.assignAll(list);
-    });
+    categoryRepo.getCategories().listen(
+      (list) {
+        categories.assignAll(
+            list.where((c) => c.month == settings.currentMonth.value).toList());
+      },
+      onError: (Object e, StackTrace s) {
+        // The local store swallows read failures and re-emits the last
+        // good snapshot, so this should never fire — but every listener
+        // carries onError so a future failing source cannot kill the
+        // stream silently (H2).
+        debugPrint('[DashboardController] category stream failed: $e\n$s');
+      },
+    );
+    transactionRepo.getTransactions().listen(
+      (list) => transactions.assignAll(list),
+      onError: (Object e, StackTrace s) {
+        // The local store swallows read failures and re-emits the last
+        // good snapshot, so this should never fire — but every listener
+        // carries onError so a future failing source cannot kill the
+        // stream silently (H2).
+        debugPrint('[DashboardController] transaction stream failed: $e\n$s');
+      },
+    );
   }
 
   void goToPreviousMonth() async {
@@ -119,9 +138,15 @@ class DashboardController extends GetxController {
   }
 
   void _refreshCategories() {
-    categoryRepo.getCategories().first.then((list) {
-      categories.assignAll(
-          list.where((c) => c.month == settings.currentMonth.value).toList());
-    });
+    categoryRepo.getCategories().first.then(
+      (list) {
+        categories.assignAll(
+            list.where((c) => c.month == settings.currentMonth.value).toList());
+      },
+      // A `then` without this is an unhandled async error (H2).
+      onError: (Object e, StackTrace s) {
+        debugPrint('[DashboardController] category refresh failed: $e\n$s');
+      },
+    );
   }
 }

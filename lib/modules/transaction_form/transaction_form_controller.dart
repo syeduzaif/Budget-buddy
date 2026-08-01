@@ -36,23 +36,32 @@ class TransactionFormController extends GetxController {
     final args = Get.arguments as Map<String, dynamic>?;
     preselectedCategoryId = args?['categoryId'];
 
-    categoryRepo.getCategories().listen((list) {
-      final filtered =
-          list.where((c) => c.month == settings.currentMonth.value).toList();
-      categories.assignAll(filtered);
-      if (selectedCategory.value == null && filtered.isNotEmpty) {
-        if (preselectedCategoryId != null) {
-          try {
-            selectedCategory.value =
-                filtered.firstWhere((c) => c.id == preselectedCategoryId);
-          } catch (_) {
+    categoryRepo.getCategories().listen(
+      (list) {
+        final filtered =
+            list.where((c) => c.month == settings.currentMonth.value).toList();
+        categories.assignAll(filtered);
+        if (selectedCategory.value == null && filtered.isNotEmpty) {
+          if (preselectedCategoryId != null) {
+            try {
+              selectedCategory.value =
+                  filtered.firstWhere((c) => c.id == preselectedCategoryId);
+            } catch (_) {
+              selectedCategory.value = filtered.first;
+            }
+          } else {
             selectedCategory.value = filtered.first;
           }
-        } else {
-          selectedCategory.value = filtered.first;
         }
-      }
-    });
+      },
+      onError: (Object e, StackTrace s) {
+        // The local store swallows read failures and re-emits the last
+        // good snapshot, so this should never fire — but every listener
+        // carries onError so a future failing source cannot kill the
+        // stream silently (H2).
+        debugPrint('[TransactionFormController] category stream failed: $e\n$s');
+      },
+    );
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:get/get.dart';
 import '../../data/models/transaction_item.dart';
 import '../../data/models/category.dart';
@@ -51,12 +52,26 @@ class TransactionsController extends GetxController {
     filterCategoryId = args?['categoryId'];
     filterCategoryName = args?['categoryName'];
 
-    transactionRepo.getTransactions().listen((list) {
-      transactions.assignAll(list);
-    });
-    categoryRepo.getCategories().listen((list) {
-      categories.assignAll(list);
-    });
+    transactionRepo.getTransactions().listen(
+      (list) => transactions.assignAll(list),
+      onError: (Object e, StackTrace s) {
+        // The local store swallows read failures and re-emits the last
+        // good snapshot, so this should never fire — but every listener
+        // carries onError so a future failing source cannot kill the
+        // stream silently (H2).
+        debugPrint('[TransactionsController] transaction stream failed: $e\n$s');
+      },
+    );
+    categoryRepo.getCategories().listen(
+      (list) => categories.assignAll(list),
+      onError: (Object e, StackTrace s) {
+        // The local store swallows read failures and re-emits the last
+        // good snapshot, so this should never fire — but every listener
+        // carries onError so a future failing source cannot kill the
+        // stream silently (H2).
+        debugPrint('[TransactionsController] category stream failed: $e\n$s');
+      },
+    );
   }
 
   Future<void> deleteTransaction(String id) async {
