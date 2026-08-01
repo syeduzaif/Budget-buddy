@@ -41,7 +41,7 @@ class TransactionFormView extends StatelessWidget {
               style: AppFonts.h3,
               decoration: InputDecoration(
                 labelText: 'Amount',
-                prefixText: '${ctrl.settings.currencySymbol.value} ',
+                prefixText: '${ctrl.settings.currency.symbol} ',
                 prefixStyle: AppFonts.h4.copyWith(color: AppColors.primary),
               ),
               validator: Validators.amount(ctrl.settings.currency),

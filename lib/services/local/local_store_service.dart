@@ -50,13 +50,29 @@ class LocalStoreService extends GetxService {
   /// PRE-RELEASE ONLY. The first real install ends this: from then on a
   /// schema change needs a versioned migration, because this method would
   /// silently delete someone's records. Revisit before shipping to Play.
+  ///
+  /// Expect a second, redundant stack trace in the log when this fires: Hive
+  /// also completes an internal completer with the same error and nothing
+  /// listens to it (`hive_impl.dart:116`), so it surfaces as an unhandled
+  /// async error. Startup still succeeds — see
+  /// `test/local_store_migration_test.dart`.
   Future<Box<T>> _openOrReset<T>(String name) async {
     try {
       return await Hive.openBox<T>(name);
     } catch (e, s) {
       debugPrint('[LocalStoreService] could not open "$name" ($e)\n$s');
       debugPrint('[LocalStoreService] resetting "$name" — pre-release only');
-      await Hive.deleteBoxFromDisk(name);
+      try {
+        await Hive.deleteBoxFromDisk(name);
+      } catch (deleteError) {
+        // Hive's own cleanup after a failed open is not awaited, so it races
+        // this delete and can report the lock file already gone
+        // (PathNotFoundException) even though the data file was removed.
+        // Reopening is the honest verdict — if the box is really still
+        // unreadable, the retry below throws and startup fails loudly.
+        debugPrint('[LocalStoreService] delete of "$name" reported: '
+            '$deleteError (continuing)');
+      }
       return Hive.openBox<T>(name);
     }
   }

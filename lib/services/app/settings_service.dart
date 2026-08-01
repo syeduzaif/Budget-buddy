@@ -8,6 +8,9 @@ import '../../utils/date_utils.dart';
 /// All controllers read from this service, never from HiveStorage directly.
 class SettingsService extends GetxService {
   final RxString currencyCode = 'USD'.obs;
+  /// Persisted copy of the selected currency's symbol. [currency] is the
+  /// display source of truth — read `currency.symbol`, not this — but the
+  /// stored value is kept so the settings box stays self-describing.
   final RxString currencySymbol = '\$'.obs;
 
   /// Monthly income in integer MINOR UNITS of [currency].

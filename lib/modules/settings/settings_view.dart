@@ -37,7 +37,7 @@ class SettingsView extends StatelessWidget {
               leading: const Icon(Icons.currency_exchange),
               title: const Text('Currency'),
               subtitle: Obx(() => Text(
-                    '${settings.currencyCode.value} (${settings.currencySymbol.value})',
+                    '${settings.currencyCode.value} (${settings.currency.symbol})',
                     style: AppFonts.bodySmall,
                   )),
               trailing: const Icon(Icons.chevron_right),
@@ -126,7 +126,7 @@ class SettingsView extends StatelessWidget {
               autofocus: true,
               decoration: InputDecoration(
                 labelText: 'Amount',
-                prefixText: '${ctrl.settings.currencySymbol.value} ',
+                prefixText: '${ctrl.settings.currency.symbol} ',
               ),
             ),
             const SizedBox(height: AppSpacing.l),
