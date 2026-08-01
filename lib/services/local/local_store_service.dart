@@ -11,7 +11,7 @@ import '../../data/models/transaction_item.dart';
 
 /// On-device store for the app's financial data.
 ///
-/// Owns the two Hive boxes that replace the former Firestore collections.
+/// Owns the app's two Hive boxes, categories and transactions.
 /// Repositories are the only callers — controllers and views must go through
 /// `data/repositories/*` (view → controller → repository → service).
 ///
@@ -43,9 +43,8 @@ class LocalStoreService extends GetxService {
   /// The case this exists for: the C4 money migration redefined field 2 of
   /// both models from `double` to `int` minor units, so a box written by a
   /// pre-C4 build fails its adapter's type check the moment it is opened. That
-  /// can only happen on a developer's device — these boxes have never shipped
-  /// (the app was still on Firestore) — so wiping is the honest, simple
-  /// answer.
+  /// can only happen on a developer's device — no release has ever written
+  /// these boxes — so wiping is the honest, simple answer.
   ///
   /// PRE-RELEASE ONLY. The first real install ends this: from then on a
   /// schema change needs a versioned migration, because this method would
@@ -79,7 +78,7 @@ class LocalStoreService extends GetxService {
 
   // --- Categories -----------------------------------------------------------
 
-  /// Newest first, matching the ordering the Firestore query used to provide.
+  /// Newest first by creation time.
   List<Category> readCategories() {
     final list = _categories.values.toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -104,7 +103,7 @@ class LocalStoreService extends GetxService {
 
   // --- Transactions ---------------------------------------------------------
 
-  /// Newest first by transaction date, matching the former Firestore ordering.
+  /// Newest first by transaction date.
   List<TransactionItem> readTransactions() {
     final list = _transactions.values.toList();
     list.sort((a, b) => b.date.compareTo(a.date));
@@ -128,8 +127,8 @@ class LocalStoreService extends GetxService {
   ///
   /// Read failures are logged and the last good snapshot is re-emitted instead
   /// of an error: one bad record must never tear down a live screen. This is
-  /// the local-store equivalent of the H2 rule that every Firestore listener
-  /// carries `onError` — here the stream simply cannot fail, so no consumer is
+  /// the local-store equivalent of the H2 rule that every listener carries an
+  /// error handler — here the stream simply cannot fail, so no consumer is
   /// forced to handle one.
   ///
   /// One stream per call, and cancelling it releases the underlying box

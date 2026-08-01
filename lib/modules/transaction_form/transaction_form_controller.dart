@@ -104,8 +104,7 @@ class TransactionFormController extends GetxController {
     } catch (e, stack) {
       // Owner-approved mobile convention (2026-07-28): user-visible
       // failures surface via Get.snackbar. Hive throws on a failed
-      // write, unlike the Firestore calls this code was written
-      // against, which failed silently (H3).
+      // write, so a failure is never reported as a success (H3).
       debugPrint('[TransactionFormController] save failed: $e\n$stack');
       Get.snackbar(
         'Could not save transaction',

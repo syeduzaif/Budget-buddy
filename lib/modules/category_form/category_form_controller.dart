@@ -145,8 +145,7 @@ class CategoryFormController extends GetxController {
     } catch (e, stack) {
       // Owner-approved mobile convention (2026-07-28): user-visible
       // failures surface via Get.snackbar. Hive throws on a failed
-      // write, unlike the Firestore calls this code was written
-      // against, which failed silently (H3).
+      // write, so a failure is never reported as a success (H3).
       debugPrint('[CategoryFormController] save failed: $e\n$stack');
       Get.snackbar(
         'Could not save category',
@@ -169,8 +168,7 @@ class CategoryFormController extends GetxController {
     } catch (e, stack) {
       // Owner-approved mobile convention (2026-07-28): user-visible
       // failures surface via Get.snackbar. Hive throws on a failed
-      // write, unlike the Firestore calls this code was written
-      // against, which failed silently (H3).
+      // write, so a failure is never reported as a success (H3).
       debugPrint('[CategoryFormController] delete failed: $e\n$stack');
       Get.snackbar(
         'Could not delete category',
