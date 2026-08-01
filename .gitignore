@@ -103,45 +103,18 @@ lib/generated_plugin_registrant.dart
 # the app was built and tested against (owner-approved 2026-08-01).
 !pubspec.lock
 
-# ========================================
-# 🔒 SECURITY: Environment & API Keys
-# ========================================
-# NEVER commit these files!
-.env
-.env.local
-.env.*.local
-.env.development
-.env.production
-.env.staging
-
-# Environment variable backups
-*.env.backup
-*.env.old
-
-# API key files
-**/api_keys.dart
-**/secrets.dart
-**/config/keys.dart
-
-# Firebase config (if using)
-# Firebase config
-android/app/google-services.json
-ios/Runner/GoogleService-Info.plist
-macos/Runner/GoogleService-Info.plist
-lib/firebase_options.dart
-
-# Certificate files
+# Signing material — the app has no API keys, backend config or env files:
+# everything it stores lives on the device.
 *.pem
 *.key
 *.cert
 *.p12
 *.pfx
 
-# Sensitive logs
+# Logs
 **/logs/
 *.log
 
-
-# Secrets / env files mistakenly named
+# Local scratch files
 todo
 WEBSITE_BUILD_PROMPT.md

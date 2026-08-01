@@ -9,8 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
-/// Covers the local Hive store that replaced Firestore: ordering, live stream
-/// behaviour, and the repository surface the controllers depend on.
+/// Covers the local Hive store: ordering, live stream behaviour, and the
+/// repository surface the controllers depend on.
 void main() {
   late Directory tempDir;
   late LocalStoreService store;
