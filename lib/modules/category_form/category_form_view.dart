@@ -151,8 +151,10 @@ class CategoryFormView extends StatelessWidget {
                     const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   labelText: 'Budget Limit',
+                  // The currency symbol replaces the old hardcoded dollar
+                  // icon, which was wrong for 22 of the 23 currencies. Matches
+                  // the transaction form's amount field.
                   prefixText: '${ctrl.settings.currency.symbol} ',
-                  prefixIcon: const Icon(Icons.attach_money),
                 ),
                 validator: Validators.amount(ctrl.settings.currency),
               ),

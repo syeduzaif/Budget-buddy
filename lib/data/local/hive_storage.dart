@@ -55,9 +55,10 @@ class HiveStorage {
 
   /// Wipe every stored setting, returning the app to its first-run state.
   /// The box stays open; accessors fall back to their defaults.
-  static Future<void> clearSettings() async {
-    await _settingsBox?.clear();
-  }
+  ///
+  /// Goes through [_box] for the same reason the setters do: "everything was
+  /// erased" must not be reported for a clear that never ran (H3).
+  static Future<void> clearSettings() => _box.clear();
 
   /// The open settings box, or a failure.
   ///
