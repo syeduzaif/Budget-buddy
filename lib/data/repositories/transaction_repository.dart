@@ -1,27 +1,18 @@
 import 'package:get/get.dart';
-import '../../services/firebase/firestore_service.dart';
+import '../../services/local/local_store_service.dart';
 import '../models/transaction_item.dart';
 
 class TransactionRepository extends GetxService {
-  final FirestoreService _fs = Get.find<FirestoreService>();
+  final LocalStoreService _store = Get.find<LocalStoreService>();
 
-  Stream<List<TransactionItem>> getTransactions() {
-    if (_fs.expensesCollection == null) return Stream.value([]);
-    return _fs.expensesCollection!
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => TransactionItem.fromFirestore(doc))
-            .toList());
-  }
+  /// Live list of every transaction, newest first by transaction date.
+  Stream<List<TransactionItem>> getTransactions() => _store.watchTransactions();
 
-  Future<void> addTransaction(TransactionItem transaction) async {
-    if (_fs.expensesCollection == null) return;
-    await _fs.expensesCollection!.doc(transaction.id).set(transaction.toFirestore());
-  }
+  Future<void> addTransaction(TransactionItem transaction) =>
+      _store.putTransaction(transaction);
 
-  Future<void> deleteTransaction(String id) async {
-    if (_fs.expensesCollection == null) return;
-    await _fs.expensesCollection!.doc(id).delete();
-  }
+  Future<void> deleteTransaction(String id) => _store.deleteTransaction(id);
+
+  /// Removes every transaction. Used by the "erase all data" flow.
+  Future<void> deleteAll() => _store.clearTransactions();
 }

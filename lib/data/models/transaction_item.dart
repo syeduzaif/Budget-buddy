@@ -1,5 +1,4 @@
 import 'package:hive/hive.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 part 'transaction_item.g.dart';
 
@@ -26,6 +25,9 @@ class TransactionItem extends HiveObject {
   @HiveField(6)
   late DateTime updatedAt;
 
+  /// Dormant cloud-sync hook. Nothing reads or writes it while the app is
+  /// local-only; kept so re-introducing sync stays an additive change and the
+  /// on-disk Hive layout does not have to shift.
   @HiveField(7)
   late bool synced;
 
@@ -64,29 +66,4 @@ class TransactionItem extends HiveObject {
             : DateTime.parse(json['createdAt']), // Fallback
         synced: json['synced'] ?? false,
       );
-
-  factory TransactionItem.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    return TransactionItem(
-      id: doc.id,
-      categoryId: data['categoryId'] ?? '',
-      amount: (data['amount'] as num).toDouble(),
-      note: data['note'] ?? '',
-      date: (data['date'] as Timestamp).toDate(),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      synced: true,
-    );
-  }
-
-  Map<String, dynamic> toFirestore() {
-    return {
-      'categoryId': categoryId,
-      'amount': amount,
-      'note': note,
-      'date': Timestamp.fromDate(date),
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
-  }
 }

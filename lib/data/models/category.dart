@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/utils/app_icons.dart';
 
 part 'category.g.dart';
@@ -28,6 +27,9 @@ class Category extends HiveObject {
   @HiveField(6)
   late DateTime updatedAt;
 
+  /// Dormant cloud-sync hook. Nothing reads or writes it while the app is
+  /// local-only; kept so re-introducing sync stays an additive change and the
+  /// on-disk Hive layout does not have to shift.
   @HiveField(7)
   late bool synced;
 
@@ -93,34 +95,4 @@ class Category extends HiveObject {
         synced: json['synced'] ?? false,
         iconCodePoint: json['iconCodePoint'] as int?,
       );
-
-  factory Category.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    return Category(
-      id: doc.id,
-      name: data['name'] ?? '',
-      budgetLimit: (data['budgetLimit'] as num).toDouble(),
-      colorValue: data['colorValue'] ?? 0xFF000000,
-      month: data['month'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      synced: true,
-      iconCodePoint: data['iconCodePoint'] as int?,
-    );
-  }
-
-  Map<String, dynamic> toFirestore() {
-    final map = <String, dynamic>{
-      'name': name,
-      'budgetLimit': budgetLimit,
-      'colorValue': colorValue,
-      'month': month,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
-    if (iconCodePoint != null) {
-      map['iconCodePoint'] = iconCodePoint;
-    }
-    return map;
-  }
 }

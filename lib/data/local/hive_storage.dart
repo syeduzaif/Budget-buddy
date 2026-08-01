@@ -1,14 +1,15 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/category.dart';
 import '../models/transaction_item.dart';
-import '../models/income_model.dart';
-import '../models/chat_message_model.dart';
 
-/// Manages Hive initialization and user-specific box lifecycle.
-/// Settings (currency, income, theme, onboarding) are stored here.
-/// Category/transaction/income/chat data is stored in Firestore.
+/// Manages Hive initialization and the device-local settings box.
+///
+/// Settings (currency, income, theme, onboarding) live here. Categories and
+/// transactions live in their own boxes, owned by `LocalStoreService`.
 class HiveStorage {
-  static const String _settingsBoxPrefix = 'settings_';
+  /// Fixed, account-free box name. The app has no sign-in, so there is no uid
+  /// to key the box on — deliberately not shaped like one.
+  static const String settingsBoxName = 'settings_local';
 
   static Box? _settingsBox;
 
@@ -25,19 +26,17 @@ class HiveStorage {
     await Hive.initFlutter();
     Hive.registerAdapter(CategoryAdapter());
     Hive.registerAdapter(TransactionItemAdapter());
-    Hive.registerAdapter(IncomeModelAdapter());
-    Hive.registerAdapter(ChatMessageModelAdapter());
   }
 
-  /// Open user-specific settings box. Call after login.
-  static Future<void> openUserSession(String userId) async {
-    _settingsBox = await Hive.openBox('$_settingsBoxPrefix$userId');
+  /// Open the settings box. Call once at startup, after [init].
+  static Future<void> openSettings() async {
+    _settingsBox = await Hive.openBox(settingsBoxName);
   }
 
-  /// Close user settings box. Call on sign-out.
-  static Future<void> closeUserSession() async {
-    await _settingsBox?.close();
-    _settingsBox = null;
+  /// Wipe every stored setting, returning the app to its first-run state.
+  /// The box stays open; accessors fall back to their defaults.
+  static Future<void> clearSettings() async {
+    await _settingsBox?.clear();
   }
 
   // --- Settings Accessors ---
