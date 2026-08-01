@@ -1,35 +1,24 @@
-name: Flutter CI – Build, Upload & Publish
+name: Flutter CI
 
+# Analyze, test and build the app. No secrets, no publishing: a fresh clone
+# with zero repository secrets configured runs this workflow green.
 on:
   push:
     branches: ["Master"]
+  pull_request:
+    branches: ["Master"]
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    env:
-      VERSION: ""
-      BUILD_DATE: ""
-      FOLDER_NAME: ""
-      APK_NAME: ""
-      CHANGELOG: ""
-      FILE_ID: ""
-      DRIVE_LINK: ""
 
     steps:
-      # ─────────────────────────────────────────────────────────────
-      # 1. CHECKOUT
-      # ─────────────────────────────────────────────────────────────
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Full history needed for changelog
 
-      # ─────────────────────────────────────────────────────────────
-      # 2. SETUP ENVIRONMENT
-      # ─────────────────────────────────────────────────────────────
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -41,196 +30,21 @@ jobs:
         with:
           channel: "stable"
 
-      # ─────────────────────────────────────────────────────────────
-      # 3. DECODE SECRETS
-      # ─────────────────────────────────────────────────────────────
-      - name: Decode Secrets
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
-          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART_BASE64 }}
-        run: |
-          echo "$GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-          echo "$FIREBASE_OPTIONS_DART" | base64 -d > lib/firebase_options.dart
-
-      # ─────────────────────────────────────────────────────────────
-      # 4. INSTALL DEPENDENCIES & BUILD
-      # ─────────────────────────────────────────────────────────────
-      - name: Install Flutter Dependencies
+      - name: Install dependencies
         run: flutter pub get
 
-      - name: Run Tests
-        run: flutter test || true
+      - name: Analyze
+        run: flutter analyze
 
-      # API_BASE_URL is a repository *variable* (Settings → Actions → Variables),
-      # not a secret: it is the public production web domain that hosts the
-      # authenticated AI proxy, e.g. https://buddgetbuddy.vercel.app (no
-      # trailing slash). The owner MUST set it before builds ship a working AI
-      # feature — when unset the app builds fine and AI shows
-      # "AI isn't configured in this build."
-      - name: Build Release APK
-        run: flutter build apk --release --no-tree-shake-icons --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+      - name: Test
+        run: flutter test
 
-      # ─────────────────────────────────────────────────────────────
-      # 5. GENERATE CHANGELOG
-      # ─────────────────────────────────────────────────────────────
-      - name: Generate Changelog
-        id: changelog
-        run: |
-          # Get version from pubspec.yaml
-          VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Build debug APK
+        run: flutter build apk --debug
 
-          # Build date
-          BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
-          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
-
-          # Folder name for Drive: v1.0.0+1-2026-03-02
-          FOLDER_NAME="v${VERSION}-$(date -u +%Y-%m-%d)"
-          echo "FOLDER_NAME=$FOLDER_NAME" >> $GITHUB_ENV
-
-          # APK filename
-          APK_NAME="BuddgetBuddy-${VERSION}.apk"
-          echo "APK_NAME=$APK_NAME" >> $GITHUB_ENV
-
-          # Get last tag (if none, use first commit)
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
-
-          # Collect commit messages since last tag
-          CHANGELOG=$(git log ${LAST_TAG}..HEAD --pretty=format:"• %s" --no-merges | head -20)
-          if [ -z "$CHANGELOG" ]; then
-            CHANGELOG="• Initial release"
-          fi
-
-          # Save changelog (escape newlines for JSON/env)
-          echo "CHANGELOG<<ENDOFCHANGELOG" >> $GITHUB_ENV
-          echo "$CHANGELOG" >> $GITHUB_ENV
-          echo "ENDOFCHANGELOG" >> $GITHUB_ENV
-
-
-          
-          echo "✅ Version: $VERSION"
-          echo "✅ Changelog:"
-          echo "$CHANGELOG"
-
-      # ─────────────────────────────────────────────────────────────
-      # 6. RENAME APK
-      # ─────────────────────────────────────────────────────────────
-      - name: Rename APK
-        run: |
-          cp build/app/outputs/flutter-apk/app-release.apk /tmp/${{ env.APK_NAME }}
-
-      # ─────────────────────────────────────────────────────────────
-      # 7. UPLOAD TO GOOGLE DRIVE VIA RCLONE
-      # ─────────────────────────────────────────────────────────────
-      - name: Install rclone
-        run: |
-          curl https://rclone.org/install.sh | sudo bash
-
-      - name: Configure rclone
-        env:
-          RCLONE_CONF: ${{ secrets.RCLONE_CONF_BASE64 }}
-        run: |
-          mkdir -p ~/.config/rclone
-          echo "$RCLONE_CONF" | base64 -d > ~/.config/rclone/rclone.conf
-
-      - name: Create Drive Folder & Upload APK
-        id: drive_upload
-        env:
-          DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
-        run: |
-          # Create a subfolder inside the root releases folder
-          SUBFOLDER_ID=$(rclone mkdir "gdrive:BuddgetBuddy Releases/${{ env.FOLDER_NAME }}" --drive-root-folder-id "$DRIVE_FOLDER_ID" 2>&1 | grep -oP '(?<=id: ).*' || true)
-
-          # Upload the APK
-          rclone copy /tmp/${{ env.APK_NAME }} \
-            "gdrive:BuddgetBuddy Releases/${{ env.FOLDER_NAME }}" \
-            --drive-root-folder-id "$DRIVE_FOLDER_ID" \
-            --drive-shared-with-me \
-            -v
-
-          # Get the file ID so we can build a shareable link
-          FILE_INFO=$(rclone lsjson "gdrive:BuddgetBuddy Releases/${{ env.FOLDER_NAME }}" \
-            --drive-root-folder-id "$DRIVE_FOLDER_ID" | python3 -c "
-          import sys, json
-          files = json.load(sys.stdin)
-          for f in files:
-              if f['Name'].endswith('.apk'):
-                  print(f['ID'])
-                  break
-          ")
-
-          echo "FILE_ID=$FILE_INFO" >> $GITHUB_ENV
-          DRIVE_LINK="https://drive.google.com/uc?export=download&id=${FILE_INFO}"
-          echo "DRIVE_LINK=$DRIVE_LINK" >> $GITHUB_ENV
-          echo "✅ APK uploaded to Drive: $DRIVE_LINK"
-
-      # ─────────────────────────────────────────────────────────────
-      # 8. UPLOAD AS GITHUB ARTIFACT (BACKUP)
-      # ─────────────────────────────────────────────────────────────
-      - name: Upload APK as GitHub Artifact
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.APK_NAME }}
-          path: /tmp/${{ env.APK_NAME }}
+          name: app-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 30
-
-      # ─────────────────────────────────────────────────────────────
-      # 9. UPDATE WEB APP (push apk-info.json to web repo)
-      # ─────────────────────────────────────────────────────────────
-      - name: Update Web App APK Info
-        env:
-          WEB_REPO_TOKEN: ${{ secrets.WEB_REPO_TOKEN }}
-          # Change this to your web repo: owner/repo-name
-          WEB_REPO: ${{ secrets.WEB_REPO_NAME }}
-        run: |
-          # Build the JSON payload
-          BUILD_DATE_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-          # Convert multi-line changelog to JSON array
-          CHANGELOG_JSON=$(echo "${{ env.CHANGELOG }}" | python3 -c "
-          import sys, json
-          lines = [l.strip().lstrip('• ').strip() for l in sys.stdin.read().strip().split('\n') if l.strip()]
-          print(json.dumps(lines))
-          ")
-
-          JSON_CONTENT=$(python3 -c "
-          import json
-          data = {
-            'version': '${{ env.VERSION }}',
-            'buildDate': '${BUILD_DATE_ISO}',
-            'apkUrl': '${{ env.DRIVE_LINK }}',
-            'apkName': '${{ env.APK_NAME }}',
-            'changelog': ${CHANGELOG_JSON}
-          }
-          print(json.dumps(data, indent=2))
-          ")
-
-          echo "Generated apk-info.json:"
-          echo "$JSON_CONTENT"
-
-          # Clone web repo, update file, push back
-          git clone "https://x-access-token:${WEB_REPO_TOKEN}@github.com/${WEB_REPO}.git" web-repo
-          cd web-repo
-
-          mkdir -p public
-          echo "$JSON_CONTENT" > public/apk-info.json
-
-          git config user.name "Syed Uzaif"
-          git config user.email "syeduzaifamin@gmail.com"
-          git add public/apk-info.json
-          git commit -m "ci: update APK info → v${{ env.VERSION }} (${{ env.BUILD_DATE }})"
-          git push
-
-          echo "✅ Web app updated with new APK info"
-
-      # ─────────────────────────────────────────────────────────────
-      # 10. CREATE GITHUB RELEASE TAG
-      # ─────────────────────────────────────────────────────────────
-      - name: Create Git Tag
-        run: |
-          git config user.name "Syed Uzaif"
-          git config user.email "syeduzaifamin@gmail.com"
-          TAG="v${{ env.VERSION }}-build-$(date -u +%Y%m%d%H%M)"
-          git tag "$TAG"
-          git push origin "$TAG"
-          echo "✅ Tagged release: $TAG"
