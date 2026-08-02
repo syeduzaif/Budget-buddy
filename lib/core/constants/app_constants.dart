@@ -15,6 +15,20 @@ class AppConstants {
   static const String appTagline = 'Smart Budgeting, Simply Done';
 }
 
+// --- Budget signalling -------------------------------------------------------
+
+/// The share of a budget that turns a category from quiet into a warning.
+///
+/// 0.75, not 0.80: at three quarters there is still a week of an average month
+/// left to act in, which is what makes the signal a warning rather than a
+/// notification. The asymmetry decides it — a false alarm costs a glance, a
+/// missed warning costs a month — and the state is passive (a colour and a
+/// caption, no interruption), so there is no cry-wolf price to pay for being
+/// early (D4).
+///
+/// Read by every surface that renders the ladder; never re-typed as a literal.
+const double kBudgetWarningRatio = 0.75;
+
 // --- The reserved category ---------------------------------------------------
 //
 // One system bucket, not two: the old auto-created "Other" and the proposed

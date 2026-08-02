@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_fonts.dart';
+import '../../../core/utils/budget_status.dart';
 import '../../../core/widgets/category_icon.dart';
 import '../../../data/models/category.dart';
 import '../../../utils/currency_utils.dart';
@@ -26,17 +27,17 @@ class CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The dark scheme defines a lighter error (#E89088) that the raw token
-    // never used; #C25D4E on dark sits at ~4.3:1 (UI-20).
     final colorScheme = Theme.of(context).colorScheme;
-    final errorColor = colorScheme.error;
     final color = Color(category.colorValue);
-    // int / int is a double in Dart, so the ratio needs no conversion.
-    final pct = category.budgetLimitMinor > 0
-        ? (spentMinor / category.budgetLimitMinor).clamp(0.0, 1.0)
-        : 0.0;
-    final isOver = spentMinor > category.budgetLimitMinor &&
-        category.budgetLimitMinor > 0;
+    // Which rung of the ladder this category is on, decided in one place and
+    // rendered identically on the dashboard preview (F-09). The scheme's error
+    // and the semantic warning both come out of it — never the raw tokens,
+    // which measure 3.22:1 and 2.32:1 on these cards (UI-20).
+    final status = BudgetStatus.of(
+        spentMinor: spentMinor, limitMinor: category.budgetLimitMinor);
+    // Exact amounts here — the card has the width the dashboard preview does
+    // not, and this is the screen a user comes to to read the number.
+    final caption = status.caption(currency, compact: false);
 
     return Card(
       elevation: AppSpacing.elevationS,
@@ -69,39 +70,76 @@ class CategoryCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
+              // Two unflexible children in a spaceBetween Row overflowed at
+              // 1.3x text scale — measured 105px on a 360dp card, ~83px of
+              // which predates the triangle this ticket adds. Both sides are
+              // Flexible now, so a long amount ellipsizes instead of striping
+              // the card.
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    CurrencyUtils.formatAmount(spentMinor, currency),
-                    style:
-                        AppFonts.h6.copyWith(color: isOver ? errorColor : null),
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (status.showsOverIcon) ...[
+                          Icon(Icons.warning_amber_rounded,
+                              size: 18, color: status.amountColor(context)),
+                          const SizedBox(width: AppSpacing.xxs),
+                        ],
+                        Flexible(
+                          child: Text(
+                            CurrencyUtils.formatAmount(spentMinor, currency),
+                            style: AppFonts.h6
+                                .copyWith(color: status.amountColor(context)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  Text(
-                    'of ${CurrencyUtils.formatAmount(category.budgetLimitMinor, currency)}',
-                    // AppFonts.bodySmall BAKES textSecondary, a light-theme
-                    // token: 2.21:1 on a dark card. Same defect class as
-                    // UI-01, one layer down — there the colour was null, here
-                    // it is baked (N6).
-                    style: AppFonts.bodySmall
-                        .copyWith(color: colorScheme.onSurfaceVariant),
+                  const SizedBox(width: AppSpacing.xs),
+                  Flexible(
+                    child: Text(
+                      'of ${CurrencyUtils.formatAmount(category.budgetLimitMinor, currency)}',
+                      // AppFonts.bodySmall BAKES textSecondary, a light-theme
+                      // token: 2.21:1 on a dark card. Same defect class as
+                      // UI-01, one layer down — there the colour was null,
+                      // here it is baked (N6).
+                      style: AppFonts.bodySmall
+                          .copyWith(color: colorScheme.onSurfaceVariant),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xs),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                child: LinearProgressIndicator(
-                  value: pct,
-                  backgroundColor: color.withValues(alpha: 0.15),
-                  color: isOver ? errorColor : color,
-                  minHeight: 6,
+              if (status.showsBar) ...[
+                const SizedBox(height: AppSpacing.xs),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  child: LinearProgressIndicator(
+                    value: status.barValue,
+                    backgroundColor: color.withValues(alpha: 0.15),
+                    color: status.barColor(context, color),
+                    minHeight: 6,
+                  ),
                 ),
-              ),
-              if (isOver) ...[
+              ],
+              if (caption != null) ...[
                 const SizedBox(height: AppSpacing.xxs),
-                Text('Over budget!',
-                    style: AppFonts.labelSmall.copyWith(color: errorColor)),
+                // "Over budget!" said less than it could: this slot now names
+                // the amount in every non-normal state, so no state on this
+                // card is distinguishable by colour alone.
+                Text(
+                  caption,
+                  style: AppFonts.labelSmall
+                      .copyWith(color: status.captionColor(context)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ],
           ),

@@ -3,6 +3,7 @@ import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../core/animations/animations.dart';
+import '../../../core/utils/budget_status.dart';
 import '../../../core/widgets/category_icon.dart';
 import '../../../data/models/category.dart';
 import '../../../utils/currency_utils.dart';
@@ -23,14 +24,53 @@ class CategoryBudgetList extends StatelessWidget {
     this.onSeeAll,
   });
 
+  int _spentOf(Category c) => spentMinorByCategory[c.id] ?? 0;
+
+  /// Most-pressured budget first.
+  ///
+  /// The preview shows 4 of however many exist, and it used to show whichever
+  /// 4 the store happened to emit first — so the one category that was over
+  /// budget could sit at position 7, invisible, while the dashboard looked
+  /// calm (N10). Sorting by ratio makes the preview mean something: whatever
+  /// is worth seeing is what is shown.
+  ///
+  /// Zero-limit categories sort last regardless. They have no ratio to compare
+  /// and no budget to breach, so they fill the preview only when there is
+  /// nothing else to put in it.
+  ///
+  /// The tail of the comparator is not decoration: ratio-then-spend leaves two
+  /// unspent zero-limit rows completely tied, and `List.sort` is not stable,
+  /// so without a unique final key the preview could reshuffle itself between
+  /// rebuilds. Name then id makes the order total.
+  int _byPressure(Category a, Category b) {
+    final aUnlimited = a.budgetLimitMinor <= 0;
+    final bUnlimited = b.budgetLimitMinor <= 0;
+    if (aUnlimited != bUnlimited) return aUnlimited ? 1 : -1;
+
+    if (!aUnlimited) {
+      final ratioA = _spentOf(a) / a.budgetLimitMinor;
+      final ratioB = _spentOf(b) / b.budgetLimitMinor;
+      if (ratioA != ratioB) return ratioB.compareTo(ratioA);
+    }
+
+    final spentA = _spentOf(a);
+    final spentB = _spentOf(b);
+    if (spentA != spentB) return spentB.compareTo(spentA);
+
+    final byName = a.name.compareTo(b.name);
+    if (byName != 0) return byName;
+    return a.id.compareTo(b.id);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // UI-20 residue: these rows sit on a dark CARD, where raw AppColors.error
-    // is 3.22:1 — an AA failure on the over-budget signal, and inconsistent
-    // with the same fact on the Categories tab at ~7:1 (N8).
-    final errorColor = Theme.of(context).colorScheme.error;
     final mutedColor = context.semanticColors.textMuted;
-    final shown = categories.take(4).toList();
+    // A COPY. `categories` is the controller's RxList, handed in and read
+    // inside an Obx — sorting it in place would write to an observable during
+    // a rebuild that observes it, which is a rebuild loop. Sorting here also
+    // means dashboard_view needs to know nothing about any of this.
+    final shown = List.of(categories)..sort(_byPressure);
+    final rows = shown.take(4).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -43,7 +83,7 @@ class CategoryBudgetList extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.s),
-        if (shown.isEmpty)
+        if (rows.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
             child: Center(
@@ -52,14 +92,13 @@ class CategoryBudgetList extends StatelessWidget {
             ),
           )
         else
-          ...shown.map((cat) {
-            final spent = spentMinorByCategory[cat.id] ?? 0;
-            // int / int is a double in Dart, so the ratio needs no conversion.
-            final pct = cat.budgetLimitMinor > 0
-                ? (spent / cat.budgetLimitMinor).clamp(0.0, 1.0)
-                : 0.0;
-            final isOver =
-                spent > cat.budgetLimitMinor && cat.budgetLimitMinor > 0;
+          ...rows.map((cat) {
+            final spent = _spentOf(cat);
+            final status = BudgetStatus.of(
+                spentMinor: spent, limitMinor: cat.budgetLimitMinor);
+            // Whole major units here: four rows share the width of one card,
+            // and the exact figure lives on the Categories tab.
+            final caption = status.caption(currency, compact: true);
             final color = Color(cat.colorValue);
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.s),
@@ -78,32 +117,45 @@ class CategoryBudgetList extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (isOver)
+                      if (status.showsOverIcon)
                         Padding(
                           padding: const EdgeInsets.only(right: AppSpacing.xxs),
                           child: Icon(Icons.warning_amber_rounded,
-                              size: 14, color: errorColor),
+                              size: 14, color: status.amountColor(context)),
                         ),
                       Text(
                         '${CurrencyUtils.formatAmountCompact(spent, currency)}'
                         ' / '
                         '${CurrencyUtils.formatAmountCompact(cat.budgetLimitMinor, currency)}',
                         style: AppFonts.labelSmall.copyWith(
-                          // `null` used to mean "keep labelSmall's baked muted
-                          // colour" — which was the light-theme one, on a card
-                          // that is dark half the time. labelSmall carries no
-                          // colour at all now (F-11), so the default is named.
-                          color: isOver ? errorColor : mutedColor,
+                          // labelSmall carries no colour of its own since F-11,
+                          // so every state names one — including the quiet one.
+                          color: status.amountColor(context) ?? mutedColor,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.xxs),
-                  AnimatedProgressBar(
-                    value: pct,
-                    color: isOver ? errorColor : color,
-                    backgroundColor: color.withValues(alpha: 0.15),
-                  ),
+                  if (status.showsBar) ...[
+                    const SizedBox(height: AppSpacing.xxs),
+                    AnimatedProgressBar(
+                      value: status.barValue,
+                      color: status.barColor(context, color),
+                      backgroundColor: color.withValues(alpha: 0.15),
+                    ),
+                  ],
+                  if (caption != null) ...[
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(
+                      caption,
+                      style: AppFonts.labelSmall
+                          .copyWith(color: status.captionColor(context)),
+                      // One line at any text scale: the caption is a companion
+                      // to the bar, and a wrapped one pushes the next row's
+                      // budget off the card (palwasha's 1.3x AC).
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
               ),
             );
