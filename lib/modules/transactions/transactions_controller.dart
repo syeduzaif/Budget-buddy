@@ -20,12 +20,43 @@ class TransactionsController extends GetxController {
   String? filterCategoryId;
   String? filterCategoryName;
 
+  /// The month this screen is scoped to, `"YYYY-MM"`, or null for all time.
+  ///
+  /// Every dashboard entrance passes one: the number a user taps is
+  /// month-scoped, so the list it opens has to be as well, or the two disagree
+  /// in front of them (F-04). All-time remains reachable only by a caller that
+  /// deliberately asks for it.
+  String? filterMonth;
+
   List<TransactionItem> get filtered {
     var list = transactions.toList();
     if (filterCategoryId != null) {
       list = list.where((t) => t.categoryId == filterCategoryId).toList();
     }
+    final month = filterMonth;
+    if (month != null) {
+      list = list
+          .where((t) => AppDateUtils.getMonthKeyFromDate(t.date) == month)
+          .toList();
+    }
     return list;
+  }
+
+  /// What the app bar says.
+  String get screenTitle =>
+      titleFor(categoryName: filterCategoryName, month: filterMonth);
+
+  /// The title for a given scope — pure, so the four combinations can be read
+  /// (and tested) in one place.
+  ///
+  /// `Health · August 2026` when both narrow the list, either alone when only
+  /// one does, and the old all-time wording when neither does (RULING-C).
+  static String titleFor({String? categoryName, String? month}) {
+    final monthLabel = month == null ? null : AppDateUtils.formatMonthKey(month);
+    if (categoryName != null && monthLabel != null) {
+      return '$categoryName · $monthLabel';
+    }
+    return categoryName ?? monthLabel ?? 'All Transactions';
   }
 
   Map<String, List<TransactionItem>> get groupedByDate {
@@ -51,6 +82,7 @@ class TransactionsController extends GetxController {
     final args = Get.arguments as Map<String, dynamic>?;
     filterCategoryId = args?['categoryId'];
     filterCategoryName = args?['categoryName'];
+    filterMonth = args?['month'];
 
     transactionRepo.getTransactions().listen(
       (list) => transactions.assignAll(list),

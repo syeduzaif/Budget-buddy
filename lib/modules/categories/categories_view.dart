@@ -109,7 +109,13 @@ class CategoriesView extends StatelessWidget {
                           AppRoutes.transactions,
                           arguments: {
                             'categoryId': cat.id,
-                            'categoryName': cat.name
+                            'categoryName': cat.name,
+                            // The category's own month, which is the month this
+                            // tab is showing. Without it the list is titled
+                            // "Health" while holding one month's rows — the
+                            // scope the title claims has to be the scope it has
+                            // (F-04 §4).
+                            'month': cat.month,
                           },
                         ),
                         onEdit: () => Get.toNamed(

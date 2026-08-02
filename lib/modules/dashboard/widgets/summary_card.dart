@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_fonts.dart';
 
@@ -35,7 +36,20 @@ class SummaryCard extends StatelessWidget {
             children: [
               Icon(icon, color: color, size: AppSpacing.iconS),
               const SizedBox(width: AppSpacing.xs),
-              Text(label, style: AppFonts.labelMedium.copyWith(color: color)),
+              Expanded(
+                child: Text(label,
+                    style: AppFonts.labelMedium.copyWith(color: color),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ),
+              // A summary card has no conventional "I open something" shape the
+              // way a list row does, so the one that does open something says so
+              // (F-04 AC-5). Muted, not the card's accent: this is a
+              // navigational hint, not part of the money signal.
+              if (onTap != null)
+                Icon(Icons.chevron_right,
+                    size: AppSpacing.iconS,
+                    color: context.semanticColors.textMuted),
             ],
           ),
           const SizedBox(height: AppSpacing.s),

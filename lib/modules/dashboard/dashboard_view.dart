@@ -7,10 +7,12 @@ import '../../core/animations/animations.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/currency_utils.dart';
 import '../home/home_controller.dart';
+import '../transaction_form/transaction_form_sheet.dart';
 import 'dashboard_controller.dart';
 import 'widgets/summary_card.dart';
 import 'widgets/category_budget_list.dart';
 import 'widgets/month_switcher.dart';
+import 'widgets/recent_transactions_card.dart';
 import 'widgets/spending_donut_chart.dart';
 
 class DashboardView extends StatelessWidget {
@@ -62,10 +64,22 @@ class DashboardView extends StatelessWidget {
         final colorScheme = Theme.of(context).colorScheme;
         final currency = ctrl.settings.currency;
         final atCurrentMonth = ctrl.isViewingCurrentMonth;
+        final viewedMonth = ctrl.settings.currentMonth.value;
         final spentMinorByCategory = {
           for (final cat in ctrl.categories)
             cat.id: ctrl.spentForCategoryMinor(cat.id)
         };
+        // Read inside the Obx body, like the spend map: reading it only inside
+        // a child's builder would leave the transaction list off this Obx's
+        // dependency list, which is how the Categories tab once showed stale
+        // spend (UI-02).
+        final recent = ctrl.recentTransactions;
+
+        // Every entrance to the list opens the month the user is looking at.
+        void openMonthTransactions() => Get.toNamed(
+              AppRoutes.transactions,
+              arguments: {'month': viewedMonth},
+            );
 
         return RefreshIndicator(
           onRefresh: () async {
@@ -107,11 +121,12 @@ class DashboardView extends StatelessWidget {
                                   ctrl.settings.monthlyIncomeMinor.value
                               ? colorScheme.error
                               : AppColors.warning,
-                          // No arguments → the unfiltered "All Transactions"
-                          // mode, which nothing else in the app could reach
-                          // (UI-19). Remaining stays non-interactive: there is
+                          // Scoped to the viewed month, because that is what
+                          // this number counts — the all-time list it used to
+                          // open contradicted the figure that was tapped
+                          // (F-04). Remaining stays non-interactive: there is
                           // no list of "remaining" to open.
-                          onTap: () => Get.toNamed(AppRoutes.transactions),
+                          onTap: openMonthTransactions,
                         ),
                       ),
                       const SizedBox(width: AppSpacing.s),
@@ -139,10 +154,31 @@ class DashboardView extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.l),
 
+                // Recent transactions — absent entirely on a month with none.
+                // No empty shell and no skeleton: the donut's empty state below
+                // already carries that message once (F-04 AC-3).
+                if (recent.isNotEmpty) ...[
+                  FadeSlideItem(
+                    index: 2,
+                    child: RecentTransactionsCard(
+                      transactions: recent,
+                      categories: ctrl.categories,
+                      currency: currency,
+                      onSeeAll: openMonthTransactions,
+                      onTapTransaction: (t) =>
+                          openTransactionSheet(context, editing: t),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.l),
+                ],
+
                 // Spending donut chart
                 if (ctrl.categories.isNotEmpty) ...[
                   FadeSlideItem(
-                    index: 2,
+                    // Indices are a stagger delay, nothing more, so the gap a
+                    // missing section leaves is harmless — they are NOT
+                    // renumbered at runtime.
+                    index: 3,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -166,7 +202,7 @@ class DashboardView extends StatelessWidget {
 
                 // Category budget list
                 FadeSlideItem(
-                  index: 3,
+                  index: 4,
                   child: Card(
                     child: Padding(
                       padding: const EdgeInsets.all(AppSpacing.m),
@@ -174,7 +210,7 @@ class DashboardView extends StatelessWidget {
                         categories: ctrl.categories,
                         spentMinorByCategory: spentMinorByCategory,
                         currency: currency,
-                        monthKey: ctrl.settings.currentMonth.value,
+                        monthKey: viewedMonth,
                         isCurrentMonth: atCurrentMonth,
                         // The Categories tab, not the New Category form
                         // (UI-05).

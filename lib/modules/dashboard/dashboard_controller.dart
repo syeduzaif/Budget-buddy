@@ -60,6 +60,19 @@ class DashboardController extends GetxController {
   bool get isViewingCurrentMonth =>
       settings.currentMonth.value == AppDateUtils.getCurrentMonthKey();
 
+  /// How many rows the dashboard's Recent card shows. Five: enough to prove
+  /// the last few logs landed, few enough to stay above the fold.
+  static const int recentLimit = 5;
+
+  /// The newest few transactions of the VIEWED month, for the Recent card.
+  ///
+  /// Month-scoped like every other number on this screen — an all-time list
+  /// under a month-scoped Spent figure is the mismatch F-04 exists to close, so
+  /// a back-dated row appears on its own month's dashboard and nowhere else.
+  /// `watchTransactions` already sorts newest first, so this only takes.
+  List<TransactionItem> get recentTransactions =>
+      transactions.where(_isCurrentMonth).take(recentLimit).toList();
+
   @override
   void onInit() {
     super.onInit();

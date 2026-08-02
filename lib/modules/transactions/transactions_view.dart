@@ -24,8 +24,9 @@ class TransactionsView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(ctrl.filterCategoryName ?? 'All Transactions',
-            style: AppFonts.h6),
+        // Names both scopes it is under, so the list can never look like it
+        // holds more than it does (F-04 AC-4).
+        title: Text(ctrl.screenTitle, style: AppFonts.h6),
       ),
       body: Obx(() {
         final grouped = ctrl.groupedByDate;
