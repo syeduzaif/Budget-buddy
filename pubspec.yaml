@@ -16,6 +16,19 @@ dependencies:
   intl: ^0.20.2
   google_fonts: ^6.1.0
   fl_chart: ^0.70.0
+  # CSV export (F-13). Exact pins, no caret: a share sheet and a file path are
+  # exactly the places where a silent minor-version bump changes native
+  # behaviour, and this app has no CI matrix to catch it.
+  #
+  # share_plus 12.0.1 declares minSdk 19 (ours is 24, so no bump — a bump would
+  # have been a hard stop) and ships no <uses-permission> of its own: an
+  # unexported FileProvider and a receiver, nothing more.
+  #
+  # path_provider was already resolving transitively through hive_flutter at
+  # this exact version; naming it here is free and stops the export's temp
+  # directory depending on another package's dependency list.
+  share_plus: 12.0.1
+  path_provider: 2.1.5
 
 dev_dependencies:
   flutter_test:

@@ -63,6 +63,30 @@ class SettingsView extends StatelessWidget {
             const Divider(height: 1),
 
             const _SectionHeader('Data'),
+            Builder(
+              // Its own Builder so `context` below belongs to THIS row: on iPad
+              // and Mac the share sheet is a popover and has to be told what it
+              // is pointing at, which means this widget's box, not the screen's.
+              builder: (rowContext) => ListTile(
+                leading: const Icon(Icons.ios_share_outlined),
+                title: const Text('Export as CSV'),
+                subtitle: Text(
+                    'Share all transactions as a spreadsheet file',
+                    style:
+                        AppFonts.caption.copyWith(color: AppColors.textMuted)),
+                trailing: ctrl.isExporting.value
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.chevron_right),
+                onTap: ctrl.isExporting.value
+                    ? null
+                    : () => ctrl.exportCsv(
+                        sharePositionOrigin: _originOf(rowContext)),
+              ),
+            ),
             ListTile(
               // colorScheme.error, not the raw token: the dark scheme's
               // lighter error tone (#E89088) reads on #1E1B15 where #C25D4E
@@ -100,6 +124,15 @@ class SettingsView extends StatelessWidget {
         );
       }),
     );
+  }
+
+  /// The tapped row's rectangle in global coordinates, for the iPad/Mac share
+  /// popover. Null when the box is not laid out — the sheet then falls back to
+  /// the platform default rather than the export failing over a rectangle.
+  Rect? _originOf(BuildContext context) {
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
   }
 
   String _themeLabel(String mode) {

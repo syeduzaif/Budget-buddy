@@ -151,6 +151,25 @@ class CurrencyUtils {
     return '$sign$major.$fraction';
   }
 
+  /// Major-unit text for a MACHINE reader: no symbol, no group separators, and
+  /// always exactly `decimalDigits` places — `2450.00` for PKR, `1200` for JPY.
+  ///
+  /// Deliberately NOT [formatForInput], which drops a trailing `.00`. That is
+  /// right for a text field and wrong for a spreadsheet column, where
+  /// `2450`/`2450.50` in the same column is the mixed format that makes a
+  /// reader guess. Deliberately NOT [formatAmount] either: its group separators
+  /// would split one value across two CSV fields.
+  static String formatForExport(int minorUnits, Currency currency) {
+    final sign = minorUnits < 0 ? '-' : '';
+    final abs = minorUnits.abs();
+    final factor = minorPerMajor(currency);
+    final major = (abs ~/ factor).toString();
+    if (currency.decimalDigits == 0) return '$sign$major';
+    final fraction =
+        (abs % factor).toString().padLeft(currency.decimalDigits, '0');
+    return '$sign$major.$fraction';
+  }
+
   static String _group(int value) {
     final digits = value.toString();
     final buffer = StringBuffer();

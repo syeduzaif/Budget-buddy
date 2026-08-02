@@ -21,6 +21,13 @@ class TransactionRepository extends GetxService {
   Future<void> updateTransaction(TransactionItem transaction) =>
       _store.putTransaction(transaction);
 
+  /// One-shot read of every transaction, newest first by date.
+  ///
+  /// For callers that need the data once rather than a live view — the CSV
+  /// export, which must not hold a subscription open to write a file.
+  Future<List<TransactionItem>> getAllTransactions() async =>
+      _store.readTransactions();
+
   Future<void> deleteTransaction(String id) => _store.deleteTransaction(id);
 
   /// Removes every transaction. Used by the "erase all data" flow.

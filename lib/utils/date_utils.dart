@@ -27,6 +27,18 @@ class AppDateUtils {
 
   static String getMonthKeyFromDate(DateTime date) => monthKey(date);
 
+  /// `YYYY-MM-DD`, device-local, ASCII — the export's date column.
+  ///
+  /// Built ON TOP of [monthKey] rather than beside it, so a row's `date` and
+  /// its `month` cannot disagree: the month column is literally the first
+  /// seven characters of the date column, and `test/csv_export_test.dart`
+  /// keeps that on the record. `DateFormat('yyyy-MM-dd')` is not an option for
+  /// the same reason it is not one for [monthKey] — it renders digits in the
+  /// ambient locale, and a CSV that changes its bytes with the phone's
+  /// language is not a data export.
+  static String isoDate(DateTime date) =>
+      '${monthKey(date)}-${date.day.toString().padLeft(2, '0')}';
+
   /// Parses a month key back to the first of that month, or null if the string
   /// is not one. Callers decide what an unparseable key means.
   static DateTime? parseMonthKey(String key) {

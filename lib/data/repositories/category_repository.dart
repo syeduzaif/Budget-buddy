@@ -158,6 +158,12 @@ class CategoryRepository extends GetxService {
   Future<List<Category>> getCategoriesForMonth(String month) async =>
       _store.readCategoriesForMonth(month);
 
+  /// One-shot read of every month's categories, newest first.
+  ///
+  /// For callers that need the whole set once rather than a live view — the CSV
+  /// export, which names each transaction's category as it was in that month.
+  Future<List<Category>> getAllCategories() async => _store.readCategories();
+
   // --- Attribution ----------------------------------------------------------
 
   /// Gives [monthKey] the same category structure as the nearest month that
