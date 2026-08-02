@@ -64,7 +64,9 @@ void main() {
     expect(preset('Food').seedLimitMinor(0, usd), 50000);
     expect(preset('Food').seedLimitMinor(0, jpy), 500);
 
-    // "Other" claims no share and carries no limit by design.
-    expect(kOtherCategory.seedLimitMinor(15000000, pkr), 0);
+    // The share-less "Other" preset that used to be asserted here is gone:
+    // the auto-created bucket it fed was merged into the reserved
+    // "Uncategorised" category (FD-2), which is minted with a 0 limit by
+    // `CategoryRepository.ensureUncategorised` and never by a preset.
   });
 }

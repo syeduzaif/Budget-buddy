@@ -2,7 +2,6 @@
 // annotation, which would collide with our model.
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:get/get.dart';
-import 'package:uuid/uuid.dart';
 import '../../data/models/category.dart';
 import '../../data/models/transaction_item.dart';
 import '../../data/repositories/category_repository.dart';
@@ -81,60 +80,15 @@ class DashboardController extends GetxController {
   void goToPreviousMonth() async {
     final prev = AppDateUtils.getPreviousMonthKey(settings.currentMonth.value);
     await settings.setCurrentMonth(prev);
-    await _ensureCategoriesForMonth(prev);
+    await categoryRepo.ensureMonth(prev);
     _refreshCategories();
   }
 
   void goToNextMonth() async {
     final next = AppDateUtils.getNextMonthKey(settings.currentMonth.value);
     await settings.setCurrentMonth(next);
-    await _ensureCategoriesForMonth(next);
+    await categoryRepo.ensureMonth(next);
     _refreshCategories();
-  }
-
-  /// If the target month has no categories, clone them from the most recent
-  /// month that does. This gives each month the same category structure;
-  /// users can then edit amounts per-month.
-  Future<void> _ensureCategoriesForMonth(String targetMonth) async {
-    final existing = await categoryRepo.getCategoriesForMonth(targetMonth);
-    if (existing.isNotEmpty) return; // already has categories
-
-    // Walk backwards from the month before the target to find a source month.
-    const uuid = Uuid();
-    final now = DateTime.now();
-    String probe = AppDateUtils.getPreviousMonthKey(targetMonth);
-    // Also check the month after target (in case user navigated backward first)
-    final probeForward = AppDateUtils.getNextMonthKey(targetMonth);
-
-    List<Category> source = await categoryRepo.getCategoriesForMonth(probe);
-    if (source.isEmpty) {
-      source = await categoryRepo.getCategoriesForMonth(probeForward);
-    }
-    // Walk up to 12 months back if neither neighbour had categories
-    if (source.isEmpty) {
-      for (int i = 0; i < 12; i++) {
-        probe = AppDateUtils.getPreviousMonthKey(probe);
-        source = await categoryRepo.getCategoriesForMonth(probe);
-        if (source.isNotEmpty) break;
-      }
-    }
-
-    if (source.isEmpty) return; // nothing to clone
-
-    final cloned = source
-        .map((cat) => Category(
-              id: uuid.v4(),
-              name: cat.name,
-              budgetLimitMinor: cat.budgetLimitMinor,
-              colorValue: cat.colorValue,
-              iconCodePoint: cat.iconCodePoint,
-              month: targetMonth,
-              createdAt: now,
-              updatedAt: now,
-            ))
-        .toList();
-
-    await categoryRepo.addCategories(cloned);
   }
 
   void _refreshCategories() {

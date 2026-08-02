@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/constants/app_constants.dart';
 import '../../data/models/category.dart';
 import '../../data/models/transaction_item.dart';
-import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../../services/app/settings_service.dart';
 import '../../utils/currency_utils.dart';
+import '../../utils/date_utils.dart';
 
 class TransactionFormController extends GetxController {
   final CategoryRepository categoryRepo;
@@ -30,11 +31,28 @@ class TransactionFormController extends GetxController {
   // If opened from a category view, pre-select it
   String? preselectedCategoryId;
 
+  /// The date a newly opened sheet starts on, for a user viewing [viewedMonth].
+  ///
+  /// Viewing the current month (or, defensively, a future one — the month
+  /// chevron itself is unbounded) keeps today. Viewing a PAST month starts on
+  /// the 1st of that month: the old unconditional `DateTime.now()` meant
+  /// browsing to July and tapping Add silently filed the expense in August,
+  /// against August's category clone (F-01 path A′). Month keys are
+  /// zero-padded `YYYY-MM`, so comparing them as strings is chronological.
+  static DateTime defaultDateForMonth(String viewedMonth, DateTime now) {
+    if (viewedMonth.compareTo(AppDateUtils.getMonthKeyFromDate(now)) >= 0) {
+      return now;
+    }
+    return AppDateUtils.parseMonthKey(viewedMonth) ?? now;
+  }
+
   @override
   void onInit() {
     super.onInit();
     final args = Get.arguments as Map<String, dynamic>?;
     preselectedCategoryId = args?['categoryId'];
+    selectedDate.value =
+        defaultDateForMonth(settings.effectiveMonth, DateTime.now());
 
     categoryRepo.getCategories().listen(
       (list) {
@@ -82,18 +100,19 @@ class TransactionFormController extends GetxController {
     if (amountMinor == null || amountMinor <= 0) return;
 
     isLoading.value = true;
+    CategoryResolution resolution;
     try {
-      // If no category is selected, auto-create an "Other" category
-      Category category;
-      if (selectedCategory.value == null) {
-        category = await _getOrCreateOtherCategory();
-      } else {
-        category = selectedCategory.value!;
-      }
+      // Attribution follows the transaction's DATE-month, never the month the
+      // user happens to be viewing, and the repository is the only place that
+      // decides it (F-01). A null pick lands in that month's reserved bucket.
+      resolution = await categoryRepo.resolveForMonth(
+        selectedCategory.value,
+        AppDateUtils.getMonthKeyFromDate(selectedDate.value),
+      );
 
       final transaction = TransactionItem(
         id: const Uuid().v4(),
-        categoryId: category.id,
+        categoryId: resolution.category.id,
         amountMinor: amountMinor,
         note: noteController.text.trim(),
         date: selectedDate.value,
@@ -118,32 +137,16 @@ class TransactionFormController extends GetxController {
     // The sheet closes only once the write is known to have landed —
     // dismissing it first would report a success that never happened.
     Get.back();
-  }
 
-  /// Returns an existing "Other" category for the current month, or creates one.
-  Future<Category> _getOrCreateOtherCategory() async {
-    final month = settings.effectiveMonth;
-
-    // Check if an "Other" category already exists for this month
-    final monthCats = await categoryRepo.getCategoriesForMonth(month);
-    try {
-      return monthCats.firstWhere((c) => c.name.toLowerCase() == 'other');
-    } catch (_) {
-      // Not found — create one
+    if (resolution.pickedWasDeleted) {
+      // The category was deleted while this sheet was open. The amount is
+      // saved and visible, but not where the user aimed it — say so rather
+      // than resurrecting a category they deleted.
+      Get.snackbar(
+        'Saved to $kUncategorisedCategoryName',
+        'That category was deleted.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
-
-    final other = Category(
-      id: const Uuid().v4(),
-      name: kOtherCategory.name,
-      budgetLimitMinor: CurrencyUtils.fromMajor(
-          kOtherCategory.defaultBudgetMajor, settings.currency),
-      colorValue: kOtherCategory.colorValue,
-      iconCodePoint: kOtherCategory.iconCodePoint,
-      month: month,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-    await categoryRepo.addCategory(other);
-    return other;
   }
 }

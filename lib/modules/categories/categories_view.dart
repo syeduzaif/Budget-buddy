@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
@@ -95,6 +96,35 @@ class CategoriesView extends StatelessWidget {
                 itemCount: list.length,
                 itemBuilder: (_, i) {
                   final cat = list[i];
+                  final card = FadeSlideItem(
+                    index: i,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.s),
+                      child: CategoryCard(
+                        category: cat,
+                        spentMinor: spentMinorByCategory[cat.id] ?? 0,
+                        currency: currency,
+                        onTap: () => Get.toNamed(
+                          AppRoutes.transactions,
+                          arguments: {
+                            'categoryId': cat.id,
+                            'categoryName': cat.name
+                          },
+                        ),
+                        onEdit: () => Get.toNamed(
+                          AppRoutes.categoryForm,
+                          arguments: cat,
+                        ),
+                      ),
+                    ),
+                  );
+
+                  // The reserved bucket has no swipe-to-delete: it is where
+                  // transactions go when their category is deleted, so the
+                  // repository refuses to delete it. The affordance is absent
+                  // rather than present-and-refusing (F-01 rule 4).
+                  if (isReservedCategoryName(cat.name)) return card;
+
                   return Dismissible(
                     key: Key(cat.id),
                     direction: DismissDirection.endToStart,
@@ -113,8 +143,12 @@ class CategoriesView extends StatelessWidget {
                         context: context,
                         builder: (_) => AlertDialog(
                           title: const Text('Delete Category'),
-                          content: Text(
-                              'Delete "${cat.name}"? This will not delete its transactions.'),
+                          // Names the destination before the user confirms:
+                          // "will not delete its transactions" left them
+                          // wondering where the money went (F-01 rule 3).
+                          content: Text('Delete "${cat.name}"? Its '
+                              'transactions are kept — they move to '
+                              '$kUncategorisedCategoryName.'),
                           actions: [
                             TextButton(
                                 onPressed: () => Get.back(result: false),
@@ -133,28 +167,7 @@ class CategoriesView extends StatelessWidget {
                       );
                     },
                     onDismissed: (_) => ctrl.deleteCategory(cat),
-                    child: FadeSlideItem(
-                      index: i,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.s),
-                        child: CategoryCard(
-                          category: cat,
-                          spentMinor: spentMinorByCategory[cat.id] ?? 0,
-                          currency: currency,
-                          onTap: () => Get.toNamed(
-                            AppRoutes.transactions,
-                            arguments: {
-                              'categoryId': cat.id,
-                              'categoryName': cat.name
-                            },
-                          ),
-                          onEdit: () => Get.toNamed(
-                            AppRoutes.categoryForm,
-                            arguments: cat,
-                          ),
-                        ),
-                      ),
-                    ),
+                    child: card,
                   );
                 },
               );

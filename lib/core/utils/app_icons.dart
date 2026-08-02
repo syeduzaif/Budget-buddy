@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../modules/category_form/category_form_controller.dart';
+import '../constants/app_constants.dart';
 
 /// Resolves a stored `iconCodePoint` back to the icon the user picked.
 ///
@@ -24,6 +25,11 @@ class AppIcons {
   static final Map<int, IconData> _iconMap = {
     for (final icon in CategoryFormController.iconPalette)
       icon.codePoint: icon,
+    // The reserved "Uncategorised" bucket, spelled out because it is the one
+    // glyph the app stores that the pickable palette does not contain: derived
+    // alone, the map would miss it and every bucket row would draw the grey
+    // dot fallback (F-01 rule 4, danish's mandatory entry).
+    kUncategorisedIcon.codePoint: kUncategorisedIcon,
   };
 
   /// The [IconData] for a stored [codePoint], or [Icons.circle] for a null or

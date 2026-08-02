@@ -116,6 +116,14 @@ class LocalStoreService extends GetxService {
   Future<void> putTransaction(TransactionItem transaction) =>
       _transactions.put(transaction.id, transaction);
 
+  /// Writes a batch in ONE box operation.
+  ///
+  /// Exists for the re-point that precedes a category delete: applying those
+  /// updates one at a time can stop half-way and leave some transactions
+  /// pointing at a category that is about to be deleted.
+  Future<void> putTransactions(Iterable<TransactionItem> transactions) =>
+      _transactions.putAll({for (final t in transactions) t.id: t});
+
   Future<void> deleteTransaction(String id) => _transactions.delete(id);
 
   Future<void> clearTransactions() => _transactions.clear();

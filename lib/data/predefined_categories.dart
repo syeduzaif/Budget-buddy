@@ -40,8 +40,8 @@ class PredefinedCategory {
   /// seeded budgets can never exceed the stated income.
   ///
   /// Falls back to [defaultBudgetMajor] when there is no income to work from
-  /// (or no share, i.e. [kOtherCategory]) — never a zero limit, which the
-  /// progress bars and the over-budget flag both read as "no budget".
+  /// (or the preset claims no share) — never a zero limit, which the progress
+  /// bars and the over-budget flag both read as "no budget".
   ///
   /// Lives here, beside the seed data, rather than in `CurrencyUtils`: it is a
   /// product rule about presets, not a money primitive.
@@ -135,10 +135,9 @@ final List<PredefinedCategory> kPredefinedCategories = [
   ),
 ];
 
-/// Fallback "Other" category used when no category matches a transaction.
-final PredefinedCategory kOtherCategory = PredefinedCategory(
-  name: 'Other',
-  iconCodePoint: Icons.more_horiz.codePoint,
-  colorValue: 0xFF607D8B,
-  defaultBudgetMajor: 0,
-);
+// The old fallback "Other" preset lived here. It was merged into the single
+// reserved bucket at the 2026-08-02 freeze (FD-2): two system-created 0-limit
+// rows with vague names ("Other" and "Uncategorised") meant the same thing on
+// one management tab. The bucket's name, colour and glyph are now in
+// `core/constants/app_constants.dart`, and `CategoryRepository` is the only
+// thing that mints it. "Other" is free again as an ordinary user category.

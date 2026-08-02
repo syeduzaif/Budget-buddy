@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
@@ -30,7 +31,10 @@ class CategoryFormView extends StatelessWidget {
         title: Text(ctrl.isEditing ? 'Edit Category' : 'New Category',
             style: AppFonts.h6),
         actions: [
-          if (ctrl.isEditing)
+          // No delete action for the reserved bucket: it is where transactions
+          // go when their category is deleted, and the repository refuses to
+          // delete it. Absent, not present-and-refusing (F-01 rule 4).
+          if (ctrl.isEditing && !isReservedCategoryName(ctrl.editingCategory!.name))
             IconButton(
               icon: const Icon(Icons.delete_outline, color: AppColors.error),
               onPressed: () async {
@@ -38,8 +42,12 @@ class CategoryFormView extends StatelessWidget {
                   context: context,
                   builder: (_) => AlertDialog(
                     title: const Text('Delete Category'),
-                    content: const Text(
-                        'Delete this category? Transactions will not be deleted.'),
+                    // Same promise the Categories tab makes, naming the
+                    // destination before the user confirms (F-01 rule 3).
+                    content: Text(
+                        'Delete "${ctrl.editingCategory!.name}"? Its '
+                        'transactions are kept — they move to '
+                        '$kUncategorisedCategoryName.'),
                     actions: [
                       TextButton(
                           onPressed: () => Get.back(result: false),
