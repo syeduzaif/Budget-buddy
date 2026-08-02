@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/constants/app_constants.dart';
 import '../../data/local/hive_storage.dart';
 import '../../utils/currency_utils.dart';
 import '../../utils/date_utils.dart';
@@ -32,6 +33,35 @@ class SettingsService extends GetxService {
   String get effectiveMonth => currentMonth.value.isNotEmpty
       ? currentMonth.value
       : AppDateUtils.getCurrentMonthKey();
+
+  /// The category name the last saved transaction used, or null if none has
+  /// been saved yet.
+  ///
+  /// Deliberately NOT an `Rx`, unlike every other setting on this service: it is
+  /// read exactly once, when the Add sheet opens, and nothing on screen should
+  /// rebuild when it changes. An observable here would invite an `Obx` to depend
+  /// on a preference (F-06).
+  ///
+  /// Read straight from the box, so the value survives process death for free
+  /// and `resetToDefaults` wipes it with everything else.
+  String? get lastUsedCategoryName {
+    final stored = HiveStorage.getLastUsedCategoryName();
+    return stored.isEmpty ? null : stored;
+  }
+
+  /// Remembers [name] as the category the next Add sheet should open on.
+  ///
+  /// The reserved bucket is never stored — the row that exists to REPORT a data
+  /// problem must not become the default that creates one (palwasha 8c). The
+  /// guard lives here rather than at the call site so it holds for every future
+  /// caller.
+  ///
+  /// A name, not an id: month clones mint fresh Uuids, so a stored id goes stale
+  /// at the first rollover by construction.
+  Future<void> rememberLastUsedCategory(String name) async {
+    if (isReservedCategoryName(name)) return;
+    await HiveStorage.setLastUsedCategoryName(name);
+  }
 
   @override
   void onInit() {

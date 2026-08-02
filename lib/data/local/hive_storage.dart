@@ -32,6 +32,14 @@ class HiveStorage {
   static const String _keyOnboardingComplete = 'onboarding_complete';
   static const String _keyCurrentMonth = 'current_month';
 
+  /// The category the last saved transaction went to, by NAME (F-06).
+  ///
+  /// A name, not an id: every month holds its own clones with freshly minted
+  /// Uuids, so a stored id would go stale at the first rollover by
+  /// construction. Additive key — a box written by an older build simply has no
+  /// value here and falls back to the old behaviour.
+  static const String _keyLastUsedCategoryName = 'last_used_category_name';
+
   /// Register Hive adapters. Called once at app startup before runApp.
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -92,6 +100,11 @@ class HiveStorage {
       _read<bool>(_keyOnboardingComplete, false);
   static String getCurrentMonth() => _read<String>(_keyCurrentMonth, '');
 
+  /// Empty when nothing has been saved yet — the caller reads that as "no
+  /// preference", not as a category named "".
+  static String getLastUsedCategoryName() =>
+      _read<String>(_keyLastUsedCategoryName, '');
+
   static T _read<T>(String key, T fallback) {
     final stored = _settingsBox?.get(key);
     return stored is T ? stored : fallback;
@@ -103,4 +116,6 @@ class HiveStorage {
   static Future<void> setThemeMode(String mode) => _box.put(_keyThemeMode, mode);
   static Future<void> setOnboardingComplete(bool value) => _box.put(_keyOnboardingComplete, value);
   static Future<void> setCurrentMonth(String month) => _box.put(_keyCurrentMonth, month);
+  static Future<void> setLastUsedCategoryName(String name) =>
+      _box.put(_keyLastUsedCategoryName, name);
 }

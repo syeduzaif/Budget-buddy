@@ -107,13 +107,21 @@ class TransactionFormController extends GetxController {
 
   /// What the picker starts on, once, before the user has touched it.
   ///
-  /// Editing starts on the transaction's OWN category, looked up across every
-  /// month rather than in [monthCategories]: a row dated into another month
-  /// points at that month's clone, which the picker's list does not contain.
-  /// If that category is gone entirely the picker deliberately starts EMPTY —
-  /// re-aiming an existing amount at whichever category happens to sort first
-  /// would move money the user never moved. Saving from there attributes it to
-  /// the reserved bucket, and says so.
+  /// In order:
+  ///
+  /// 1. **Editing** starts on the transaction's OWN category, looked up across
+  ///    every month rather than in [monthCategories]: a row dated into another
+  ///    month points at that month's clone, which the picker's list does not
+  ///    contain. If that category is gone entirely the picker deliberately
+  ///    starts EMPTY — re-aiming an existing amount at whichever category
+  ///    happens to sort first would move money the user never moved. Saving
+  ///    from there attributes it to the reserved bucket, and says so.
+  /// 2. **An explicit preselection** from a category-scoped entry point always
+  ///    wins over the remembered default (F-06 rule 3).
+  /// 3. **The category the last save used**, matched by name in the VIEWED
+  ///    month. Nine categories meant the old "first category" default was wrong
+  ///    about eight times in nine, at two taps and a modal each time.
+  /// 4. **The month's first category**, as before.
   Category? _initialCategory(
       List<Category> allCategories, List<Category> monthCategories) {
     final edited = editing;
@@ -125,12 +133,33 @@ class TransactionFormController extends GetxController {
     if (preselected != null) {
       return _byId(monthCategories, preselected) ?? monthCategories.first;
     }
+    // Exact, case-sensitive: category names are user-typed and displayed
+    // verbatim, so "food" and "Food" are two different labels to the person who
+    // typed them (F-06 rule 4). Deliberately a different comparison from the
+    // attribution resolver's trimmed/case-insensitive one, which is settling
+    // identity rather than reading a preference.
+    //
+    // No match — renamed, deleted, a month whose clones do not exist yet, any
+    // reason at all — is silent. This is a preference, not an operation that
+    // can fail.
+    final remembered = settings.lastUsedCategoryName;
+    if (remembered != null) {
+      final match = _byExactName(monthCategories, remembered);
+      if (match != null) return match;
+    }
     return monthCategories.first;
   }
 
   static Category? _byId(List<Category> categories, String id) {
     for (final c in categories) {
       if (c.id == id) return c;
+    }
+    return null;
+  }
+
+  static Category? _byExactName(List<Category> categories, String name) {
+    for (final c in categories) {
+      if (c.name == name) return c;
     }
     return null;
   }
@@ -197,6 +226,17 @@ class TransactionFormController extends GetxController {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         ));
+      }
+      // The next Add sheet opens on this category (F-06). Success path only,
+      // and in its own try: remembering a preference is not part of saving the
+      // money, so its failure must never be reported as a failed save. The
+      // service refuses to store the reserved bucket.
+      try {
+        await settings.rememberLastUsedCategory(resolution.category.name);
+      } catch (e, stack) {
+        debugPrint(
+            '[TransactionFormController] remembering the category failed: '
+            '$e\n$stack');
       }
     } catch (e, stack) {
       // Owner-approved mobile convention (2026-07-28): user-visible
