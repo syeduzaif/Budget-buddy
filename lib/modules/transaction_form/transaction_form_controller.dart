@@ -155,6 +155,7 @@ class TransactionFormController extends GetxController {
     isLoading.value = true;
     final edited = editing;
     CategoryResolution resolution;
+    String? createdId;
     try {
       // Attribution follows the transaction's DATE-month, never the month the
       // user happens to be viewing, and the repository is the only place that
@@ -184,8 +185,11 @@ class TransactionFormController extends GetxController {
           synced: edited.synced,
         ));
       } else {
+        // Kept, because the confirmation's Undo has to be able to name exactly
+        // this record four seconds from now (F-05).
+        createdId = const Uuid().v4();
         await transactionRepo.addTransaction(TransactionItem(
-          id: const Uuid().v4(),
+          id: createdId,
           categoryId: resolution.category.id,
           amountMinor: amountMinor,
           note: noteController.text.trim(),
@@ -229,19 +233,74 @@ class TransactionFormController extends GetxController {
       // No Undo here, unlike a fresh save (F-05): the sheet reopens on a tap,
       // so a wrong correction is corrected the same way it was made. One
       // safety mechanism per action.
-      _afterSheetCloses(() => Get.snackbar(
-            'Updated — '
-            '${CurrencyUtils.formatAmountCompact(amountMinor, settings.currency)}'
-            ' in ${resolution.category.name}',
-            '',
-            // The confirmation is one line by design. GetSnackBar always
-            // renders a message slot under the title, so it is given a
-            // zero-size widget rather than a blank second line.
-            messageText: const SizedBox.shrink(),
-            snackPosition: SnackPosition.BOTTOM,
-            duration: confirmationDuration,
-          ));
+      _confirm('Updated — '
+          '${_compact(amountMinor)} in ${resolution.category.name}');
+    } else if (createdId != null) {
+      // The proof the log landed, and the only chance to take it back — the
+      // sheet is closed and the row is one tap deep, so this is the moment an
+      // Undo is worth anything.
+      final undoId = createdId;
+      _confirm(
+        '${_compact(amountMinor)} added to ${resolution.category.name}',
+        action: TextButton(
+          onPressed: () => _undoCreate(undoId),
+          style: TextButton.styleFrom(
+            // A real target: the theme's TextButton is 40 high, and this one
+            // is the only way back from a mistake (F-05 AC-4).
+            minimumSize: const Size(64, 48),
+          ),
+          child: const Text('Undo', maxLines: 1),
+        ),
+      );
     }
+  }
+
+  /// Deletes the transaction the confirmation is about.
+  ///
+  /// Dismisses the snackbar with [Get.closeCurrentSnackbar] and never
+  /// `Get.back()`: a snackbar is an overlay entry, not a route, so popping
+  /// would take the user off whatever screen they are on.
+  ///
+  /// Safe to run after this controller has been discarded — opening the sheet
+  /// again deletes the instance while the snackbar may still be up, and the
+  /// repository reference this closure holds outlives that.
+  Future<void> _undoCreate(String transactionId) async {
+    Get.closeCurrentSnackbar();
+    try {
+      await transactionRepo.deleteTransaction(transactionId);
+    } catch (e, stack) {
+      debugPrint('[TransactionFormController] undo failed: $e\n$stack');
+      // The row is back on screen either way, so the message says which
+      // outcome that is (H3: a failed write is never silent).
+      Get.snackbar(
+        'Could not remove it — it is still saved.',
+        '',
+        messageText: const SizedBox.shrink(),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+    // A successful undo needs no confirmation of its own: the row disappearing
+    // from Recent and the totals dropping back are the message (F-05 rule 2).
+  }
+
+  String _compact(int amountMinor) =>
+      CurrencyUtils.formatAmountCompact(amountMinor, settings.currency);
+
+  /// One line of confirmation, optionally carrying the only action that can
+  /// undo it.
+  ///
+  /// `GetSnackBar` always renders a message slot beneath the title, so the
+  /// single-line copy these confirmations are specced with gets a zero-size
+  /// widget there rather than a blank second row.
+  void _confirm(String line, {TextButton? action}) {
+    _afterSheetCloses(() => Get.snackbar(
+          line,
+          '',
+          messageText: const SizedBox.shrink(),
+          snackPosition: SnackPosition.BOTTOM,
+          duration: confirmationDuration,
+          mainButton: action,
+        ));
   }
 
   /// Runs [show] once the sheet's pop has finished, with any confirmation

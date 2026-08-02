@@ -328,8 +328,12 @@ void main() {
       final rows = store.readTransactions();
       expect(rows, hasLength(2));
       expect(rows.map((t) => t.amountMinor).toSet(), {90000, 25000});
-      // No edit confirmation for a create — F-05 owns that one.
+      // A create gets F-05's confirmation, not this one — and that one carries
+      // an Undo, which an edit deliberately does not.
       expect(find.textContaining('Updated —'), findsNothing);
+      expect(find.text('Undo'), findsOneWidget);
+
+      await drainSnackbar(tester);
     });
   });
 }
