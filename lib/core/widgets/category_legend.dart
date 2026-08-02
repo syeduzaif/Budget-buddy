@@ -11,11 +11,19 @@ class CategoryLegendEntry {
   /// Null when the spend belongs to a category that has since been deleted.
   final Category? category;
 
+  /// What the row is called, when that is not simply [category]'s name.
+  ///
+  /// Analytics groups a range's spend by category NAME across month-clones, so
+  /// there the name is the row's identity and [category] only supplies colour
+  /// and icon. The dashboard donut, which shows one month, leaves this null.
+  final String? label;
+
   /// Spend in minor units — formatted once, at the boundary, by the legend.
   final int spentMinor;
 
   const CategoryLegendEntry({
     required this.category,
+    this.label,
     required this.spentMinor,
   });
 }
@@ -62,7 +70,7 @@ class CategoryLegend extends StatelessWidget {
                         BoxDecoration(color: color, shape: BoxShape.circle)),
               const SizedBox(width: AppSpacing.xs),
               Expanded(
-                child: Text(cat?.name ?? 'Unknown',
+                child: Text(e.label ?? cat?.name ?? 'Unknown',
                     style: AppFonts.bodySmall.copyWith(color: onSurface),
                     overflow: TextOverflow.ellipsis),
               ),

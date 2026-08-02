@@ -63,7 +63,12 @@ class CategoryPieChart extends StatelessWidget {
         CategoryLegend(
           entries: nonZero
               .map((e) => CategoryLegendEntry(
-                  category: e.category, spentMinor: e.spentMinor))
+                  category: e.category,
+                  // The group's name, not the sample clone's — they agree
+                  // whenever a clone exists, and when none does this is what
+                  // stops a deleted category's spend reading as "Unknown".
+                  label: e.name,
+                  spentMinor: e.spentMinor))
               .toList(),
           currency: currency,
         ),

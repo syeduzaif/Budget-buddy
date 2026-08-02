@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:get/get.dart';
+import '../../core/constants/app_constants.dart';
 import '../../data/models/category.dart';
 import '../../data/models/transaction_item.dart';
 import '../../data/repositories/category_repository.dart';
@@ -75,35 +76,110 @@ class AnalyticsController extends GetxController {
     }).toList();
   }
 
-  /// Spend per category, biggest first.
+  /// Spend per category NAME, biggest first.
+  ///
+  /// By name, not by `categoryId`: every month holds its own clones of the
+  /// user's categories with fresh ids, so grouping a multi-month range by id
+  /// drew the same category as up to N slices — same name, same colour,
+  /// partial amounts each, and a legend repeating itself. Invisible while an
+  /// install is one month old; guaranteed the moment a rollover happens
+  /// (F-02). Name is this app's operative category identity, matched the way
+  /// the attribution resolver matches it: trimmed and case-insensitive.
+  ///
+  /// Spend whose category is gone entirely joins the reserved bucket's row —
+  /// the same answer attribution gives it.
   List<CategorySpend> get categoryTotals {
-    final activeMonths = _activeMonths();
-    final spentByCategoryId = <String, int>{};
+    final activeMonths = _activeMonths().toSet();
+    final byId = {for (final c in categories) c.id: c};
+
+    final totalByKey = <String, int>{};
+    final fallbackName = <String, String>{};
     for (final t in transactions) {
-      if (activeMonths.contains(AppDateUtils.getMonthKeyFromDate(t.date))) {
-        spentByCategoryId[t.categoryId] =
-            (spentByCategoryId[t.categoryId] ?? 0) + t.amountMinor;
+      if (!activeMonths.contains(AppDateUtils.getMonthKeyFromDate(t.date))) {
+        continue;
+      }
+      final name = byId[t.categoryId]?.name ?? kUncategorisedCategoryName;
+      final key = _matchKey(name);
+      totalByKey[key] = (totalByKey[key] ?? 0) + t.amountMinor;
+      fallbackName.putIfAbsent(key, () => name.trim());
+    }
+
+    return totalByKey.entries.map((e) {
+      final clone = _newestNamed(e.key);
+      return CategorySpend(
+        category: clone,
+        name: clone?.name ?? fallbackName[e.key]!,
+        spentMinor: e.value,
+      );
+    }).toList()
+      // Name breaks ties: two groups can hold identical amounts, and
+      // `List.sort` is not stable, so without it the legend and the slices
+      // could reorder themselves between rebuilds.
+      ..sort((a, b) {
+        final bySpend = b.spentMinor.compareTo(a.spentMinor);
+        return bySpend != 0 ? bySpend : a.name.compareTo(b.name);
+      });
+  }
+
+  /// The clone that supplies a group's colour and icon: the most recently
+  /// created one, so a recolour shows up in the range chart immediately.
+  ///
+  /// Deliberately the opposite end from the resolver's oldest-wins rule —
+  /// that one settles identity, which must not move; this one settles
+  /// appearance, which should follow the user's latest choice.
+  Category? _newestNamed(String matchKey) {
+    Category? best;
+    for (final c in categories) {
+      if (_matchKey(c.name) != matchKey) continue;
+      if (best == null ||
+          c.createdAt.isAfter(best.createdAt) ||
+          (c.createdAt == best.createdAt && c.id.compareTo(best.id) < 0)) {
+        best = c;
       }
     }
-    return spentByCategoryId.entries.map((e) {
-      Category? cat;
-      try {
-        cat = categories.firstWhere((c) => c.id == e.key);
-      } catch (_) {}
-      return CategorySpend(
-          category: cat, categoryId: e.key, spentMinor: e.value);
-    }).toList()
-      ..sort((a, b) => b.spentMinor.compareTo(a.spentMinor));
+    return best;
   }
+
+  static String _matchKey(String name) => name.trim().toLowerCase();
 
   int get totalSpentMinor =>
       filteredTransactions.fold(0, (sum, t) => sum + t.amountMinor);
 
-  /// A ratio, not money: `int / int` is a `double` in Dart.
-  double get savingsRate {
-    final income = settings.monthlyIncomeMinor.value;
-    if (income <= 0) return 0;
-    return ((income - totalSpentMinor) / income * 100).clamp(0, 100);
+  /// Savings rate over the SELECTED RANGE, in percent.
+  ///
+  /// The defect this closes: range-scoped spend was divided by ONE month's
+  /// income, so "Last 3 months" and "This month" reported the same rate on
+  /// different periods — ₨12,650 spent against ₨150,000 income read 91.6% for
+  /// both, where three months of that income makes it 97.2%.
+  double get savingsRate => savingsRatePercent(
+        incomeMinorPerMonth: settings.monthlyIncomeMinor.value,
+        months: _activeMonths().length,
+        spentMinor: totalSpentMinor,
+      );
+
+  /// `(income × months − spent) / (income × months)`, as a percentage clamped
+  /// to [0, 100].
+  ///
+  /// Pure and static — no clock, no store, no Rx — so the arithmetic can be
+  /// tested as arithmetic. [months] is how many month partitions the range
+  /// covers (1, 3, 6), NOT how many of them contain transactions: an install
+  /// younger than the range therefore reads high, because the empty months
+  /// still count their income. That is accepted and documented (F-03 §4), not
+  /// a rounding artefact.
+  ///
+  /// Unknown or zero income yields 0% rather than a division by zero: a rate
+  /// against an income nobody entered would be an invented number.
+  static double savingsRatePercent({
+    required int incomeMinorPerMonth,
+    required int months,
+    required int spentMinor,
+  }) {
+    // Minor units, so exact: no float income ever enters the division.
+    final incomeForRange = incomeMinorPerMonth * months;
+    if (incomeForRange <= 0) return 0;
+    return ((incomeForRange - spentMinor) / incomeForRange * 100)
+        .clamp(0, 100)
+        .toDouble();
   }
 
   @override
@@ -148,16 +224,24 @@ class MonthlyTotal {
   const MonthlyTotal({required this.month, required this.totalMinor});
 }
 
-/// One slice/row of the category breakdown.
+/// One slice/row of the category breakdown — a NAME's total across the range,
+/// not one category record's.
 class CategorySpend {
-  /// Null when the transaction's category has since been deleted.
+  /// The clone supplying colour and icon: one of possibly several month-clones
+  /// sharing [name]. Null only when nothing by that name exists any more.
+  ///
+  /// Never an identity — read [name] for that. Carrying a single `categoryId`
+  /// here would be a lie the moment a range spans two months.
   final Category? category;
-  final String categoryId;
+
+  /// The group's display name.
+  final String name;
+
   final int spentMinor;
 
   const CategorySpend({
     required this.category,
-    required this.categoryId,
+    required this.name,
     required this.spentMinor,
   });
 }
