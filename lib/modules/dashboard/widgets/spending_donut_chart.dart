@@ -63,25 +63,38 @@ class SpendingDonutChart extends StatelessWidget {
       children: [
         SizedBox(
           height: 200,
-          child: PieChart(
-            PieChartData(
-              sectionsSpace: 2,
-              centerSpaceRadius: 44,
-              sections: data.map((e) {
-                return PieChartSectionData(
-                  color: Color(e.key.colorValue),
-                  value: e.value.toDouble(),
-                  // No in-slice percentage: it was hardcoded white (~2:1 on
-                  // the amber slice) and said nothing about *what* the slice
-                  // was. The legend below names it and gives the exact
-                  // amount (UI-09).
-                  showTitle: false,
-                  radius: 40,
-                );
-              }).toList(),
+          // A vertical drag that starts on the donut must scroll the page.
+          //
+          // Locking an invariant rather than fixing a live bug: at fl_chart
+          // 0.70.2 `PieChart` installs no built-in touch callback and passes
+          // none of ours, so `RenderBaseChart.handleEvent` early-returns and no
+          // recognizer joins the arena — the donut is not claiming drags today.
+          // But `PieChartData` DEFAULTS to touch enabled, so the day anyone adds
+          // a `pieTouchData` callback the pan recognizer starts competing with
+          // the scroll view. (`PieTouchData(enabled: false)` is not the guard it
+          // looks like: `_getData` never reads the flag.) The legend below stays
+          // outside this — it is real content, and one day it may be tappable.
+          child: IgnorePointer(
+            child: PieChart(
+              PieChartData(
+                sectionsSpace: 2,
+                centerSpaceRadius: 44,
+                sections: data.map((e) {
+                  return PieChartSectionData(
+                    color: Color(e.key.colorValue),
+                    value: e.value.toDouble(),
+                    // No in-slice percentage: it was hardcoded white (~2:1 on
+                    // the amber slice) and said nothing about *what* the slice
+                    // was. The legend below names it and gives the exact
+                    // amount (UI-09).
+                    showTitle: false,
+                    radius: 40,
+                  );
+                }).toList(),
+              ),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOutCubic,
             ),
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeOutCubic,
           ),
         ),
         const SizedBox(height: AppSpacing.m),

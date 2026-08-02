@@ -47,20 +47,17 @@ class MonthlyBarChart extends StatelessWidget {
       child: BarChart(
         BarChartData(
           maxY: safeMax,
-          barTouchData: BarTouchData(
-            touchTooltipData: BarTouchTooltipData(
-              getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                final entry = data[groupIndex];
-                // Formatted from the exact minor-unit value, not from the
-                // chart's geometry.
-                return BarTooltipItem(
-                  '${AppDateUtils.formatMonthShort(entry.month)}\n'
-                  '${CurrencyUtils.formatAmountCompact(entry.totalMinor, currency)}',
-                  AppFonts.labelSmall.copyWith(color: Colors.white),
-                );
-              },
-            ),
-          ),
+          // EXPLICITLY disabled, and that word is load-bearing twice over.
+          //
+          // Omitting the argument does not mean "no touch": `BarTouchData()`
+          // defaults to enabled, `BarChart._getData` then installs its built-in
+          // callback, and a non-null callback is exactly what makes
+          // `RenderBaseChart.handleEvent` hand the pointer to a
+          // PanGestureRecognizer — which then wins the arena against the page's
+          // scroll view, so a vertical drag starting inside the chart moved
+          // nothing (F-10.1). Disabling it is the arena yield; the labels below
+          // are what keep the information the tooltip used to carry.
+          barTouchData: BarTouchData(enabled: false),
           titlesData: FlTitlesData(
             // UI-18, second half: a 3-tick y-axis through
             // `formatAmountCompact` was built and MEASURED, then dropped. At
@@ -76,8 +73,42 @@ class MonthlyBarChart extends StatelessWidget {
                 const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             rightTitles:
                 const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            // The value, above its own rod. With touch off there is no tooltip
+            // left to ask, and a bar chart whose bars have no numbers only says
+            // "bigger than that one" (AC-10.1b).
+            //
+            // Formatted from the exact minor-unit total through the shared
+            // compact formatter, never from the rod's geometry. `FittedBox`
+            // shrinks a long amount rather than clipping or wrapping it; the
+            // 48dp slot is the group width at the six-bar range on a ~300dp
+            // card, which is the widest this chart gets. At six bars the labels
+            // are legible but small — the real fix is an abbreviated k/M money
+            // format (MF-1), which is a CurrencyUtils decision, not a chart one,
+            // and is deliberately NOT smuggled in here.
+            topTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 18,
+                getTitlesWidget: (value, meta) {
+                  final i = value.toInt();
+                  if (i < 0 || i >= data.length) return const SizedBox.shrink();
+                  return SizedBox(
+                    width: 48,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        CurrencyUtils.formatAmountCompact(
+                            data[i].totalMinor, currency),
+                        // labelSmall carries no colour since F-11, and this one
+                        // renders on a card in both themes.
+                        style: AppFonts.labelSmall.copyWith(color: mutedColor),
+                        maxLines: 1,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,

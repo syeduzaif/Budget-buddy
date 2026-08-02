@@ -38,24 +38,30 @@ class CategoryPieChart extends StatelessWidget {
       children: [
         SizedBox(
           height: 160,
-          child: PieChart(
-            PieChartData(
-              sectionsSpace: 2,
-              centerSpaceRadius: 48,
-              sections: nonZero.map((e) {
-                final cat = e.category;
-                final color =
-                    cat != null ? Color(cat.colorValue) : AppColors.primary;
-                return PieChartSectionData(
-                  color: color,
-                  value: CurrencyUtils.toMajor(e.spentMinor, currency),
-                  // No in-slice label: it was hardcoded white, ~2:1 on the
-                  // amber slice, and the legend below states the exact amount
-                  // anyway (UI-09).
-                  showTitle: false,
-                  radius: 32,
-                );
-              }).toList(),
+          // Same invariant as the dashboard donut: a vertical drag starting
+          // here scrolls the page, and cannot stop doing so the day someone
+          // gives `PieChartData` a touch callback (it defaults to enabled).
+          // The legend below stays outside — it is content, not chrome.
+          child: IgnorePointer(
+            child: PieChart(
+              PieChartData(
+                sectionsSpace: 2,
+                centerSpaceRadius: 48,
+                sections: nonZero.map((e) {
+                  final cat = e.category;
+                  final color =
+                      cat != null ? Color(cat.colorValue) : AppColors.primary;
+                  return PieChartSectionData(
+                    color: color,
+                    value: CurrencyUtils.toMajor(e.spentMinor, currency),
+                    // No in-slice label: it was hardcoded white, ~2:1 on the
+                    // amber slice, and the legend below states the exact amount
+                    // anyway (UI-09).
+                    showTitle: false,
+                    radius: 32,
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ),
