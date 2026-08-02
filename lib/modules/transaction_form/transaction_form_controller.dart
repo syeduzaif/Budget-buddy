@@ -15,10 +15,28 @@ class TransactionFormController extends GetxController {
   final TransactionRepository transactionRepo;
   final SettingsService settings;
 
+  /// The record being edited, or null when adding a new one.
+  ///
+  /// A SNAPSHOT taken when the sheet opened, never the box's own instance: it
+  /// supplies the prefill and the `id`/`createdAt` to write back with, and
+  /// nothing else about it is trusted at save time — the resolver re-reads the
+  /// category live, because the sheet may have been open for a while (F-01).
+  final TransactionItem? editing;
+
+  /// The category a category-scoped entry point asked for, or null.
+  ///
+  /// A constructor argument rather than a `Get.arguments` read: the form is a
+  /// SHEET, so `Get.arguments` belongs to whatever page is underneath it —
+  /// opening this over the category-filtered transactions list would have
+  /// silently picked up that screen's `{categoryId, categoryName}`.
+  final String? preselectedCategoryId;
+
   TransactionFormController({
     required this.categoryRepo,
     required this.transactionRepo,
     required this.settings,
+    this.editing,
+    this.preselectedCategoryId,
   });
 
   final amountController = TextEditingController();
@@ -28,8 +46,14 @@ class TransactionFormController extends GetxController {
   final selectedDate = DateTime.now().obs;
   final isLoading = false.obs;
 
-  // If opened from a category view, pre-select it
-  String? preselectedCategoryId;
+  /// True when the sheet is correcting an existing record rather than creating
+  /// one. Drives the title, the save button's label, and which write the
+  /// repository is asked for.
+  bool get isEditing => editing != null;
+
+  /// How long a success confirmation stays up. Long enough to read the amount
+  /// back, short enough not to sit over the next save (F-05).
+  static const Duration confirmationDuration = Duration(seconds: 4);
 
   /// The date a newly opened sheet starts on, for a user viewing [viewedMonth].
   ///
@@ -49,27 +73,26 @@ class TransactionFormController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final args = Get.arguments as Map<String, dynamic>?;
-    preselectedCategoryId = args?['categoryId'];
-    selectedDate.value =
-        defaultDateForMonth(settings.effectiveMonth, DateTime.now());
+    final edited = editing;
+    if (edited != null) {
+      // Minor units are never shown raw: back to major-unit text, in exactly
+      // the shape the field parses again.
+      amountController.text =
+          CurrencyUtils.formatForInput(edited.amountMinor, settings.currency);
+      noteController.text = edited.note;
+      selectedDate.value = edited.date;
+    } else {
+      selectedDate.value =
+          defaultDateForMonth(settings.effectiveMonth, DateTime.now());
+    }
 
     categoryRepo.getCategories().listen(
       (list) {
         final filtered =
             list.where((c) => c.month == settings.currentMonth.value).toList();
         categories.assignAll(filtered);
-        if (selectedCategory.value == null && filtered.isNotEmpty) {
-          if (preselectedCategoryId != null) {
-            try {
-              selectedCategory.value =
-                  filtered.firstWhere((c) => c.id == preselectedCategoryId);
-            } catch (_) {
-              selectedCategory.value = filtered.first;
-            }
-          } else {
-            selectedCategory.value = filtered.first;
-          }
+        if (selectedCategory.value == null) {
+          selectedCategory.value = _initialCategory(list, filtered);
         }
       },
       onError: (Object e, StackTrace s) {
@@ -80,6 +103,36 @@ class TransactionFormController extends GetxController {
         debugPrint('[TransactionFormController] category stream failed: $e\n$s');
       },
     );
+  }
+
+  /// What the picker starts on, once, before the user has touched it.
+  ///
+  /// Editing starts on the transaction's OWN category, looked up across every
+  /// month rather than in [monthCategories]: a row dated into another month
+  /// points at that month's clone, which the picker's list does not contain.
+  /// If that category is gone entirely the picker deliberately starts EMPTY —
+  /// re-aiming an existing amount at whichever category happens to sort first
+  /// would move money the user never moved. Saving from there attributes it to
+  /// the reserved bucket, and says so.
+  Category? _initialCategory(
+      List<Category> allCategories, List<Category> monthCategories) {
+    final edited = editing;
+    if (edited != null) {
+      return _byId(allCategories, edited.categoryId);
+    }
+    if (monthCategories.isEmpty) return null;
+    final preselected = preselectedCategoryId;
+    if (preselected != null) {
+      return _byId(monthCategories, preselected) ?? monthCategories.first;
+    }
+    return monthCategories.first;
+  }
+
+  static Category? _byId(List<Category> categories, String id) {
+    for (final c in categories) {
+      if (c.id == id) return c;
+    }
+    return null;
   }
 
   @override
@@ -100,34 +153,57 @@ class TransactionFormController extends GetxController {
     if (amountMinor == null || amountMinor <= 0) return;
 
     isLoading.value = true;
+    final edited = editing;
     CategoryResolution resolution;
     try {
       // Attribution follows the transaction's DATE-month, never the month the
       // user happens to be viewing, and the repository is the only place that
       // decides it (F-01). A null pick lands in that month's reserved bucket.
+      // Editing runs the same rule: moving a row's date into another month
+      // re-points it at that month's category of the same name.
       resolution = await categoryRepo.resolveForMonth(
         selectedCategory.value,
         AppDateUtils.getMonthKeyFromDate(selectedDate.value),
       );
 
-      final transaction = TransactionItem(
-        id: const Uuid().v4(),
-        categoryId: resolution.category.id,
-        amountMinor: amountMinor,
-        note: noteController.text.trim(),
-        date: selectedDate.value,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-      await transactionRepo.addTransaction(transaction);
+      if (edited != null) {
+        // ONE put over the same key — amount, note, category and date land
+        // together or not at all, so a failed edit can never leave half the
+        // change behind (F-07 rule 4). A FRESH instance, never the box's own:
+        // Hive throws if one HiveObject is stored under two keys. `id` and
+        // `createdAt` are carried through unchanged; this is a correction, not
+        // a new record.
+        await transactionRepo.updateTransaction(TransactionItem(
+          id: edited.id,
+          categoryId: resolution.category.id,
+          amountMinor: amountMinor,
+          note: noteController.text.trim(),
+          date: selectedDate.value,
+          createdAt: edited.createdAt,
+          updatedAt: DateTime.now(),
+          synced: edited.synced,
+        ));
+      } else {
+        await transactionRepo.addTransaction(TransactionItem(
+          id: const Uuid().v4(),
+          categoryId: resolution.category.id,
+          amountMinor: amountMinor,
+          note: noteController.text.trim(),
+          date: selectedDate.value,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ));
+      }
     } catch (e, stack) {
       // Owner-approved mobile convention (2026-07-28): user-visible
       // failures surface via Get.snackbar. Hive throws on a failed
       // write, so a failure is never reported as a success (H3).
       debugPrint('[TransactionFormController] save failed: $e\n$stack');
       Get.snackbar(
-        'Could not save transaction',
-        'Nothing was saved. Please try again.',
+        edited != null ? 'Could not save changes' : 'Could not save transaction',
+        edited != null
+            ? 'The transaction is unchanged. Please try again.'
+            : 'Nothing was saved. Please try again.',
         snackPosition: SnackPosition.BOTTOM,
       );
       return;
@@ -141,12 +217,49 @@ class TransactionFormController extends GetxController {
     if (resolution.pickedWasDeleted) {
       // The category was deleted while this sheet was open. The amount is
       // saved and visible, but not where the user aimed it — say so rather
-      // than resurrecting a category they deleted.
-      Get.snackbar(
-        'Saved to $kUncategorisedCategoryName',
-        'That category was deleted.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      // than resurrecting a category they deleted. This outranks the plain
+      // confirmation below: two snackbars would queue, and the surprising
+      // destination is the one worth reading.
+      _afterSheetCloses(() => Get.snackbar(
+            'Saved to $kUncategorisedCategoryName',
+            'That category was deleted.',
+            snackPosition: SnackPosition.BOTTOM,
+          ));
+    } else if (edited != null) {
+      // No Undo here, unlike a fresh save (F-05): the sheet reopens on a tap,
+      // so a wrong correction is corrected the same way it was made. One
+      // safety mechanism per action.
+      _afterSheetCloses(() => Get.snackbar(
+            'Updated — '
+            '${CurrencyUtils.formatAmountCompact(amountMinor, settings.currency)}'
+            ' in ${resolution.category.name}',
+            '',
+            // The confirmation is one line by design. GetSnackBar always
+            // renders a message slot under the title, so it is given a
+            // zero-size widget rather than a blank second line.
+            messageText: const SizedBox.shrink(),
+            snackPosition: SnackPosition.BOTTOM,
+            duration: confirmationDuration,
+          ));
     }
+  }
+
+  /// Runs [show] once the sheet's pop has finished, with any confirmation
+  /// still on screen cleared first.
+  ///
+  /// Both halves are load-bearing at get 4.7.3, and both were measured:
+  ///
+  /// * Snackbars **queue**. Logging twice inside the display window would
+  ///   otherwise hold the second confirmation until the first expired, and
+  ///   then show it ~4 s after the save it describes (F-05 AC-5).
+  /// * The overlay a snackbar inserts into belongs to the route that
+  ///   [Get.back] has only just returned to, so showing it during that same
+  ///   frame is a race. A post-frame callback is the fix.
+  ///
+  /// One home for both rules, so the edit confirmation here and F-05's create
+  /// confirmation cannot drift apart.
+  void _afterSheetCloses(void Function() show) {
+    Get.closeCurrentSnackbar();
+    WidgetsBinding.instance.addPostFrameCallback((_) => show());
   }
 }

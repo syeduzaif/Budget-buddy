@@ -7,6 +7,7 @@ import '../../data/models/category.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../../services/app/settings_service.dart';
+import '../transaction_form/transaction_form_sheet.dart';
 import 'transactions_controller.dart';
 import 'widgets/transaction_tile.dart';
 
@@ -78,6 +79,8 @@ class TransactionsView extends StatelessWidget {
                     // one category (UI-04).
                     showCategory: ctrl.filterCategoryName == null,
                     onDelete: () => ctrl.deleteTransaction(t.id),
+                    // The row is the transaction: tapping it opens it (F-07).
+                    onTap: () => openTransactionSheet(context, editing: t),
                   );
                 }),
               ],

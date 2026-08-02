@@ -22,12 +22,22 @@ class TransactionTile extends StatelessWidget {
   final bool showCategory;
   final VoidCallback onDelete;
 
+  /// Opens the row for editing. Null leaves it inert — which is what every row
+  /// was before F-07, and what none of them should be again: the row IS the
+  /// object, so tapping it opens it.
+  ///
+  /// No arena conflict with the [Dismissible] above: that claims horizontal
+  /// drags, `ListTile` claims taps. The category cards have paired the two the
+  /// same way since before this feature.
+  final VoidCallback? onTap;
+
   const TransactionTile({
     super.key,
     required this.transaction,
     required this.category,
     required this.currency,
     required this.onDelete,
+    this.onTap,
     this.showCategory = true,
   });
 
@@ -85,6 +95,7 @@ class TransactionTile extends StatelessWidget {
         elevation: AppSpacing.elevationS,
         margin: const EdgeInsets.only(bottom: AppSpacing.s),
         child: ListTile(
+          onTap: onTap,
           leading: cat != null
               ? CategoryIcon(category: cat, size: 40)
               : Container(

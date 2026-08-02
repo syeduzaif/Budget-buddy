@@ -6,8 +6,7 @@ import '../categories/categories_controller.dart';
 import '../categories/categories_view.dart';
 import '../analytics/analytics_controller.dart';
 import '../analytics/analytics_view.dart';
-import '../transaction_form/transaction_form_controller.dart';
-import '../transaction_form/transaction_form_view.dart';
+import '../transaction_form/transaction_form_sheet.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../../services/app/settings_service.dart';
@@ -18,7 +17,7 @@ class HomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Delete-then-put, the pattern `_openTransactionForm` below already uses:
+    // Delete-then-put, the pattern `openTransactionSheet` already uses:
     // HomeController now registers a WidgetsBindingObserver, and a plain
     // `Get.put` over an existing registration would leave the previous
     // instance's observer attached with nothing to dispose it. One Home entry,
@@ -68,7 +67,7 @@ class HomeView extends StatelessWidget {
             selectedIndex: ctrl.currentIndex.value,
             onDestinationSelected: (i) {
               if (i == 2) {
-                _openTransactionForm(context);
+                openTransactionSheet(context);
               } else {
                 ctrl.changeTab(i);
               }
@@ -97,23 +96,5 @@ class HomeView extends StatelessWidget {
             ],
           ),
         ));
-  }
-
-  void _openTransactionForm(BuildContext context) {
-    // Always create a fresh instance for the form
-    if (Get.isRegistered<TransactionFormController>()) {
-      Get.delete<TransactionFormController>();
-    }
-    Get.put(TransactionFormController(
-      categoryRepo: Get.find<CategoryRepository>(),
-      transactionRepo: Get.find<TransactionRepository>(),
-      settings: Get.find<SettingsService>(),
-    ));
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => const TransactionFormView(),
-    );
   }
 }

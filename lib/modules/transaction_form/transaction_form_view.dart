@@ -30,7 +30,8 @@ class TransactionFormView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Add Transaction', style: AppFonts.h5),
+            Text(ctrl.isEditing ? 'Edit Transaction' : 'Add Transaction',
+                style: AppFonts.h5),
             const SizedBox(height: AppSpacing.l),
 
             // Amount
@@ -153,7 +154,11 @@ class TransactionFormView extends StatelessWidget {
                           width: 20,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white))
-                      : const Text('Save Transaction'),
+                      // "Save Changes" is the category form's word for the
+                      // same act, and it says the record already exists.
+                      : Text(ctrl.isEditing
+                          ? 'Save Changes'
+                          : 'Save Transaction'),
                 )),
           ],
         ),
