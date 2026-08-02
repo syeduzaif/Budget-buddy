@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../utils/currency_utils.dart';
@@ -70,10 +71,9 @@ class SettingsView extends StatelessWidget {
               builder: (rowContext) => ListTile(
                 leading: const Icon(Icons.ios_share_outlined),
                 title: const Text('Export as CSV'),
-                subtitle: Text(
-                    'Share all transactions as a spreadsheet file',
-                    style:
-                        AppFonts.caption.copyWith(color: AppColors.textMuted)),
+                subtitle: Text('Share all transactions as a spreadsheet file',
+                    style: AppFonts.caption
+                        .copyWith(color: rowContext.semanticColors.textMuted)),
                 trailing: ctrl.isExporting.value
                     ? const SizedBox(
                         width: 20,
@@ -98,7 +98,8 @@ class SettingsView extends StatelessWidget {
                       .copyWith(color: Theme.of(context).colorScheme.error)),
               subtitle: Text(
                   'Delete every category, transaction and preference on this device',
-                  style: AppFonts.caption.copyWith(color: AppColors.textMuted)),
+                  style: AppFonts.caption
+                      .copyWith(color: context.semanticColors.textMuted)),
               trailing: ctrl.isLoading.value
                   ? const SizedBox(
                       width: 20,
@@ -116,7 +117,10 @@ class SettingsView extends StatelessWidget {
             Center(
               child: Text(
                 '${AppConstants.appName} v${AppConstants.appVersion}',
-                style: AppFonts.caption,
+                // AppFonts.caption carries no colour of its own any more
+                // (F-11) — every caption names one at the call site.
+                style: AppFonts.caption
+                    .copyWith(color: context.semanticColors.textMuted),
               ),
             ),
             const SizedBox(height: AppSpacing.m),
@@ -245,7 +249,7 @@ class SettingsView extends StatelessWidget {
                       : Icons.radio_button_unchecked,
                   color: ctrl.settings.themeMode.value == entry.key
                       ? AppColors.primary
-                      : AppColors.textMuted,
+                      : context.semanticColors.textMuted,
                 ),
                 onTap: () {
                   ctrl.setTheme(entry.key);

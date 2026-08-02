@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../core/utils/app_icons.dart';
@@ -145,8 +146,9 @@ class CategoryFormView extends StatelessWidget {
                     Padding(
                       padding:
                           const EdgeInsets.symmetric(horizontal: AppSpacing.s),
-                      child:
-                          Text('or customize below', style: AppFonts.caption),
+                      child: Text('or customize below',
+                          style: AppFonts.caption.copyWith(
+                              color: context.semanticColors.textMuted)),
                     ),
                     const Expanded(child: Divider()),
                   ],

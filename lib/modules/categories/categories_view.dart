@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../core/animations/animations.dart';
@@ -72,14 +73,14 @@ class CategoriesView extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.category_outlined,
-                          size: 64, color: AppColors.textMuted),
+                      Icon(Icons.category_outlined,
+                          size: 64, color: context.semanticColors.textMuted),
                       const SizedBox(height: AppSpacing.m),
                       Text('No categories yet', style: AppFonts.h6),
                       const SizedBox(height: AppSpacing.s),
                       Text('Tap + to create your first budget category',
-                          style: AppFonts.bodySmall
-                              .copyWith(color: AppColors.textMuted)),
+                          style: AppFonts.bodySmall.copyWith(
+                              color: context.semanticColors.textMuted)),
                       const SizedBox(height: AppSpacing.l),
                       FilledButton.icon(
                         onPressed: () => Get.toNamed(AppRoutes.categoryForm),

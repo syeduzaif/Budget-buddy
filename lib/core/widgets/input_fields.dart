@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_fonts.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
 
 /// App input field widget
@@ -70,7 +70,8 @@ class AppInputField extends StatelessWidget {
         hintText: hint,
         prefixIcon: prefixIcon != null
             ? Icon(prefixIcon,
-                size: AppSpacing.iconS, color: AppColors.textMuted)
+                size: AppSpacing.iconS,
+                color: context.semanticColors.textMuted)
             : null,
         suffixIcon: suffixIcon,
         counterText: '',

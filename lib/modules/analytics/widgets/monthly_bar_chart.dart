@@ -1,7 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
+import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../utils/currency_utils.dart';
 import '../../../utils/date_utils.dart';
@@ -21,12 +21,18 @@ class MonthlyBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // fl_chart's `getTitlesWidget` is a bare closure — it is handed a value and
+    // a meta, never a BuildContext — so the resolved colour is captured HERE,
+    // in build, where a context exists. Reaching for a raw token inside the
+    // closure is how axis labels end up light-theme-coloured in the dark.
+    final mutedColor = context.semanticColors.textMuted;
+
     if (data.isEmpty) {
       return SizedBox(
         height: 180,
         child: Center(
           child: Text('No data',
-              style: AppFonts.bodySmall.copyWith(color: AppColors.textMuted)),
+              style: AppFonts.bodySmall.copyWith(color: mutedColor)),
         ),
       );
     }
@@ -82,7 +88,7 @@ class MonthlyBarChart extends StatelessWidget {
                     padding: const EdgeInsets.only(top: AppSpacing.xxs),
                     child: Text(
                       AppDateUtils.formatMonthShort(data[i].month),
-                      style: AppFonts.labelSmall,
+                      style: AppFonts.labelSmall.copyWith(color: mutedColor),
                     ),
                   );
                 },

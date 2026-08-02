@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../core/widgets/category_icon.dart';
@@ -107,7 +108,8 @@ class TransactionTile extends StatelessWidget {
           subtitle: showCategory && transaction.note.isNotEmpty
               ? Text(
                   categoryName,
-                  style: AppFonts.labelSmall,
+                  style: AppFonts.labelSmall
+                      .copyWith(color: context.semanticColors.textMuted),
                   overflow: TextOverflow.ellipsis,
                 )
               : null,

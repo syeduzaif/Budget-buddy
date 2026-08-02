@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../data/models/category.dart';
@@ -35,14 +35,14 @@ class TransactionsView extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.receipt_long_outlined,
-                    size: 64, color: AppColors.textMuted),
+                Icon(Icons.receipt_long_outlined,
+                    size: 64, color: context.semanticColors.textMuted),
                 const SizedBox(height: AppSpacing.m),
                 Text('No transactions yet', style: AppFonts.h6),
                 const SizedBox(height: AppSpacing.s),
                 Text('Add your first transaction using the + button',
                     style: AppFonts.bodySmall
-                        .copyWith(color: AppColors.textMuted)),
+                        .copyWith(color: context.semanticColors.textMuted)),
               ],
             ),
           );
@@ -62,7 +62,7 @@ class TransactionsView extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                   child: Text(dateKey,
                       style: AppFonts.labelMedium
-                          .copyWith(color: AppColors.textMuted)),
+                          .copyWith(color: context.semanticColors.textMuted)),
                 ),
                 ...items.map((t) {
                   Category? cat;

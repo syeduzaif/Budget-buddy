@@ -39,7 +39,22 @@ class AppColors {
   // ─── Text Colors ──────────────────────────────────────────────
   static const Color textPrimary = Color(0xFF2C2518); // Espresso
   static const Color textSecondary = Color(0xFF6B604E); // Driftwood
-  static const Color textMuted = Color(0xFF9A9182); // Warm stone
+
+  /// Third-rank text ON LIGHT SURFACES. Retuned from #9A9182, which measured
+  /// 3.06:1 on the cream card — the last light-theme AA failure (F-11).
+  ///
+  /// Muted text has one meaning and two values; this is the light half. Read it
+  /// through `context.semanticColors.textMuted` (see `app_semantic_colors.dart`)
+  /// rather than naming either token in a widget, or the same widget renders
+  /// unreadably in the other theme — which is the defect this pair replaced.
+  static const Color textMuted = Color(0xFF7A705F); // Dark driftwood
+
+  /// Third-rank text ON DARK SURFACES — unchanged (#9A9182, "warm stone"), so
+  /// the dark theme renders byte-identically to before the split.
+  ///
+  /// Also the value the two light-theme component blocks whose surface is dark
+  /// (bottom-nav and tab-bar unselected) must use.
+  static const Color textMutedDark = Color(0xFF9A9182); // Warm stone
   static const Color textWhite = Color(0xFFF8F4ED); // Warm cream
   static const Color textDark = Color(0xFFEDE8DF); // On dark surfaces
 

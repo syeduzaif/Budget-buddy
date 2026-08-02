@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_fonts.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
 
 /// App card widget
@@ -125,10 +126,10 @@ class StatCard extends StatelessWidget {
                 ),
               ),
               if (onTap != null)
-                const Icon(
+                Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: AppColors.textMuted,
+                  color: context.semanticColors.textMuted,
                 ),
             ],
           ),
@@ -166,7 +167,7 @@ class EmptyState extends StatelessWidget {
             Icon(
               icon,
               size: 64,
-              color: AppColors.textMuted,
+              color: context.semanticColors.textMuted,
             ),
             const SizedBox(height: AppSpacing.l),
             Text(

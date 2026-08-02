@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../core/widgets/category_icon.dart';
@@ -116,8 +117,8 @@ class TransactionFormView extends StatelessWidget {
                           ],
                         )
                       : Text('Select a category',
-                          style: AppFonts.bodyMedium
-                              .copyWith(color: AppColors.textMuted)),
+                          style: AppFonts.bodyMedium.copyWith(
+                              color: context.semanticColors.textMuted)),
                 ),
               );
             }),

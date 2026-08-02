@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../utils/currency_utils.dart';
@@ -241,7 +242,8 @@ class _IncomePage extends StatelessWidget {
                 Text(
                   'Used to work out what\'s left this month. You can change it '
                   'any time.',
-                  style: AppFonts.caption,
+                  style: AppFonts.caption
+                      .copyWith(color: context.semanticColors.textMuted),
                 ),
               ],
             ),

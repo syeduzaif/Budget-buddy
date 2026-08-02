@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../core/animations/animations.dart';
@@ -29,6 +29,7 @@ class CategoryBudgetList extends StatelessWidget {
     // is 3.22:1 — an AA failure on the over-budget signal, and inconsistent
     // with the same fact on the Categories tab at ~7:1 (N8).
     final errorColor = Theme.of(context).colorScheme.error;
+    final mutedColor = context.semanticColors.textMuted;
     final shown = categories.take(4).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,8 +48,7 @@ class CategoryBudgetList extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
             child: Center(
               child: Text('No categories yet.',
-                  style:
-                      AppFonts.bodySmall.copyWith(color: AppColors.textMuted)),
+                  style: AppFonts.bodySmall.copyWith(color: mutedColor)),
             ),
           )
         else
@@ -89,7 +89,11 @@ class CategoryBudgetList extends StatelessWidget {
                         ' / '
                         '${CurrencyUtils.formatAmountCompact(cat.budgetLimitMinor, currency)}',
                         style: AppFonts.labelSmall.copyWith(
-                          color: isOver ? errorColor : null,
+                          // `null` used to mean "keep labelSmall's baked muted
+                          // colour" — which was the light-theme one, on a card
+                          // that is dark half the time. labelSmall carries no
+                          // colour at all now (F-11), so the default is named.
+                          color: isOver ? errorColor : mutedColor,
                         ),
                       ),
                     ],

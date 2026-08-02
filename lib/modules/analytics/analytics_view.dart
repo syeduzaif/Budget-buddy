@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../core/animations/animations.dart';
@@ -157,10 +158,12 @@ class _StatCard extends StatelessWidget {
             Icon(icon, color: color, size: AppSpacing.iconS),
             const SizedBox(height: AppSpacing.xs),
             Text(label,
-                style:
-                    AppFonts.labelSmall.copyWith(color: AppColors.textMuted)),
+                style: AppFonts.labelSmall
+                    .copyWith(color: context.semanticColors.textMuted)),
             Text(period,
-                style: AppFonts.caption, overflow: TextOverflow.ellipsis),
+                style: AppFonts.caption
+                    .copyWith(color: context.semanticColors.textMuted),
+                overflow: TextOverflow.ellipsis),
             const SizedBox(height: AppSpacing.xxs),
             Text(value, style: AppFonts.h5, overflow: TextOverflow.ellipsis),
           ],

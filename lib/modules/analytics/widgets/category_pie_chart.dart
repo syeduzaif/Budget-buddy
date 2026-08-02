@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_fonts.dart';
+import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/category_legend.dart';
 import '../../../utils/currency_utils.dart';
@@ -27,7 +28,8 @@ class CategoryPieChart extends StatelessWidget {
         height: 160,
         child: Center(
           child: Text('No spending data',
-              style: AppFonts.bodySmall.copyWith(color: AppColors.textMuted)),
+              style: AppFonts.bodySmall
+                  .copyWith(color: context.semanticColors.textMuted)),
         ),
       );
     }

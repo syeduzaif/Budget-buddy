@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'app_colors.dart';
 import 'app_fonts.dart';
+import 'app_semantic_colors.dart';
 
 /// 🌊 Ocean Depths — Full Material 3 ThemeData
 /// Professional & calming maritime theme for Budget Buddy
+///
+/// Both themes register [AppSemanticColors]; widgets read muted/warning text
+/// through `context.semanticColors` rather than naming a raw token, because
+/// those two colours have a different right answer per brightness.
 class AppTheme {
   AppTheme._();
 
@@ -15,6 +20,7 @@ class AppTheme {
         colorScheme: AppColors.lightScheme,
         scaffoldBackgroundColor: AppColors.background,
         textTheme: AppFonts.textTheme,
+        extensions: <ThemeExtension<dynamic>>[AppSemanticColors.light],
 
         // ── AppBar ────────────────────────────────────────────────
         appBarTheme: AppBarTheme(
@@ -58,6 +64,29 @@ class AppTheme {
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             elevation: 2,
             shadowColor: AppColors.primary.withValues(alpha: 0.30),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            textStyle: AppFonts.buttonLarge,
+          ),
+        ),
+
+        // ── Filled Buttons ────────────────────────────────────────
+        // Save Transaction, Create Category, Add Category — the app's primary
+        // actions. Undefined, M3 fills them with `colorScheme.primary` under
+        // white: #6B7F4E at 4.40:1, just under AA on the one control a user is
+        // meant to aim at. primaryDark under textWhite is 6.42:1 (F-11 2).
+        // The dark theme defines none and needs none: its filled buttons take
+        // primaryLight under a dark on-colour, which already passes.
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primaryDark,
+            foregroundColor: AppColors.textWhite,
+            disabledBackgroundColor:
+                AppColors.primaryDark.withValues(alpha: 0.40),
+            disabledForegroundColor:
+                AppColors.textWhite.withValues(alpha: 0.60),
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
@@ -127,8 +156,15 @@ class AppTheme {
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: AppColors.error, width: 2),
           ),
-          labelStyle: AppFonts.bodyMedium.copyWith(color: AppColors.textMuted),
-          hintStyle: AppFonts.bodyMedium.copyWith(color: AppColors.textMuted),
+          // textSecondary, not the muted token: these two sit on `cardElevated`
+          // (the field fill), where even the retuned #7A705F is 4.30:1 — short
+          // of AA for the label a user reads while typing. #6B604E is 5.43:1
+          // there. The two ICON slots below keep muted: a glyph is not text
+          // and answers to the 3:1 non-text rule (F-11 1f).
+          labelStyle:
+              AppFonts.bodyMedium.copyWith(color: AppColors.textSecondary),
+          hintStyle:
+              AppFonts.bodyMedium.copyWith(color: AppColors.textSecondary),
           prefixIconColor: AppColors.textMuted,
           suffixIconColor: AppColors.textMuted,
         ),
@@ -137,7 +173,11 @@ class AppTheme {
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: AppColors.deepNavy,
           selectedItemColor: AppColors.primaryLight,
-          unselectedItemColor: AppColors.textMuted,
+          // A LIGHT-theme block whose surface is dark, so it takes the
+          // dark-surface muted value. Dead config today (the app uses
+          // NavigationBar), fixed anyway so the trap cannot fire if anyone
+          // switches back to BottomNavigationBar.
+          unselectedItemColor: AppColors.textMutedDark,
           type: BottomNavigationBarType.fixed,
           elevation: 8,
           selectedIconTheme: IconThemeData(size: 26),
@@ -254,7 +294,10 @@ class AppTheme {
         // ── TabBar ────────────────────────────────────────────────
         tabBarTheme: TabBarThemeData(
           labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textMuted,
+          // The app's only TabBar would sit in the app bar — a dark surface in
+          // both themes. Dead config today, pre-fixed for the same reason as
+          // the bottom-nav block above.
+          unselectedLabelColor: AppColors.textMutedDark,
           indicatorColor: AppColors.primary,
           indicatorSize: TabBarIndicatorSize.label,
           labelStyle: AppFonts.labelLarge,
@@ -323,6 +366,7 @@ class AppTheme {
         colorScheme: AppColors.darkScheme,
         scaffoldBackgroundColor: AppColors.backgroundDark,
         textTheme: AppFonts.textTheme,
+        extensions: <ThemeExtension<dynamic>>[AppSemanticColors.dark],
 
         // ── AppBar ────────────────────────────────────────────────
         appBarTheme: AppBarTheme(
@@ -435,17 +479,19 @@ class AppTheme {
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: AppColors.error, width: 1.5),
           ),
-          labelStyle: AppFonts.bodyMedium.copyWith(color: AppColors.textMuted),
-          hintStyle: AppFonts.bodyMedium.copyWith(color: AppColors.textMuted),
-          prefixIconColor: AppColors.textMuted,
-          suffixIconColor: AppColors.textMuted,
+          labelStyle:
+              AppFonts.bodyMedium.copyWith(color: AppColors.textMutedDark),
+          hintStyle:
+              AppFonts.bodyMedium.copyWith(color: AppColors.textMutedDark),
+          prefixIconColor: AppColors.textMutedDark,
+          suffixIconColor: AppColors.textMutedDark,
         ),
 
         // ── Bottom Navigation ─────────────────────────────────────
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: AppColors.surfaceDark,
           selectedItemColor: AppColors.primaryLight,
-          unselectedItemColor: AppColors.textMuted,
+          unselectedItemColor: AppColors.textMutedDark,
           type: BottomNavigationBarType.fixed,
           elevation: 8,
         ),
@@ -463,7 +509,7 @@ class AppTheme {
           iconTheme: WidgetStateProperty.resolveWith(
             (states) => states.contains(WidgetState.selected)
                 ? const IconThemeData(color: AppColors.primaryLight, size: 26)
-                : const IconThemeData(color: AppColors.textMuted, size: 24),
+                : const IconThemeData(color: AppColors.textMutedDark, size: 24),
           ),
           labelTextStyle: WidgetStateProperty.resolveWith(
             (states) => states.contains(WidgetState.selected)
@@ -471,7 +517,7 @@ class AppTheme {
                     color: AppColors.primaryLight,
                     fontWeight: AppFonts.semiBold,
                   )
-                : AppFonts.labelSmall.copyWith(color: AppColors.textMuted),
+                : AppFonts.labelSmall.copyWith(color: AppColors.textMutedDark),
           ),
         ),
 
@@ -552,7 +598,7 @@ class AppTheme {
         // ── TabBar ────────────────────────────────────────────────
         tabBarTheme: const TabBarThemeData(
           labelColor: AppColors.primaryLight,
-          unselectedLabelColor: AppColors.textMuted,
+          unselectedLabelColor: AppColors.textMutedDark,
           indicatorColor: AppColors.primaryLight,
           indicatorSize: TabBarIndicatorSize.label,
         ),
@@ -567,13 +613,13 @@ class AppTheme {
           titleTextStyle:
               AppFonts.bodyLarge.copyWith(color: AppColors.textDark),
           subtitleTextStyle:
-              AppFonts.bodySmall.copyWith(color: AppColors.textMuted),
+              AppFonts.bodySmall.copyWith(color: AppColors.textMutedDark),
           iconColor: AppColors.primaryLight,
         ),
 
         // ── Icon ──────────────────────────────────────────────────
         iconTheme: const IconThemeData(
-          color: AppColors.textMuted,
+          color: AppColors.textMutedDark,
           size: 24,
         ),
 

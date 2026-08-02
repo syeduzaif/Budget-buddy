@@ -18,13 +18,19 @@ import 'app_colors.dart';
 /// warning). `test/theme_text_style_test.dart` pins it.
 ///
 /// ⚠️ **And the mirror image: the getters that DO carry a colour bake a
-/// LIGHT-THEME one.** `bodySmall`, `labelMedium`, `labelSmall`, `caption`,
-/// `overline` and the `button*` styles hardcode `textSecondary`/`textMuted`/
-/// `textWhite`, which on a dark surface measure 2.21:1–2.79:1. Any of them
-/// used inside a widget that renders in both themes needs
-/// `.copyWith(color: Theme.of(context).colorScheme.…)` — that was N6, the same
-/// defect one layer down. Prefer the scheme; reach for a raw token only when
-/// the surface it sits on is fixed by the same token set.
+/// LIGHT-THEME one.** `bodySmall`, `labelMedium` and the `button*` styles
+/// hardcode `textSecondary`/`textWhite`, which on a dark surface measure
+/// 2.21:1–2.79:1. Any of them used inside a widget that renders in both themes
+/// needs `.copyWith(color: …)` — that was N6, the same defect one layer down.
+/// Prefer the scheme, or `context.semanticColors` (see
+/// `app_semantic_colors.dart`) for muted/warning text; reach for a raw
+/// `AppColors` token only when the surface it sits on is fixed by the same
+/// token set.
+///
+/// `labelSmall`, `caption` and `overline` USED to bake the muted token. They no
+/// longer carry a colour at all (F-11): muted has two values now — one per
+/// brightness — so a single baked one was wrong in whichever theme it was not
+/// written for. Give them a colour at the call site.
 class AppFonts {
   AppFonts._();
 
@@ -123,10 +129,10 @@ class AppFonts {
         height: 1.4,
       );
 
+  /// Colourless on purpose — see the note atop this class.
   static TextStyle get labelSmall => GoogleFonts.sourceSans3(
         fontSize: sizeXs,
         fontWeight: medium,
-        color: AppColors.textMuted,
         height: 1.4,
       );
 
@@ -156,17 +162,17 @@ class AppFonts {
       );
 
   // ─── Caption & Overline ───────────────────────────────────────
+  /// Colourless on purpose — see the note atop this class.
   static TextStyle get caption => GoogleFonts.sourceSans3(
         fontSize: sizeXs,
         fontWeight: regular,
-        color: AppColors.textMuted,
         height: 1.3,
       );
 
+  /// Colourless on purpose — see the note atop this class.
   static TextStyle get overline => GoogleFonts.sourceSans3(
         fontSize: sizeXs,
         fontWeight: medium,
-        color: AppColors.textMuted,
         height: 1.3,
         letterSpacing: 1.5,
       );

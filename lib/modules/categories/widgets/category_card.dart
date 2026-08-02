@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_fonts.dart';
 import '../../../core/widgets/category_icon.dart';
@@ -64,7 +64,7 @@ class CategoryCard extends StatelessWidget {
                     // does not.
                     icon: const Icon(Icons.edit_outlined, size: 18),
                     onPressed: onEdit,
-                    color: AppColors.textMuted,
+                    color: context.semanticColors.textMuted,
                   ),
                 ],
               ),

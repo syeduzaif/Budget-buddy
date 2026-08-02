@@ -15,6 +15,16 @@ class SplashView extends StatefulWidget {
 }
 
 class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
+  /// How long the splash is held before routing on.
+  ///
+  /// 1800 ms was a deliberate stall in front of a local-only app that has
+  /// nothing to wait for: no sign-in, no network, no remote config. 800 ms is
+  /// long enough for the logo's spring to read and short enough that the app
+  /// feels instant (F-11 3). The tagline and version fades were tuned to the
+  /// old hold and now outlive it — decorative, and not worth re-timing a
+  /// screen the owner wants gone from the critical path.
+  static const Duration _holdBeforeRoute = Duration(milliseconds: 800);
+
   late final AnimationController _logoController;
   late final AnimationController _textController;
   late final AnimationController _dotsController;
@@ -93,8 +103,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
       if (mounted) _textController.forward();
     });
 
-    // Navigate after minimum 1.5s
-    Future.delayed(const Duration(milliseconds: 1800), _navigate);
+    Future.delayed(_holdBeforeRoute, _navigate);
   }
 
   void _navigate() {
@@ -236,8 +245,13 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                     child: Text(
                       AppConstants.appTagline,
                       style: AppFonts.bodyLarge.copyWith(
+                        // This screen branches on brightness by hand (it paints
+                        // its own gradient, so it knows its surface better than
+                        // the theme does) — which is why the split shows up
+                        // here as two named tokens rather than the context
+                        // accessor.
                         color: isDark
-                            ? AppColors.textMuted
+                            ? AppColors.textMutedDark
                             : AppColors.textSecondary,
                       ),
                     ),
@@ -283,7 +297,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                       'v${AppConstants.appVersion}',
                       style: AppFonts.caption.copyWith(
                         color: isDark
-                            ? AppColors.textMuted.withValues(alpha: 0.6)
+                            ? AppColors.textMutedDark.withValues(alpha: 0.6)
                             : AppColors.textMuted,
                       ),
                     ),
