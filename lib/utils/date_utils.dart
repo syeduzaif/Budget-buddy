@@ -82,6 +82,14 @@ class AppDateUtils {
     return DateFormat('MMMM yyyy').format(parsed);
   }
 
+  /// Just the month's name — `August`. For copy that already sits under the
+  /// full `August 2026` header and would only repeat the year.
+  static String formatMonthName(String monthKeyString) {
+    final parsed = parseMonthKey(monthKeyString);
+    if (parsed == null) return monthKeyString;
+    return DateFormat('MMMM').format(parsed);
+  }
+
   /// `Aug '26`. The apostrophe is deliberate: `MMM yy` renders "Aug 26",
   /// which reads as the 26th of August on a chart axis (UI-12). `''` is an
   /// escaped literal apostrophe in an ICU pattern; the rest stays localised.

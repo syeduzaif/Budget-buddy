@@ -7,6 +7,7 @@ import '../../../core/utils/budget_status.dart';
 import '../../../core/widgets/category_icon.dart';
 import '../../../data/models/category.dart';
 import '../../../utils/currency_utils.dart';
+import '../../../utils/date_utils.dart';
 
 class CategoryBudgetList extends StatelessWidget {
   final List<Category> categories;
@@ -14,6 +15,16 @@ class CategoryBudgetList extends StatelessWidget {
   /// Spend per category id, in minor units.
   final Map<String, int> spentMinorByCategory;
   final Currency currency;
+
+  /// The month being viewed, `"YYYY-MM"` — named in the title when it is not
+  /// the current one.
+  final String monthKey;
+
+  /// False when the user has browsed back. "This Month's Budgets" rendered
+  /// over July's numbers is a false statement about which month is which
+  /// (F-10.3).
+  final bool isCurrentMonth;
+
   final VoidCallback? onSeeAll;
 
   const CategoryBudgetList({
@@ -21,6 +32,8 @@ class CategoryBudgetList extends StatelessWidget {
     required this.categories,
     required this.spentMinorByCategory,
     required this.currency,
+    required this.monthKey,
+    required this.isCurrentMonth,
     this.onSeeAll,
   });
 
@@ -77,9 +90,25 @@ class CategoryBudgetList extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("This Month's Budgets", style: AppFonts.h6),
+            Flexible(
+              child: Text(
+                isCurrentMonth
+                    ? "This Month's Budgets"
+                    // No year: the app bar directly above already says
+                    // "July 2025". The possessive is English-only, which the
+                    // whole app currently is.
+                    : "${AppDateUtils.formatMonthName(monthKey)}'s Budgets",
+                style: AppFonts.h6,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             if (onSeeAll != null)
-              TextButton(onPressed: onSeeAll, child: const Text('See All')),
+              // Not "See All": this button leaves the dashboard for another
+              // tab, which is the disorienting kind of navigation, so it names
+              // where it goes (FD-3). The Recent list's own "See All" stays.
+              TextButton(
+                  onPressed: onSeeAll, child: const Text('All Categories')),
           ],
         ),
         const SizedBox(height: AppSpacing.s),

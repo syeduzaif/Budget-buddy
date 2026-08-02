@@ -6,7 +6,6 @@ import '../../core/theme/app_fonts.dart';
 import '../../core/animations/animations.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/currency_utils.dart';
-import '../../utils/date_utils.dart';
 import '../home/home_controller.dart';
 import 'dashboard_controller.dart';
 import 'widgets/summary_card.dart';
@@ -28,8 +27,7 @@ class DashboardView extends StatelessWidget {
           // into the month it lands on. Stop at the real current month — the
           // date picker already refuses future dates, so a future month could
           // only ever hold cloned categories and no transactions (UI-06).
-          final atCurrentMonth = ctrl.settings.currentMonth.value ==
-              AppDateUtils.monthKey(DateTime.now());
+          final atCurrentMonth = ctrl.isViewingCurrentMonth;
           return MonthSwitcher(
             monthKey: ctrl.settings.currentMonth.value,
             onPrevious: ctrl.goToPreviousMonth,
@@ -63,6 +61,7 @@ class DashboardView extends StatelessWidget {
         // in light and readable in dark.
         final colorScheme = Theme.of(context).colorScheme;
         final currency = ctrl.settings.currency;
+        final atCurrentMonth = ctrl.isViewingCurrentMonth;
         final spentMinorByCategory = {
           for (final cat in ctrl.categories)
             cat.id: ctrl.spentForCategoryMinor(cat.id)
@@ -118,7 +117,15 @@ class DashboardView extends StatelessWidget {
                       const SizedBox(width: AppSpacing.s),
                       Expanded(
                         child: SummaryCard(
-                          label: 'Remaining',
+                          // "Remaining" is a promise about a month that is
+                          // still running. On a closed month the same number
+                          // is just what went unspent — and it is measured
+                          // against TODAY's income either way, which is the
+                          // residual honesty problem per-month income solves
+                          // later (G6). The card is not suppressed: the two-up
+                          // Row is fixed, and a month that renders one card
+                          // instead of two reads as data loss.
+                          label: atCurrentMonth ? 'Remaining' : 'Unspent',
                           amount: CurrencyUtils.formatAmount(
                               ctrl.remainingMinor, currency),
                           icon: Icons.savings_outlined,
@@ -167,6 +174,8 @@ class DashboardView extends StatelessWidget {
                         categories: ctrl.categories,
                         spentMinorByCategory: spentMinorByCategory,
                         currency: currency,
+                        monthKey: ctrl.settings.currentMonth.value,
+                        isCurrentMonth: atCurrentMonth,
                         // The Categories tab, not the New Category form
                         // (UI-05).
                         onSeeAll: ctrl.categories.length > 4

@@ -40,6 +40,8 @@ void main() {
     required List<Category> categories,
     required Map<String, int> spent,
     ThemeData? theme,
+    String monthKey = '2026-08',
+    bool isCurrentMonth = true,
   }) =>
       tester.pumpWidget(MaterialApp(
         theme: theme ?? AppTheme.light,
@@ -49,6 +51,8 @@ void main() {
             categories: categories,
             spentMinorByCategory: spent,
             currency: pkr,
+            monthKey: monthKey,
+            isCurrentMonth: isCurrentMonth,
           ),
         ),
       ));

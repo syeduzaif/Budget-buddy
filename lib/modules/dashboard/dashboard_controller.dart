@@ -49,6 +49,17 @@ class DashboardController extends GetxController {
   bool _isCurrentMonth(TransactionItem t) =>
       AppDateUtils.getMonthKeyFromDate(t.date) == settings.currentMonth.value;
 
+  /// True when the dashboard is showing the month the user is actually living
+  /// in, as opposed to one they browsed back to.
+  ///
+  /// Three separate pieces of copy hang off this answer — whether the forward
+  /// chevron is inert, whether the budgets card says "This Month's" or names
+  /// the month, and whether the second summary card claims money is
+  /// "Remaining" (a promise about the future) or merely "Unspent" (a fact
+  /// about a month that already ended). Asked once so they cannot disagree.
+  bool get isViewingCurrentMonth =>
+      settings.currentMonth.value == AppDateUtils.getCurrentMonthKey();
+
   @override
   void onInit() {
     super.onInit();
