@@ -18,7 +18,16 @@ class HomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ctrl = Get.put(HomeController());
+    // Delete-then-put, the pattern `_openTransactionForm` below already uses:
+    // HomeController now registers a WidgetsBindingObserver, and a plain
+    // `Get.put` over an existing registration would leave the previous
+    // instance's observer attached with nothing to dispose it. One Home entry,
+    // one controller, one observer.
+    if (Get.isRegistered<HomeController>()) Get.delete<HomeController>();
+    final ctrl = Get.put(HomeController(
+      settings: Get.find<SettingsService>(),
+      categoryRepo: Get.find<CategoryRepository>(),
+    ));
 
     Get.lazyPut(() => DashboardController(
           categoryRepo: Get.find<CategoryRepository>(),
