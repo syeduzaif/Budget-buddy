@@ -1,8 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Backup is EXPLICIT and SCOPED (F-12).
+
+         allowBackup was absent, which means it defaulted to true from API 23
+         on: every supported device (minSdk 24) was already backing this app up
+         with no rules at all. The choice was never "backup or no backup" — it
+         was "the platform's unscoped default, or ours". These three attributes
+         make it ours, and the two rules files below say exactly what travels.
+
+         Zero permissions are involved: application attributes and resources
+         only. -->
     <application
         android:label="BuddgetBuddy"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:icon="@mipmap/launcher_icon"
+        android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
             android:name=".MainActivity"
             android:exported="true"

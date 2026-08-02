@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Data-extraction rules for API 31+ (android:dataExtractionRules).
+  backup_rules.xml covers API 24-30; the two must be kept in step.
+
+  Same single include as the legacy file — <app data dir>/app_flutter, where
+  Hive.initFlutter() puts settings_local, categories and transactions (engine
+  PathUtils resolves the Flutter documents directory there). Include-mode, so
+  the empty exclude set is the point: everything not named stays behind, and a
+  box added later is covered without editing this file.
+
+  device-transfer is spelled out rather than omitted: leaving the section out
+  does not disable device-to-device transfer, it leaves it on the platform's
+  unscoped defaults, which is the situation this ticket exists to end.
+
+  disableIfNoEncryptionCapabilities="false" is set EXPLICITLY, and it is a
+  conscious tradeoff (FD-8), not an oversight. True would silently skip cloud
+  backup on any device without a lock screen — which is a large share of the
+  audience this app is for, and precisely the people who lose a phone and lose
+  everything. The data is budget amounts on a device with no account and no
+  network, not credentials. Revisit if anything sensitive is ever stored.
+-->
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapabilities="false">
+        <include domain="root" path="app_flutter"/>
+    </cloud-backup>
+    <device-transfer>
+        <include domain="root" path="app_flutter"/>
+    </device-transfer>
+</data-extraction-rules>

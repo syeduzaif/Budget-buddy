@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Auto Backup rules for API 24-30 (android:fullBackupContent).
+  API 31+ reads data_extraction_rules.xml instead; both must be kept in step.
+
+  What travels, and why this one path is enough:
+
+    Hive.initFlutter() is called with no sub-directory, so Hive asks
+    path_provider for the app documents directory. On Android the Flutter
+    engine's PathUtils returns <app data dir>/app_flutter for that. All three
+    boxes — settings_local, categories, transactions — are files directly
+    inside it.
+
+  Include-mode, so this is also the exclude list: naming one directory means
+  everything else is left behind by construction, and the platform excludes
+  cache directories regardless. The exclude set is deliberately EMPTY. Do not
+  "tighten" this into per-file includes — a box added later would then be
+  silently left out of every backup, which is the exact failure this file
+  exists to prevent.
+-->
+<full-backup-content>
+    <include domain="root" path="app_flutter"/>
+</full-backup-content>

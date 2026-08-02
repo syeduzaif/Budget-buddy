@@ -230,10 +230,19 @@ class SettingsView extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Erase all data?'),
+        // This used to promise that no backup of the data existed anywhere,
+        // which was false on both platforms: Android has backed this app up by
+        // default since API 23, and the iOS documents directory is in
+        // iCloud/device backups. Saying it in the one dialog a user reads
+        // before wiping their records is a straight lie, so the last sentence
+        // now tells them where a copy may survive. Platform-neutral on purpose
+        // — the old line was wrong on both sides, so branching on the platform
+        // would only have produced two wrong answers (F-12).
         content: const Text(
           'This deletes every category, transaction and preference stored on '
-          'this device. Nothing is backed up anywhere, so it cannot be undone. '
-          'You will be taken back through setup.',
+          'this device, and takes you back through setup. The app keeps no '
+          'other copy and cannot undo this. If your phone\'s own backup is '
+          'switched on, a copy may still exist there.',
         ),
         actions: [
           TextButton(
