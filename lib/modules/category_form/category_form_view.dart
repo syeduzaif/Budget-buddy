@@ -6,7 +6,6 @@ import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../core/utils/app_icons.dart';
-import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../services/app/settings_service.dart';
 import '../../utils/validators.dart';
@@ -75,19 +74,29 @@ class CategoryFormView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Quick-select chips (only when creating, not editing)
-              if (!ctrl.isEditing) ...[
-                Text('Quick Select', style: AppFonts.labelLarge),
-                const SizedBox(height: AppSpacing.s),
-                Obx(() => Wrap(
-                      spacing: AppSpacing.s,
-                      runSpacing: AppSpacing.s,
-                      children: List.generate(
-                        kPredefinedCategories.length,
-                        (i) {
-                          final preset = kPredefinedCategories[i];
-                          final isSelected =
-                              ctrl.selectedPresetIndex.value == i;
+              // Quick-select chips (only when creating, not editing), and only
+              // for presets this month does not already have. When all nine
+              // exist the header, the chips and the divider all go — there is
+              // nothing left to introduce (F-08 spec 1).
+              if (!ctrl.isEditing)
+                Obx(() {
+                  final presets = ctrl.availablePresets;
+                  if (presets.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('Quick Select', style: AppFonts.labelLarge),
+                      const SizedBox(height: AppSpacing.s),
+                      Wrap(
+                        spacing: AppSpacing.s,
+                        runSpacing: AppSpacing.s,
+                        children: presets.map((entry) {
+                          // The preset's index in the full list, not its
+                          // position among the survivors: selectPreset speaks
+                          // the former.
+                          final i = entry.key;
+                          final preset = entry.value;
+                          final isSelected = ctrl.selectedPresetIndex.value == i;
                           final chipColor = Color(preset.colorValue);
                           return GestureDetector(
                             onTap: () => ctrl.selectPreset(i),
@@ -136,32 +145,36 @@ class CategoryFormView extends StatelessWidget {
                               ),
                             ),
                           );
-                        },
+                        }).toList(),
                       ),
-                    )),
-                const SizedBox(height: AppSpacing.l),
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: AppSpacing.s),
-                      child: Text('or customize below',
-                          style: AppFonts.caption.copyWith(
-                              color: context.semanticColors.textMuted)),
-                    ),
-                    const Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.l),
-              ],
+                      const SizedBox(height: AppSpacing.l),
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s),
+                            child: Text('or customize below',
+                                style: AppFonts.caption.copyWith(
+                                    color: context.semanticColors.textMuted)),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.l),
+                    ],
+                  );
+                }),
               TextFormField(
                 controller: ctrl.nameController,
                 decoration: const InputDecoration(
                   labelText: 'Category Name',
                   prefixIcon: Icon(Icons.label_outline),
                 ),
-                validator: Validators.categoryName,
+                // The month's namespace on top of the shared rules: a second
+                // "Food" splits one month's spend across two
+                // authoritative-looking rows.
+                validator: ctrl.validateName,
               ),
               const SizedBox(height: AppSpacing.m),
               TextFormField(

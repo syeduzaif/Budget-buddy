@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/constants/app_constants.dart';
 import '../../data/models/category.dart';
 import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../services/app/settings_service.dart';
 import '../../utils/currency_utils.dart';
+import '../../utils/validators.dart';
 import 'package:uuid/uuid.dart';
 
 class CategoryFormController extends GetxController {
@@ -19,6 +21,10 @@ class CategoryFormController extends GetxController {
   final selectedIconCodePoint = Rxn<int>();
   final isLoading = false.obs;
   final selectedPresetIndex = Rxn<int>();
+
+  /// Every category already in [targetMonth]. Live, because it decides both
+  /// which Quick Select chips exist and whether a name is taken.
+  final monthCategories = <Category>[].obs;
 
   Category? editingCategory;
 
@@ -62,6 +68,11 @@ class CategoryFormController extends GetxController {
 
   bool get isEditing => editingCategory != null;
 
+  /// The month the saved category lives in: the viewed month for a new one, the
+  /// record's own month for an edit — a rename does not move a category, and
+  /// each month is its own namespace by construction (F-08 out-of-scope note).
+  String get targetMonth => editingCategory?.month ?? settings.effectiveMonth;
+
   @override
   void onInit() {
     super.onInit();
@@ -75,7 +86,77 @@ class CategoryFormController extends GetxController {
       selectedColor.value = Color(arg.colorValue);
       selectedIconCodePoint.value = arg.iconCodePoint;
     }
+
+    categoryRepo.getCategories().listen(
+      (list) => monthCategories
+          .assignAll(list.where((c) => c.month == targetMonth).toList()),
+      onError: (Object e, StackTrace s) {
+        // The local store swallows read failures and re-emits the last good
+        // snapshot, so this should never fire — but every listener carries
+        // onError so a future failing source cannot kill the stream silently
+        // (H2).
+        debugPrint('[CategoryFormController] category stream failed: $e\n$s');
+      },
+    );
   }
+
+  // --- Name rules -------------------------------------------------------------
+  //
+  // Tapping "Food" when a Food already exists used to create a second Food with
+  // its own budget, and the month's spend then split across two
+  // authoritative-looking rows: one tap to a data-quality defect that nothing in
+  // the app could tell you about afterwards (F-08).
+
+  /// The category in [targetMonth] that already answers to [name], if any.
+  ///
+  /// Trimmed and case-insensitive — "Food " and "food" are the same category to
+  /// a person, and the attribution resolver already treats them that way, so a
+  /// stricter compare here would let it mint duplicates the resolver then has to
+  /// pick between. An edit never collides with ITSELF.
+  Category? existingWithName(String name) {
+    final key = name.trim().toLowerCase();
+    if (key.isEmpty) return null;
+    for (final c in monthCategories) {
+      if (c.id == editingCategory?.id) continue;
+      if (c.name.trim().toLowerCase() == key) return c;
+    }
+    return null;
+  }
+
+  /// The form's name validator: the shared rules, then this month's namespace.
+  ///
+  /// An inline field error rather than a snackbar — this is a validation, not a
+  /// write that failed (F-08 spec 2). The message names the category that is
+  /// already there, in ITS spelling, so "food" is answered with the Food the
+  /// user actually has.
+  String? validateName(String? value) {
+    final basic = Validators.categoryName(value);
+    if (basic != null) return basic;
+
+    final name = value!.trim();
+    if (isReservedCategoryName(name)) {
+      // The system bucket. Blocked for creation AND as a rename target —
+      // without the second half, renaming any category to "Uncategorised"
+      // hijacks the bucket the attribution resolver depends on.
+      return '"$kUncategorisedCategoryName" is a reserved name';
+    }
+    final clash = existingWithName(name);
+    if (clash != null) {
+      return 'You already have a "${clash.name}" category';
+    }
+    return null;
+  }
+
+  /// The presets worth offering: those whose name is not already taken in
+  /// [targetMonth], each paired with its index in [kPredefinedCategories] —
+  /// [selectPreset] speaks that index, so filtering must not renumber.
+  ///
+  /// Empty when all nine exist, and the view then drops the whole section.
+  List<MapEntry<int, PredefinedCategory>> get availablePresets => [
+        for (var i = 0; i < kPredefinedCategories.length; i++)
+          if (existingWithName(kPredefinedCategories[i].name) == null)
+            MapEntry(i, kPredefinedCategories[i]),
+      ];
 
   @override
   void onClose() {
@@ -120,6 +201,11 @@ class CategoryFormController extends GetxController {
     final budgetMinor = CurrencyUtils.tryParseToMinor(
         budgetController.text, settings.currency);
     if (name.isEmpty || budgetMinor == null || budgetMinor <= 0) return;
+    // The form's validator is what the user sees; this is the same rule again so
+    // the write itself cannot mint a duplicate, exactly as the amount check
+    // above guards the money. (The reserved name has a third guard in the
+    // repository, which throws.)
+    if (validateName(nameController.text) != null) return;
 
     isLoading.value = true;
     try {

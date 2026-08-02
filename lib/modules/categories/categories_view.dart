@@ -118,10 +118,17 @@ class CategoriesView extends StatelessWidget {
                             'month': cat.month,
                           },
                         ),
-                        onEdit: () => Get.toNamed(
-                          AppRoutes.categoryForm,
-                          arguments: cat,
-                        ),
+                        // No pencil on the reserved bucket: the repository
+                        // refuses to rename or delete it, and an affordance
+                        // that exists only to refuse is worse than none
+                        // (danish 8b, FD-12). Its swipe-to-delete is already
+                        // absent below, for the same reason.
+                        onEdit: isReservedCategoryName(cat.name)
+                            ? null
+                            : () => Get.toNamed(
+                                  AppRoutes.categoryForm,
+                                  arguments: cat,
+                                ),
                       ),
                     ),
                   );

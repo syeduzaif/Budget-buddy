@@ -14,7 +14,11 @@ class CategoryCard extends StatelessWidget {
   final int spentMinor;
   final Currency currency;
   final VoidCallback onTap;
-  final VoidCallback onEdit;
+
+  /// Opens the category for editing. Null renders NO pencil at all — the
+  /// reserved bucket cannot be renamed or deleted, so the affordance is absent
+  /// rather than present-and-refusing (danish 8b / FD-12).
+  final VoidCallback? onEdit;
 
   const CategoryCard({
     super.key,
@@ -22,7 +26,7 @@ class CategoryCard extends StatelessWidget {
     required this.spentMinor,
     required this.currency,
     required this.onTap,
-    required this.onEdit,
+    this.onEdit,
   });
 
   @override
@@ -58,15 +62,16 @@ class CategoryCard extends StatelessWidget {
                         style: AppFonts.labelLarge,
                         overflow: TextOverflow.ellipsis),
                   ),
-                  IconButton(
-                    // The overrides that used to be here (zero padding, empty
-                    // constraints) stripped the 48dp minimum target off an
-                    // 18dp glyph (UI-07). The glyph stays small; the target
-                    // does not.
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    onPressed: onEdit,
-                    color: context.semanticColors.textMuted,
-                  ),
+                  if (onEdit != null)
+                    IconButton(
+                      // The overrides that used to be here (zero padding, empty
+                      // constraints) stripped the 48dp minimum target off an
+                      // 18dp glyph (UI-07). The glyph stays small; the target
+                      // does not.
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      onPressed: onEdit,
+                      color: context.semanticColors.textMuted,
+                    ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
