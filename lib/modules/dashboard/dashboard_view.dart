@@ -11,6 +11,7 @@ import '../home/home_controller.dart';
 import 'dashboard_controller.dart';
 import 'widgets/summary_card.dart';
 import 'widgets/category_budget_list.dart';
+import 'widgets/month_switcher.dart';
 import 'widgets/spending_donut_chart.dart';
 
 class DashboardView extends StatelessWidget {
@@ -29,25 +30,12 @@ class DashboardView extends StatelessWidget {
           // only ever hold cloned categories and no transactions (UI-06).
           final atCurrentMonth = ctrl.settings.currentMonth.value ==
               AppDateUtils.monthKey(DateTime.now());
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: ctrl.goToPreviousMonth,
-                padding: EdgeInsets.zero,
-              ),
-              Text(
-                AppDateUtils.formatMonthKey(ctrl.settings.currentMonth.value),
-                style: AppFonts.h6,
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                // null gives the built-in disabled treatment.
-                onPressed: atCurrentMonth ? null : ctrl.goToNextMonth,
-                padding: EdgeInsets.zero,
-              ),
-            ],
+          return MonthSwitcher(
+            monthKey: ctrl.settings.currentMonth.value,
+            onPrevious: ctrl.goToPreviousMonth,
+            // Null is the disabled state; MonthSwitcher owns what disabled
+            // looks like on a dark app bar, which the M3 default got wrong.
+            onNext: atCurrentMonth ? null : ctrl.goToNextMonth,
           );
         }),
         centerTitle: true,
