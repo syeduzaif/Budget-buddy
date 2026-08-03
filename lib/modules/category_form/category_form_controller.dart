@@ -200,7 +200,10 @@ class CategoryFormController extends GetxController {
     // Text → minor units directly (C4): no double.parse, no multiply by 100.
     final budgetMinor = CurrencyUtils.tryParseToMinor(
         budgetController.text, settings.currency);
-    if (name.isEmpty || budgetMinor == null || budgetMinor <= 0) return;
+    // `< 0`, not `<= 0`: a limit of 0 is F-09's "No limit" state, so the write
+    // guard has to allow through exactly what `Validators.budgetLimit` allows
+    // (BUG-001). A blank field parses to null and is still refused here.
+    if (name.isEmpty || budgetMinor == null || budgetMinor < 0) return;
     // The form's validator is what the user sees; this is the same rule again so
     // the write itself cannot mint a duplicate, exactly as the amount check
     // above guards the money. (The reserved name has a third guard in the

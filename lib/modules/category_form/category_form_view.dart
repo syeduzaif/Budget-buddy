@@ -194,7 +194,11 @@ class CategoryFormView extends StatelessWidget {
                   // duplicated the symbol once focused ("₨ ₨0.00") — N1.
                   floatingLabelBehavior: FloatingLabelBehavior.always,
                 ),
-                validator: Validators.amount(ctrl.settings.currency),
+                // Not `Validators.amount`: 0 is F-09's "No limit" state, and
+                // refusing it here was the only reason a user-created category
+                // could never reach it (BUG-001). An EMPTY field is still
+                // refused — see `budgetLimit`.
+                validator: Validators.budgetLimit(ctrl.settings.currency),
               ),
               const SizedBox(height: AppSpacing.l),
               Text('Pick an Icon', style: AppFonts.labelLarge),
