@@ -256,7 +256,7 @@ void main() {
       await pressSave(tester, 'Save Changes',
           until: () => store.readTransactions().single.amountMinor == 125000);
 
-      expect(find.text('Updated — ₨1,250 in Food'), findsOneWidget);
+      expect(find.text('Updated — ₨1,250.00 in Food'), findsOneWidget);
       expect(find.text('Undo'), findsNothing,
           reason: 'the sheet reopens on a tap — one safety mechanism per '
               'action (F-07 rule 3)');

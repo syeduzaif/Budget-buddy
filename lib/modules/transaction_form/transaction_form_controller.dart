@@ -333,14 +333,14 @@ class TransactionFormController extends GetxController {
       // so a wrong correction is corrected the same way it was made. One
       // safety mechanism per action.
       _confirm('Updated — '
-          '${_compact(amountMinor)} in ${resolution.category.name}');
+          '${_exact(amountMinor)} in ${resolution.category.name}');
     } else if (createdId != null) {
       // The proof the log landed, and the only chance to take it back — the
       // sheet is closed and the row is one tap deep, so this is the moment an
       // Undo is worth anything.
       final undoId = createdId;
       _confirm(
-        '${_compact(amountMinor)} added to ${resolution.category.name}',
+        '${_exact(amountMinor)} added to ${resolution.category.name}',
         action: TextButton(
           onPressed: () => _undoCreate(undoId),
           style: TextButton.styleFrom(
@@ -402,8 +402,16 @@ class TransactionFormController extends GetxController {
     // from Recent and the totals dropping back are the message (F-05 rule 2).
   }
 
-  String _compact(int amountMinor) =>
-      CurrencyUtils.formatAmountCompact(amountMinor, settings.currency);
+  /// The amount a confirmation names: exact, currency-formatted.
+  ///
+  /// Deliberately NOT [CurrencyUtils.formatAmountCompact], which rounds to
+  /// whole major units — a ₨0.50 expense stored exactly was announced as "₨1
+  /// added to Food", i.e. an amount that exists nowhere in the data, and
+  /// anything under ₨0.50 would have read "₨0" (BUG-082). The compact
+  /// formatter is for tight rows; a confirmation is the proof of what landed,
+  /// and F-05 AC-1 asks for the exact amount.
+  String _exact(int amountMinor) =>
+      CurrencyUtils.formatAmount(amountMinor, settings.currency);
 
   /// One line of confirmation, optionally a second line of detail, optionally
   /// carrying the only action that can undo it.

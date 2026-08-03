@@ -194,15 +194,32 @@ void main() {
     await pumpHost(tester);
     await logExpense(tester, '2450', expectedRows: 1);
 
-    expect(find.text('₨2,450 added to Food'), findsOneWidget,
-        reason: 'compact amount, exact category (danish A3)');
+    expect(find.text('₨2,450.00 added to Food'), findsOneWidget,
+        reason: 'the exact amount, currency-formatted, and the exact category');
     expect(find.text('Undo'), findsOneWidget);
 
     // AC-1's second half: it goes away on its own.
     await drainSnackbar(tester);
-    expect(find.text('₨2,450 added to Food'), findsNothing);
+    expect(find.text('₨2,450.00 added to Food'), findsNothing);
     expect(find.text('Undo'), findsNothing,
         reason: 'AC-4: no ghost affordance once the window has closed');
+  });
+
+  testWidgets('AC-1: sub-unit amounts are named, not rounded', (tester) async {
+    await pumpHost(tester);
+    // Leading dot and all — the app accepts it, so the confirmation has to
+    // survive it.
+    await logExpense(tester, '.50', expectedRows: 1);
+
+    expect(store.readTransactions().single.amountMinor, 50,
+        reason: 'the ledger was always right; the bar was the liar (BUG-082)');
+    expect(find.text('₨0.50 added to Food'), findsOneWidget);
+    expect(find.text('₨1 added to Food'), findsNothing,
+        reason: 'the compact formatter rounds half-up, so it announced an '
+            'amount that exists nowhere in the data — and anything under ₨0.50 '
+            'would have read "₨0 added to Food"');
+
+    await drainSnackbar(tester);
   });
 
   testWidgets('AC-2: Undo removes the transaction it named', (tester) async {
@@ -247,15 +264,15 @@ void main() {
       (tester) async {
     await pumpHost(tester);
     await logExpense(tester, '2450', expectedRows: 1);
-    expect(find.text('₨2,450 added to Food'), findsOneWidget);
+    expect(find.text('₨2,450.00 added to Food'), findsOneWidget);
 
     // Well inside the first confirmation's window. Snackbars queue, so without
     // closeCurrentSnackbar this one would appear ~4 s from now still naming
     // ₨2,450 — with an Undo pointing at the first row.
     await logExpense(tester, '800', expectedRows: 2);
 
-    expect(find.text('₨800 added to Food'), findsOneWidget);
-    expect(find.text('₨2,450 added to Food'), findsNothing,
+    expect(find.text('₨800.00 added to Food'), findsOneWidget);
+    expect(find.text('₨2,450.00 added to Food'), findsNothing,
         reason: 'the stale confirmation is closed, not queued behind');
     expect(store.readTransactions(), hasLength(2));
 
@@ -266,7 +283,7 @@ void main() {
       (tester) async {
     await pumpHost(tester);
     await logExpense(tester, '2450', expectedRows: 1);
-    expect(find.text('₨2,450 added to Food'), findsOneWidget);
+    expect(find.text('₨2,450.00 added to Food'), findsOneWidget);
 
     // The rhythm BUG-080 was measured in: the next tab tap comes while the
     // confirmation is still on screen. The bar used to sit ON the tab bar and
