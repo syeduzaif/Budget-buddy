@@ -31,6 +31,36 @@ class CategoriesController extends GetxController {
               c.name.toLowerCase().contains(searchQuery.value.toLowerCase()))
           .toList();
 
+  /// True when the list on screen is a search result, empty or not.
+  bool get isSearching => searchQuery.value.trim().isNotEmpty;
+
+  /// Title for the NO-RESULTS state, naming what was searched for.
+  ///
+  /// A search that matches nothing used to render the FIRST-RUN empty state —
+  /// "No categories yet / Tap + to create your first budget category" plus an
+  /// Add Category button — with eleven categories on file. Every word of that
+  /// was false, and the button pushed the user toward creating a duplicate of
+  /// the category the search had merely failed to match: a typo'd "Fod" invited
+  /// a second Food (BUG-002).
+  ///
+  /// Pure and static like `TransactionsController.emptyCopyFor`, for the same
+  /// reason: the copy is the fix, so it is readable and testable without a
+  /// widget. The fallback wording covers a query that is only whitespace —
+  /// there is nothing to quote, but the state is still a search.
+  static String searchEmptyTitleFor(String query) {
+    final trimmed = query.trim();
+    return trimmed.isEmpty
+        ? 'No categories match your search'
+        : 'No categories match "$trimmed"';
+  }
+
+  /// The one muted line beneath [searchEmptyTitleFor].
+  ///
+  /// Describes the way out that the screen actually has — the search field's own
+  /// clear button, one row up — and offers no creation affordance, which is the
+  /// half of BUG-002 that could cost the user data quality.
+  static const String searchEmptyLine = 'Try a different search.';
+
   /// Spend for one category this month, in minor units (exact integer sum).
   int spentForCategoryMinor(String categoryId) => transactions
       .where((t) =>

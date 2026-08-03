@@ -69,6 +69,45 @@ class CategoriesView extends StatelessWidget {
               };
 
               if (list.isEmpty) {
+                // Two different nothings. A search that matched nothing used to
+                // render the first-run state — false with eleven categories on
+                // file, and its Add button invited a duplicate of whatever the
+                // search had merely failed to match (BUG-002). The house
+                // pattern (icon 64 · h6 · one muted line) is the same; the
+                // words, the glyph and the absence of a CTA are not.
+                if (ctrl.isSearching) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.search_off,
+                              size: 64,
+                              color: context.semanticColors.textMuted),
+                          const SizedBox(height: AppSpacing.m),
+                          Text(
+                            CategoriesController.searchEmptyTitleFor(
+                                ctrl.searchQuery.value),
+                            style: AppFonts.h6,
+                            textAlign: TextAlign.center,
+                            // A long query must not push the line below it off
+                            // the screen; the quoted text ellipsizes instead.
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: AppSpacing.s),
+                          Text(CategoriesController.searchEmptyLine,
+                              textAlign: TextAlign.center,
+                              style: AppFonts.bodySmall.copyWith(
+                                  color: context.semanticColors.textMuted)),
+                          // Deliberately no button: the way out is the search
+                          // field's own clear (×), one row up.
+                        ],
+                      ),
+                    ),
+                  );
+                }
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
