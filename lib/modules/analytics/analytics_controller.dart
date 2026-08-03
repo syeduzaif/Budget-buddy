@@ -13,10 +13,16 @@ class AnalyticsController extends GetxController {
   final CategoryRepository categoryRepo;
   final SettingsService settings;
 
+  /// Which month "now" is. A seam for tests, not a clock dependency — the same
+  /// shape `CategoryRepository.resolveForMonth` uses, and the default is the
+  /// real current month.
+  final String Function() nowMonthKey;
+
   AnalyticsController({
     required this.transactionRepo,
     required this.categoryRepo,
     required this.settings,
+    this.nowMonthKey = AppDateUtils.getCurrentMonthKey,
   });
 
   final transactions = <TransactionItem>[].obs;
@@ -45,8 +51,25 @@ class AnalyticsController extends GetxController {
     }).toList();
   }
 
+  /// The month every range is measured back from: the REAL current month,
+  /// always — never the month the dashboard happens to be browsing.
+  ///
+  /// It used to be `settings.effectiveMonth`, i.e. the dashboard's viewed month,
+  /// with nothing on the Analytics screen saying so. Browsing the dashboard back
+  /// to July therefore made the card headed **"This month"** report July — ₨0
+  /// spent, 100.0% saved — while August held ₨13,150, and "Last 3M" quietly
+  /// slid its window to May–July so the current month's spend vanished from a
+  /// chart that still claimed to be about now. Internally consistent, which is
+  /// exactly why nobody could see it was wrong (BUG-040 / FD-13).
+  ///
+  /// The range labels ("This month", "Last 3 months") are fixed copy, so either
+  /// the anchor follows those words or the words have to name the anchor. This
+  /// is the first: analytics is the "how am I doing lately" screen and lately
+  /// means now. Month browsing stays what it always was — a DASHBOARD control.
+  String get anchorMonth => nowMonthKey();
+
   List<String> _activeMonths() {
-    final current = settings.effectiveMonth;
+    final current = anchorMonth;
     switch (selectedRange.value) {
       case 1:
         return List.generate(3, (i) {

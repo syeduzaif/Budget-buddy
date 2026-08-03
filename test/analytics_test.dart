@@ -8,6 +8,7 @@ import 'package:budget_buddy/data/repositories/transaction_repository.dart';
 import 'package:budget_buddy/modules/analytics/analytics_controller.dart';
 import 'package:budget_buddy/services/app/settings_service.dart';
 import 'package:budget_buddy/services/local/local_store_service.dart';
+import 'package:budget_buddy/utils/date_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
@@ -147,8 +148,15 @@ void main() {
 
     /// The analytics screen, populated the way its own stream listeners
     /// populate it — reading through the shipped getters, not a copy of them.
+    ///
+    /// [month] is the DASHBOARD's browsed month and [now] is what the device
+    /// thinks today is. They were the same thing until BUG-040: analytics read
+    /// the browsed month, so "This month" could report July. `now` defaults to
+    /// [august] so these fixtures keep their dates and do not rot at a month
+    /// boundary.
     AnalyticsController analyticsFor({
       required String month,
+      String now = august,
       int income = incomeMinor,
       List<Category> categories = const [],
       List<TransactionItem> transactions = const [],
@@ -160,6 +168,7 @@ void main() {
         transactionRepo: transactionRepo,
         categoryRepo: categoryRepo,
         settings: settings,
+        nowMonthKey: () => now,
       );
       ctrl.categories.assignAll(categories);
       ctrl.transactions.assignAll(transactions);
@@ -434,6 +443,85 @@ void main() {
       final bars = ctrl.monthlyTotals;
       expect(bars.map((b) => b.month).toList(), ['2026-06', july, august]);
       expect(bars.map((b) => b.totalMinor).toList(), [0, 250000, 150000]);
+    });
+
+    /// BUG-040 / FD-13 — analytics inherited the dashboard's browsed month.
+    ///
+    /// Tapping `<` on the dashboard to July and then opening Analytics showed
+    /// "Total Spent This month ₨0.00" and "Savings Rate This month 100.0%" while
+    /// August held ₨13,150 at 91.2%. "Last 3M" slid its window to May–July, so
+    /// the current month's spend left the chart entirely. Every number was
+    /// internally consistent with the hidden July anchor, which is precisely why
+    /// it was unreadable: nothing on the screen named the month it was about, and
+    /// the fixed labels said "This month".
+    group('the anchor is today, not the browsed month (BUG-040)', () {
+      /// bilal's repro state: ₨13,150 across August, nothing in July.
+      List<TransactionItem> augustSpend() => [
+            transaction(
+                id: 'a1',
+                categoryId: 'food-aug',
+                date: DateTime(2026, 8, 1),
+                amountMinor: 1000000),
+            transaction(
+                id: 'a2',
+                categoryId: 'food-aug',
+                date: DateTime(2026, 8, 2),
+                amountMinor: 315000),
+          ];
+
+      AnalyticsController browsing(String month) => analyticsFor(
+            month: month,
+            categories: [
+              category(id: 'food-jul', name: 'Food', month: july),
+              category(id: 'food-aug', name: 'Food', month: august),
+            ],
+            transactions: augustSpend(),
+          );
+
+      test('browsing the dashboard to July changes nothing on this screen', () {
+        for (final range in [0, 1, 2]) {
+          final onAugust = browsing(august)..setRange(range);
+          final onJuly = browsing(july)..setRange(range);
+
+          expect(onJuly.totalSpentMinor, onAugust.totalSpentMinor,
+              reason: 'range $range spend must not follow the month chevron');
+          expect(onJuly.savingsRate, onAugust.savingsRate);
+          expect(onJuly.monthlyTotals.map((b) => b.month).toList(),
+              onAugust.monthlyTotals.map((b) => b.month).toList());
+          expect(onJuly.categoryTotals.map((c) => c.name).toList(),
+              onAugust.categoryTotals.map((c) => c.name).toList());
+        }
+      });
+
+      test('"This month" reports the real month: ₨13,150 at 91.2%', () {
+        final ctrl = browsing(july); // the dashboard is parked on July
+        expect(ctrl.rangePeriodLabel, 'This month');
+        expect(ctrl.totalSpentMinor, 1315000);
+        expect(ctrl.savingsRate.toStringAsFixed(1), '91.2',
+            reason: 'the hand-computed truth at repro time, not 100.0');
+      });
+
+      test('"Last 3 months" keeps the current month in its window: 97.1%', () {
+        final ctrl = browsing(july)..setRange(1);
+        expect(ctrl.rangePeriodLabel, 'Last 3 months');
+        expect(ctrl.monthlyTotals.map((b) => b.month).toList(),
+            ['2026-06', july, august],
+            reason: 'Jun–Aug read today, never May–Jul (F-03 AC-3 labels)');
+        expect(ctrl.totalSpentMinor, 1315000);
+        expect(ctrl.savingsRate.toStringAsFixed(1), '97.1');
+      });
+
+      test('the anchor is the device clock by default', () {
+        // No `nowMonthKey` override: the shipped default.
+        final ctrl = AnalyticsController(
+          transactionRepo: transactionRepo,
+          categoryRepo: categoryRepo,
+          settings: SettingsService()..currentMonth.value = '2020-01',
+        );
+        expect(ctrl.anchorMonth, AppDateUtils.getCurrentMonthKey());
+        expect(ctrl.monthlyTotals.single.month,
+            AppDateUtils.getCurrentMonthKey());
+      });
     });
   });
 }
