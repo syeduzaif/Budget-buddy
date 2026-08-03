@@ -37,11 +37,12 @@ void main() {
   final thisMonth = AppDateUtils.getCurrentMonthKey();
   final nextMonth = AppDateUtils.getNextMonthKey(thisMonth);
 
-  /// [createdAt] decides list order: the store hands categories back
-  /// newest-first, so the "first category" the sheet falls back to is the one
-  /// with the LATEST stamp. Given equal stamps `List.sort` is not stable and the
-  /// order is arbitrary, which is a real property of the seeded set — a test
-  /// must not depend on which way that coin lands.
+  /// `createdAt` USED to decide the picker's order — the store hands categories
+  /// back newest-first — which for a month's clones (one batch, one timestamp)
+  /// was arbitrary, and `List.sort` is not stable. BUG-020: the reserved bucket
+  /// could win that lottery and become the default. The picker now sorts by
+  /// name with the bucket last, so the fallback below is the alphabetically
+  /// first NON-reserved category and the stamps no longer decide anything.
   Category category({
     required String id,
     required String name,
@@ -76,8 +77,9 @@ void main() {
     transactions = Get.put(TransactionRepository());
     settings = Get.put(SettingsService());
     await settings.setCurrentMonth(thisMonth);
-    // Descending stamps, so the fallback "first category" is deterministically
-    // Housing — the seed-order default the feature exists to replace.
+    // Descending stamps on purpose: they are the order the store emits, so a
+    // fallback that still answered "Housing" would prove the picker sort was
+    // not applied. Alphabetically the answer is Food.
     await categories.addCategories([
       category(
           id: 'housing', name: 'Housing', createdAt: DateTime(2026, 1, 3, 9)),
@@ -182,20 +184,23 @@ void main() {
   });
 
   group('what the sheet opens on', () {
-    test('with nothing remembered it is still the first category', () async {
-      expect((await openSheet()).selectedCategory.value?.id, 'housing');
+    test('with nothing remembered it is the first category in picker order',
+        () async {
+      expect((await openSheet()).selectedCategory.value?.id, 'food',
+          reason: 'by name, not by whichever clone was written last (BUG-020)');
     });
 
     test('AC-4: a remembered name that no longer exists falls back silently',
         () async {
       await settings.rememberLastUsedCategory('Gym');
-      expect((await openSheet()).selectedCategory.value?.id, 'housing');
+      expect((await openSheet()).selectedCategory.value?.id, 'food');
     });
 
-    test('matching is exact — "food" is not "Food"', () async {
-      await settings.rememberLastUsedCategory('food');
-      expect((await openSheet()).selectedCategory.value?.id, 'housing',
-          reason: 'names are user-typed and displayed verbatim (F-06 rule 4)');
+    test('matching is exact — "transport" is not "Transport"', () async {
+      await settings.rememberLastUsedCategory('transport');
+      expect((await openSheet()).selectedCategory.value?.id, 'food',
+          reason: 'names are user-typed and displayed verbatim (F-06 rule 4), '
+              'so this falls back rather than matching');
     });
 
     test('AC-5: after a rollover it resolves to the new month\'s clone',
@@ -210,6 +215,20 @@ void main() {
 
       expect((await openSheet()).selectedCategory.value?.id, 'food-next',
           reason: 'a stored ID would have gone stale here by construction');
+    });
+
+    test('AC-5b: a next-month clone set is answered by name, not by stamp',
+        () async {
+      // Same shape as AC-5 above but with nothing remembered: the fallback must
+      // still be a category, and the same one, in a month whose clones were all
+      // written at once.
+      await categories.addCategories([
+        category(id: 'housing-next', name: 'Housing', month: nextMonth),
+        category(id: 'food-next', name: 'Food', month: nextMonth),
+      ]);
+      await settings.setCurrentMonth(nextMonth);
+
+      expect((await openSheet()).selectedCategory.value?.id, 'food-next');
     });
 
     test('an explicit preselection outranks the remembered default', () async {
@@ -234,6 +253,88 @@ void main() {
 
       final ctrl = await openSheet(editing: row);
       expect(ctrl.selectedCategory.value?.id, 'transport');
+    });
+  });
+
+  /// BUG-020 — the fallback could hand new spend to the reserved bucket.
+  ///
+  /// Delete a category and its transactions re-point to Uncategorised, which
+  /// creates the bucket in that month; the stored last-used name then matches
+  /// nothing, the fallback took "the month's first category", and the bucket
+  /// sorted first. So the Add sheet opened on the row that exists to REPORT a
+  /// mis-attribution and quietly became the one creating them.
+  group('the reserved bucket is never the default (BUG-020)', () {
+    Future<Category> addBucket({String? month}) async {
+      final bucket = await categories.ensureUncategorised(month ?? thisMonth);
+      return bucket;
+    }
+
+    test('with a bucket present and nothing remembered, Food still wins',
+        () async {
+      await addBucket();
+      expect((await openSheet()).selectedCategory.value?.id, 'food');
+    });
+
+    test('palwasha\'s recipe: an unresolvable last-used name skips the bucket',
+        () async {
+      // "Temp" was logged against, then deleted — its transaction re-pointed to
+      // the bucket, and the remembered name now matches nothing.
+      await settings.rememberLastUsedCategory('Temp');
+      await addBucket();
+
+      final ctrl = await openSheet();
+      expect(isReservedCategoryName(ctrl.selectedCategory.value!.name), isFalse,
+          reason: 'the bucket that reports a data problem must not become the '
+              'default that creates one (palwasha 8c)');
+      expect(ctrl.selectedCategory.value?.id, 'food');
+    });
+
+    test('a preselection that no longer resolves also skips the bucket',
+        () async {
+      await addBucket();
+      final ctrl = await openSheet(preselectedCategoryId: 'deleted-id');
+      expect(isReservedCategoryName(ctrl.selectedCategory.value!.name), isFalse);
+    });
+
+    test('but the bucket IS the default when it is all the month has', () async {
+      // A month holding nothing else: an empty picker would be worse than the
+      // one row that exists, and saving would land there anyway (F-01).
+      final emptyMonth = AppDateUtils.getNextMonthKey(nextMonth);
+      final bucket = await addBucket(month: emptyMonth);
+      await settings.setCurrentMonth(emptyMonth);
+
+      final ctrl = await openSheet();
+      expect(ctrl.selectedCategory.value?.id, bucket.id);
+    });
+
+    test('the picker order is by name, deterministic, bucket last', () async {
+      await addBucket();
+      final ctrl = await openSheet();
+      expect(ctrl.categories.map((c) => c.name).toList(),
+          ['Food', 'Housing', 'Transport', kUncategorisedCategoryName]);
+    });
+
+    test('order is a pure function of the list, not of the store\'s emission',
+        () async {
+      // The same set in three different input orders must produce one output —
+      // this is what the old newest-first list could not promise.
+      Category cat(String id, String name) => category(id: id, name: name);
+      final bucket = cat('bucket', kUncategorisedCategoryName);
+      final food = cat('f', 'Food');
+      final apples = cat('a', 'apples'); // lower-case: compare is folded
+      final zoo = cat('z', 'Zoo');
+
+      for (final input in [
+        [bucket, food, apples, zoo],
+        [zoo, apples, food, bucket],
+        [food, bucket, zoo, apples],
+      ]) {
+        expect(
+            TransactionFormController.orderForPicker(input)
+                .map((c) => c.id)
+                .toList(),
+            ['a', 'f', 'z', 'bucket']);
+      }
     });
   });
 }

@@ -88,8 +88,8 @@ class TransactionFormController extends GetxController {
 
     categoryRepo.getCategories().listen(
       (list) {
-        final filtered =
-            list.where((c) => c.month == settings.currentMonth.value).toList();
+        final filtered = orderForPicker(
+            list.where((c) => c.month == settings.currentMonth.value).toList());
         categories.assignAll(filtered);
         if (selectedCategory.value == null) {
           selectedCategory.value = _initialCategory(list, filtered);
@@ -103,6 +103,51 @@ class TransactionFormController extends GetxController {
         debugPrint('[TransactionFormController] category stream failed: $e\n$s');
       },
     );
+  }
+
+  /// The month's categories in the order the picker lists them: by name,
+  /// case-insensitively, with the reserved bucket LAST.
+  ///
+  /// The store hands categories back newest-created-first, which for one month's
+  /// clones — written in a single batch, so all carrying the same `createdAt` —
+  /// is an arbitrary order, and `List.sort` is not stable, so it can differ
+  /// month to month and even between runs. Two consequences, both measured:
+  /// the rows moved under the user's thumb, and the "first category" fallback
+  /// below became a lottery that the reserved bucket could win (BUG-020).
+  ///
+  /// Reserved last rather than merely excluded: the bucket has to be pickable —
+  /// it is where a user can deliberately file something they cannot classify —
+  /// but it is the row that REPORTS a data problem, so it belongs at the bottom
+  /// of the list and nowhere near the default (F-01 rule 4, palwasha 8c).
+  ///
+  /// `id` breaks name ties so the answer is total: a month should not hold two
+  /// categories of one name (F-08), but a box written before that rule existed
+  /// can, and an arbitrary order is exactly what this method removes.
+  static List<Category> orderForPicker(List<Category> monthCategories) {
+    final ordered = monthCategories.toList()
+      ..sort((a, b) {
+        final aReserved = isReservedCategoryName(a.name) ? 1 : 0;
+        final bReserved = isReservedCategoryName(b.name) ? 1 : 0;
+        if (aReserved != bReserved) return aReserved - bReserved;
+        final byName =
+            a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+        return byName != 0 ? byName : a.id.compareTo(b.id);
+      });
+    return ordered;
+  }
+
+  /// The category a fallback may land on: the first one the USER manages, and
+  /// the reserved bucket only when there is nothing else in the month.
+  ///
+  /// [orderForPicker] already sorts the bucket last, so this is belt and braces
+  /// — deliberately, because the rule that matters is "never default to the
+  /// bucket", and that must not depend on a comparator somewhere else staying
+  /// the way it is (BUG-020).
+  static Category? _firstPickable(List<Category> monthCategories) {
+    for (final c in monthCategories) {
+      if (!isReservedCategoryName(c.name)) return c;
+    }
+    return monthCategories.isEmpty ? null : monthCategories.first;
   }
 
   /// What the picker starts on, once, before the user has touched it.
@@ -121,7 +166,11 @@ class TransactionFormController extends GetxController {
   /// 3. **The category the last save used**, matched by name in the VIEWED
   ///    month. Nine categories meant the old "first category" default was wrong
   ///    about eight times in nine, at two taps and a modal each time.
-  /// 4. **The month's first category**, as before.
+  /// 4. **The month's first category** in [orderForPicker]'s order, skipping the
+  ///    reserved bucket. Uncategorised exists to say "this spend lost its
+  ///    category"; a sheet that opens on it files NEW spend into the row that
+  ///    reports a problem, which is the mis-attribution the bucket exists to
+  ///    make visible (BUG-020, F-06 rule 2).
   Category? _initialCategory(
       List<Category> allCategories, List<Category> monthCategories) {
     final edited = editing;
@@ -131,7 +180,8 @@ class TransactionFormController extends GetxController {
     if (monthCategories.isEmpty) return null;
     final preselected = preselectedCategoryId;
     if (preselected != null) {
-      return _byId(monthCategories, preselected) ?? monthCategories.first;
+      return _byId(monthCategories, preselected) ??
+          _firstPickable(monthCategories);
     }
     // Exact, case-sensitive: category names are user-typed and displayed
     // verbatim, so "food" and "Food" are two different labels to the person who
@@ -147,7 +197,7 @@ class TransactionFormController extends GetxController {
       final match = _byExactName(monthCategories, remembered);
       if (match != null) return match;
     }
-    return monthCategories.first;
+    return _firstPickable(monthCategories);
   }
 
   static Category? _byId(List<Category> categories, String id) {
