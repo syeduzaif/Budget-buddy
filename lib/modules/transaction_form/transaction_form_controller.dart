@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/utils/budget_status.dart';
 import '../../data/models/category.dart';
 import '../../data/models/transaction_item.dart';
 import '../../data/repositories/category_repository.dart';
@@ -328,19 +329,26 @@ class TransactionFormController extends GetxController {
       // destination is the one worth reading.
       _confirm('Saved to $kUncategorisedCategoryName',
           detail: 'That category was deleted.');
-    } else if (edited != null) {
+      return;
+    }
+
+    // Read AFTER the write, so it counts the money just logged.
+    final overspend = await _overBudgetNote(resolution.category);
+
+    if (edited != null) {
       // No Undo here, unlike a fresh save (F-05): the sheet reopens on a tap,
       // so a wrong correction is corrected the same way it was made. One
       // safety mechanism per action.
       _confirm('Updated — '
-          '${_exact(amountMinor)} in ${resolution.category.name}');
+          '${_exact(amountMinor)} in ${resolution.category.name}$overspend');
     } else if (createdId != null) {
       // The proof the log landed, and the only chance to take it back — the
       // sheet is closed and the row is one tap deep, so this is the moment an
       // Undo is worth anything.
       final undoId = createdId;
       _confirm(
-        '${_exact(amountMinor)} added to ${resolution.category.name}',
+        '${_exact(amountMinor)} added to '
+        '${resolution.category.name}$overspend',
         action: TextButton(
           onPressed: () => _undoCreate(undoId),
           style: TextButton.styleFrom(
@@ -351,6 +359,46 @@ class TransactionFormController extends GetxController {
           child: const Text('Undo', maxLines: 1),
         ),
       );
+    }
+  }
+
+  /// ` · Over by ₨300` when the save has pushed [category] past its limit, or
+  /// an empty string when it has not.
+  ///
+  /// BUG-101: breaking a budget produced no signal anywhere the user was
+  /// looking. The save confirmation said the money went in; the dashboard it
+  /// dropped them on read calm; the only ⚠ was two scrolls down, in a card that
+  /// previews four categories. The confirmation is already on screen, already
+  /// about this category, and already the app's proof-of-log — so it carries
+  /// the news too.
+  ///
+  /// Deliberately NOT a new signal: the words and the state both come from
+  /// [BudgetStatus], the same helper the category card and the dashboard
+  /// preview render, so there is one over-budget vocabulary in the app and
+  /// danish's three-state spec has one place to change it. Only the OVER state
+  /// speaks here; [BudgetState.warning]'s "₨200 left" is a line away but it
+  /// belongs to that spec, not to this fix.
+  ///
+  /// Month-scoped by the category's own `month` — the same predicate the
+  /// dashboard and the categories screen count with, so the number in the bar
+  /// cannot disagree with the number the user scrolls down to. A failed read
+  /// costs the suffix and nothing else: a write that DID land must never have
+  /// its confirmation depend on a second read.
+  Future<String> _overBudgetNote(Category category) async {
+    try {
+      final rows = await transactionRepo.getAllTransactions();
+      final spentMinor = rows
+          .where((t) =>
+              t.categoryId == category.id &&
+              AppDateUtils.getMonthKeyFromDate(t.date) == category.month)
+          .fold<int>(0, (sum, t) => sum + t.amountMinor);
+      final status = BudgetStatus.of(
+          spentMinor: spentMinor, limitMinor: category.budgetLimitMinor);
+      if (status.state != BudgetState.over) return '';
+      return ' · ${status.caption(settings.currency, compact: false)}';
+    } catch (e, stack) {
+      debugPrint('[TransactionFormController] budget check failed: $e\n$stack');
+      return '';
     }
   }
 

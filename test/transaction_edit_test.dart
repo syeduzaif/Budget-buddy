@@ -266,6 +266,23 @@ void main() {
       await drainSnackbar(tester);
     });
 
+    testWidgets('an edit that breaks the budget says so (BUG-101)',
+        (tester) async {
+      await pumpHost(tester, editing: lunch());
+
+      // Food's limit is ₨5,000; the row was ₨900 and is the month's only spend.
+      await tester.enterText(find.widgetWithText(TextFormField, '900'), '6000');
+      await pressSave(tester, 'Save Changes',
+          until: () => store.readTransactions().single.amountMinor == 600000);
+
+      expect(find.text('Updated — ₨6,000.00 in Food · Over by ₨1,000.00'),
+          findsOneWidget,
+          reason: 'an edit can break a budget as surely as a new expense, and '
+              'the words are BudgetStatus\'s — the same ones the card uses');
+
+      await drainSnackbar(tester);
+    });
+
     testWidgets('AC-3: re-pointing to another category moves the whole amount',
         (tester) async {
       await pumpHost(tester, editing: lunch());

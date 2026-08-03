@@ -130,7 +130,7 @@ void main() {
   /// fake clock only advances while frames are pumped, and one left unfinished
   /// deadlocks `tearDown`'s `Hive.close()` (measured: a ten-minute timeout).
   Future<void> logExpense(WidgetTester tester, String amount,
-      {required int expectedRows}) async {
+      {required int expectedRows, String? categoryId}) async {
     // The stand-in for the sheet, so the pop `save()` performs pops something.
     Get.to(() => const Scaffold(body: Center(child: Text('sheet'))));
     await tester.pumpAndSettle();
@@ -144,6 +144,12 @@ void main() {
       settings: Get.find<SettingsService>(),
     ));
     await tester.pump();
+    if (categoryId != null) {
+      final picked = ctrl.categories.where((c) => c.id == categoryId);
+      expect(picked, isNotEmpty,
+          reason: "the picker has loaded the month's categories by now");
+      ctrl.selectCategory(picked.first);
+    }
     ctrl.amountController.text = amount;
 
     await tester.runAsync(() async {
@@ -352,5 +358,80 @@ void main() {
 
     expect(store.readTransactions().single.amountMinor, 245000,
         reason: 'a stale id here is the AC-5 failure wearing a different hat');
+  });
+
+  group('breaking a budget (BUG-101)', () {
+    /// waqas' numbers: Cricket, ₨2,000 limit, ₨1,400 already spent.
+    Future<void> seedCricket(WidgetTester tester) async {
+      final stamp = DateTime(2026, 1, 1, 9);
+      await tester.runAsync(() async {
+        await Get.find<CategoryRepository>().addCategory(Category(
+          id: 'cricket-now',
+          name: 'Cricket',
+          budgetLimitMinor: 200000,
+          colorValue: 0xFF2D8B8B,
+          iconCodePoint: Icons.sports_cricket.codePoint,
+          month: thisMonth,
+          createdAt: stamp,
+          updatedAt: stamp,
+        ));
+        await Get.find<TransactionRepository>().addTransaction(TransactionItem(
+          id: 'grip',
+          categoryId: 'cricket-now',
+          amountMinor: 140000,
+          note: 'grip tape',
+          date: DateTime.now(),
+          createdAt: stamp,
+          updatedAt: stamp,
+        ));
+      });
+      await tester.pump();
+    }
+
+    testWidgets('the confirmation says so, in F-09\'s words', (tester) async {
+      await pumpHost(tester);
+      await seedCricket(tester);
+
+      await logExpense(tester, '900',
+          expectedRows: 2, categoryId: 'cricket-now');
+
+      // ₨1,400 + ₨900 against a ₨2,000 limit. The wording is BudgetStatus's,
+      // i.e. the category card's, so the bar and the card cannot disagree.
+      expect(find.text('₨900.00 added to Cricket · Over by ₨300.00'),
+          findsOneWidget);
+      // Still undoable: the news does not cost the affordance.
+      expect(find.text('Undo'), findsOneWidget);
+
+      await drainSnackbar(tester);
+    });
+
+    testWidgets('a save that stays inside the budget says nothing',
+        (tester) async {
+      await pumpHost(tester);
+      await seedCricket(tester);
+
+      await logExpense(tester, '400',
+          expectedRows: 2, categoryId: 'cricket-now');
+
+      expect(find.text('₨400.00 added to Cricket'), findsOneWidget,
+          reason: '₨1,800 of ₨2,000 is the WARNING rung, and that copy belongs '
+              "to danish's three-state spec, not to this fix");
+
+      await drainSnackbar(tester);
+    });
+
+    testWidgets('an undo of the save that broke it needs no second message',
+        (tester) async {
+      await pumpHost(tester);
+      await seedCricket(tester);
+      await logExpense(tester, '900',
+          expectedRows: 2, categoryId: 'cricket-now');
+
+      await pressUndo(tester, expectedRows: 1);
+
+      expect(store.readTransactions().single.id, 'grip',
+          reason: 'the row that broke the budget is the row that goes');
+      expect(find.textContaining('Over by'), findsNothing);
+    });
   });
 }
