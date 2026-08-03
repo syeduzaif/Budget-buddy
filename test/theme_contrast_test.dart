@@ -90,6 +90,17 @@ void main() {
           greaterThanOrEqualTo(4.5));
     });
 
+    test('muted clears AA on the PAGE background too, in both themes', () {
+      // BUG-102's two-line empty state sits on the scaffold, not on a card, and
+      // its AC asks for AA on both. The light background is a shade darker than
+      // the card (#FAF7F2 vs #FFFDF8), so the margin is thinner there — pinned
+      // rather than assumed.
+      expect(contrast(AppColors.textMuted, AppColors.background),
+          greaterThanOrEqualTo(4.5));
+      expect(contrast(AppColors.textMutedDark, AppColors.backgroundDark),
+          greaterThanOrEqualTo(4.5));
+    });
+
     test('the light token would have wrecked the dark card', () {
       // The single-token retune everyone reaches for first.
       expect(contrast(AppColors.textMuted, AppColors.cardDark),

@@ -5,7 +5,9 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../core/animations/animations.dart';
 import '../../routes/app_routes.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import '../../utils/currency_utils.dart';
+import '../../utils/date_utils.dart';
 import '../home/home_controller.dart';
 import '../transaction_form/transaction_form_sheet.dart';
 import 'dashboard_controller.dart';
@@ -92,66 +94,110 @@ class DashboardView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Income card
-                FadeSlideItem(
-                  index: 0,
-                  child: SummaryCard(
-                    label: 'Monthly Income',
-                    amount: CurrencyUtils.formatAmount(
-                        ctrl.settings.monthlyIncomeMinor.value, currency),
-                    icon: Icons.account_balance_wallet_outlined,
-                    color: colorScheme.primary,
-                    isLarge: true,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s),
-                // Spent + Remaining row
-                FadeSlideItem(
-                  index: 1,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: SummaryCard(
-                          label: 'Spent',
-                          amount: CurrencyUtils.formatAmount(
-                              ctrl.totalSpentMinor, currency),
-                          icon: Icons.trending_up,
-                          // int vs int — an exact comparison now.
-                          color: ctrl.totalSpentMinor >
-                                  ctrl.settings.monthlyIncomeMinor.value
-                              ? colorScheme.error
-                              : AppColors.warning,
-                          // Scoped to the viewed month, because that is what
-                          // this number counts — the all-time list it used to
-                          // open contradicted the figure that was tapped
-                          // (F-04). Remaining stays non-interactive: there is
-                          // no list of "remaining" to open.
-                          onTap: openMonthTransactions,
-                        ),
+                // A month the app holds no records for gets no totals at all:
+                // today's income applied to July, with the whole of it called
+                // "Unspent", is a money claim about a period the app knows
+                // nothing about (BUG-102). The block goes whole — leaving Spent
+                // ₨0 behind would keep partial arithmetic on screen, and item
+                // 13's reopen condition required the source and its derivative
+                // to go together. The CURRENT month is never suppressed, even
+                // at zero records: it is the month the user is living in.
+                if (ctrl.viewedMonthHasNoRecords)
+                  FadeSlideItem(
+                    index: 0,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.l, horizontal: AppSpacing.m),
+                      child: Column(
+                        children: [
+                          Text(
+                            'No records for '
+                            '${AppDateUtils.formatMonthName(viewedMonth)}.',
+                            style: AppFonts.bodyMedium.copyWith(
+                                color: context.semanticColors.textMuted),
+                            textAlign: TextAlign.center,
+                            // No year: the app bar directly above carries it.
+                            // One line at any text scale, like the budgets
+                            // card's title.
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Nothing was logged here, so there are no totals '
+                            'to show.',
+                            style: AppFonts.bodySmall.copyWith(
+                                color: context.semanticColors.textMuted),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: AppSpacing.s),
-                      Expanded(
-                        child: SummaryCard(
-                          // "Remaining" is a promise about a month that is
-                          // still running. On a closed month the same number
-                          // is just what went unspent — and it is measured
-                          // against TODAY's income either way, which is the
-                          // residual honesty problem per-month income solves
-                          // later (G6). The card is not suppressed: the two-up
-                          // Row is fixed, and a month that renders one card
-                          // instead of two reads as data loss.
-                          label: atCurrentMonth ? 'Remaining' : 'Unspent',
-                          amount: CurrencyUtils.formatAmount(
-                              ctrl.remainingMinor, currency),
-                          icon: Icons.savings_outlined,
-                          color: ctrl.remainingMinor >= 0
-                              ? colorScheme.tertiary
-                              : colorScheme.error,
-                        ),
-                      ),
-                    ],
+                    ),
+                  )
+                else ...[
+                  // Income card
+                  FadeSlideItem(
+                    index: 0,
+                    child: SummaryCard(
+                      label: 'Monthly Income',
+                      amount: CurrencyUtils.formatAmount(
+                          ctrl.settings.monthlyIncomeMinor.value, currency),
+                      icon: Icons.account_balance_wallet_outlined,
+                      color: colorScheme.primary,
+                      isLarge: true,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: AppSpacing.s),
+                  // Spent + Remaining row
+                  FadeSlideItem(
+                    index: 1,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: SummaryCard(
+                            label: 'Spent',
+                            amount: CurrencyUtils.formatAmount(
+                                ctrl.totalSpentMinor, currency),
+                            icon: Icons.trending_up,
+                            // int vs int — an exact comparison now.
+                            color: ctrl.totalSpentMinor >
+                                    ctrl.settings.monthlyIncomeMinor.value
+                                ? colorScheme.error
+                                : AppColors.warning,
+                            // Scoped to the viewed month, because that is what
+                            // this number counts — the all-time list it used to
+                            // open contradicted the figure that was tapped
+                            // (F-04). Remaining stays non-interactive: there is
+                            // no list of "remaining" to open.
+                            onTap: openMonthTransactions,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s),
+                        Expanded(
+                          child: SummaryCard(
+                            // "Remaining" is a promise about a month that is
+                            // still running. On a closed month that HOLDS
+                            // spend, the same number is just what went unspent
+                            // — and it is measured against TODAY's income
+                            // either way, which is the residual honesty problem
+                            // per-month income solves later (G6). The card is
+                            // not suppressed on its own: the two-up Row is
+                            // fixed, and a month that renders one card instead
+                            // of two reads as data loss. The whole block goes
+                            // or none of it does.
+                            label: atCurrentMonth ? 'Remaining' : 'Unspent',
+                            amount: CurrencyUtils.formatAmount(
+                                ctrl.remainingMinor, currency),
+                            icon: Icons.savings_outlined,
+                            color: ctrl.remainingMinor >= 0
+                                ? colorScheme.tertiary
+                                : colorScheme.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.l),
 
                 // Recent transactions — absent entirely on a month with none.

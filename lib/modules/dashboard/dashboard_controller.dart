@@ -60,6 +60,28 @@ class DashboardController extends GetxController {
   bool get isViewingCurrentMonth =>
       settings.currentMonth.value == AppDateUtils.getCurrentMonthKey();
 
+  /// True when the month on screen is not the current one AND holds no
+  /// transactions at all.
+  ///
+  /// Its one consumer is the summary block: on such a month "Monthly Income
+  /// ₨45,000 · Spent ₨0 · Unspent ₨45,000" applies TODAY's income figure to a
+  /// period the app knows nothing about, and volunteers a money claim about it
+  /// ("in July you earned ₨45,000 and spent none of it") — reachable by every
+  /// new user on day one (BUG-102). "Holds no records" rather than "predates
+  /// first use" on purpose: browsing back WRITES categories into a month via
+  /// `ensureMonth`, so the app cannot durably tell when it was installed, and
+  /// the record-count predicate also covers "installed in June, logged nothing
+  /// in June", which produces the identical bad screen.
+  ///
+  /// Count-based, never sum-based: a month whose rows happen to total zero is
+  /// not an empty month. (A ₨0 transaction cannot be saved today — the amount
+  /// validator refuses it — but the predicate does not lean on that.)
+  ///
+  /// Deliberately beside [isViewingCurrentMonth]: the "Unspent" relabel and this
+  /// suppression must never disagree about which month is which.
+  bool get viewedMonthHasNoRecords =>
+      !isViewingCurrentMonth && !transactions.any(_isCurrentMonth);
+
   /// How many rows the dashboard's Recent card shows. Five: enough to prove
   /// the last few logs landed, few enough to stay above the fold.
   static const int recentLimit = 5;
