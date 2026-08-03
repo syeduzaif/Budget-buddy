@@ -33,19 +33,28 @@ class TransactionsView extends StatelessWidget {
         final currency = settings.currency;
 
         if (grouped.isEmpty) {
+          // Copy comes from the controller so it can name this screen's scope
+          // and, above all, so it stops pointing at a "+ button" that does not
+          // exist on a pushed route (BUG-021).
+          final empty = ctrl.emptyCopy;
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.receipt_long_outlined,
-                    size: 64, color: context.semanticColors.textMuted),
-                const SizedBox(height: AppSpacing.m),
-                Text('No transactions yet', style: AppFonts.h6),
-                const SizedBox(height: AppSpacing.s),
-                Text('Add your first transaction using the + button',
-                    style: AppFonts.bodySmall
-                        .copyWith(color: context.semanticColors.textMuted)),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.receipt_long_outlined,
+                      size: 64, color: context.semanticColors.textMuted),
+                  const SizedBox(height: AppSpacing.m),
+                  Text(empty.title,
+                      style: AppFonts.h6, textAlign: TextAlign.center),
+                  const SizedBox(height: AppSpacing.s),
+                  Text(empty.line,
+                      textAlign: TextAlign.center,
+                      style: AppFonts.bodySmall
+                          .copyWith(color: context.semanticColors.textMuted)),
+                ],
+              ),
             ),
           );
         }

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, immutable;
 import 'package:get/get.dart';
 import '../../data/models/transaction_item.dart';
 import '../../data/models/category.dart';
@@ -57,6 +57,41 @@ class TransactionsController extends GetxController {
       return '$categoryName · $monthLabel';
     }
     return categoryName ?? monthLabel ?? 'All Transactions';
+  }
+
+  /// What this screen says when it has nothing to list.
+  EmptyListCopy get emptyCopy =>
+      emptyCopyFor(categoryName: filterCategoryName, month: filterMonth);
+
+  /// The empty-state words for a given scope — pure, like [titleFor], so all
+  /// four combinations can be read (and tested) in one place.
+  ///
+  /// The copy this replaces was "Add your first transaction using the + button".
+  /// There is no + button here: this is a pushed route, so the home tab bar —
+  /// whose Add tab is the only door to the form — is off screen, and the list
+  /// has no FAB either. An instruction to tap something that does not exist is
+  /// worse than no instruction, so the second line describes what will happen
+  /// instead of directing a gesture (BUG-021).
+  ///
+  /// Naming the scope is the other half: on a month-scoped list "No transactions
+  /// yet" reads as "this app is empty" when the truth is only that this month is
+  /// (F-04 AC-4, the same promise the title makes).
+  static EmptyListCopy emptyCopyFor({String? categoryName, String? month}) {
+    final monthLabel = month == null ? null : AppDateUtils.formatMonthKey(month);
+    if (categoryName != null) {
+      return EmptyListCopy(
+        monthLabel == null
+            ? 'Nothing logged in $categoryName'
+            : 'Nothing logged in $categoryName for $monthLabel',
+        'Expenses you add to $categoryName will appear here.',
+      );
+    }
+    return EmptyListCopy(
+      monthLabel == null
+          ? 'Nothing logged yet'
+          : 'Nothing logged in $monthLabel',
+      'Expenses you add will appear here.',
+    );
   }
 
   Map<String, List<TransactionItem>> get groupedByDate {
@@ -123,4 +158,18 @@ class TransactionsController extends GetxController {
       );
     }
   }
+}
+
+/// The two lines of an empty transactions list: the house empty-state pattern is
+/// an icon, a title and one muted line beneath it.
+@immutable
+class EmptyListCopy {
+  /// Names what is empty, and which scope is empty.
+  final String title;
+
+  /// What will fill it. Never an instruction to press something — see
+  /// [TransactionsController.emptyCopyFor].
+  final String line;
+
+  const EmptyListCopy(this.title, this.line);
 }
