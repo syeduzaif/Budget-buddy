@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:budget_buddy/core/theme/app_fonts.dart';
 import 'package:budget_buddy/core/theme/app_semantic_colors.dart';
 import 'package:budget_buddy/core/theme/app_theme.dart';
 import 'package:budget_buddy/core/utils/budget_status.dart';
@@ -9,6 +10,7 @@ import 'package:budget_buddy/data/models/transaction_item.dart';
 import 'package:budget_buddy/data/repositories/category_repository.dart';
 import 'package:budget_buddy/modules/categories/widgets/category_card.dart';
 import 'package:budget_buddy/modules/category_form/category_form_controller.dart';
+import 'package:budget_buddy/modules/category_form/category_form_view.dart';
 import 'package:budget_buddy/services/app/settings_service.dart';
 import 'package:budget_buddy/services/local/local_store_service.dart';
 import 'package:budget_buddy/utils/currency_utils.dart';
@@ -174,6 +176,148 @@ void main() {
       await ctrl.save();
 
       expect(Get.find<LocalStoreService>().readCategories(), isEmpty);
+    });
+  });
+
+  group('the form says what 0 means (discoverability, palwasha 2026-08-03)', () {
+    late Directory tempDir;
+    late SettingsService settings;
+
+    final thisMonth = AppDateUtils.getCurrentMonthKey();
+
+    setUpAll(() {
+      if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(CategoryAdapter());
+      if (!Hive.isAdapterRegistered(1)) {
+        Hive.registerAdapter(TransactionItemAdapter());
+      }
+    });
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('buddgetbuddy_helper');
+      Hive.init(tempDir.path);
+      await HiveStorage.openSettings();
+      Get.put<LocalStoreService>(await LocalStoreService().init());
+      Get.put(CategoryRepository());
+      settings = Get.put(SettingsService());
+      await settings.setCurrency('PKR', '₨');
+      await settings.setCurrentMonth(thisMonth);
+    });
+
+    tearDown(() async {
+      Get.reset();
+      await Hive.deleteFromDisk();
+      await Hive.close();
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+
+    /// The form as it is reached from the app: `Get.to` with the category as the
+    /// route argument is what puts it in edit mode (onInit reads Get.arguments).
+    Future<void> pumpForm(
+      WidgetTester tester, {
+      Category? editing,
+      ThemeData? theme,
+    }) async {
+      // `GetMaterialApp` takes no `themeAnimationDuration`, so the theme lerp is
+      // settled the honest way: every pump below ends in `pumpAndSettle`, which
+      // is what stops a second pump in one test from reading the previous theme
+      // mid-lerp.
+      await tester.pumpWidget(GetMaterialApp(
+        theme: theme ?? AppTheme.light,
+        home: const Scaffold(body: Center(child: Text('home'))),
+      ));
+      Get.to(() => const CategoryFormView(), arguments: editing);
+      await tester.pumpAndSettle();
+    }
+
+    const helper = 'Enter 0 for no limit';
+
+    testWidgets('the NEW category form carries the copy, verbatim',
+        (tester) async {
+      await pumpForm(tester);
+
+      expect(find.text('New Category'), findsOneWidget);
+      expect(find.text(helper), findsOneWidget,
+          reason: 'a first-time user gets no signal that 0 means anything at '
+              'all without it (danish, BUG-001 discoverability)');
+    });
+
+    testWidgets('so does the EDIT form — one widget, both routes',
+        (tester) async {
+      final education = Category(
+        id: 'education',
+        name: 'Education',
+        budgetLimitMinor: 750000,
+        colorValue: 0xFF2D8B8B,
+        iconCodePoint: Icons.school.codePoint,
+        month: thisMonth,
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      );
+      // Not written to the store first: edit mode comes from the route
+      // argument, and a real Hive write inside `testWidgets` awaits real I/O
+      // under a fake clock, which never completes.
+      await pumpForm(tester, editing: education);
+
+      expect(find.text('Edit Category'), findsOneWidget);
+      expect(find.text(helper), findsOneWidget,
+          reason: '"Enter" rather than "Leave" is chosen for exactly this '
+              'form, where the field arrives populated');
+    });
+
+    testWidgets('muted caption, in whichever theme it renders', (tester) async {
+      await pumpForm(tester);
+      var line = tester.widget<Text>(find.text(helper));
+      expect(line.style?.color, AppSemanticColors.light.textMuted);
+      expect(line.style?.fontSize, AppFonts.caption.fontSize,
+          reason: 'the same voice as the card\'s "No limit set" caption');
+      expect(line.maxLines, 1);
+
+      await pumpForm(tester, theme: AppTheme.dark);
+      line = tester.widget<Text>(find.text(helper));
+      expect(line.style?.color, AppSemanticColors.dark.textMuted,
+          reason: 'muted has two values; the accessor picks per brightness');
+    });
+
+    testWidgets('an error REPLACES the helper and moves nothing',
+        (tester) async {
+      await pumpForm(tester);
+      // A valid name, so the only field that can fail is the limit — otherwise
+      // the name\'s own error line moves everything below it anyway.
+      Get.find<CategoryFormController>().nameController.text = 'Gifts';
+      await tester.pump();
+
+      // The section header directly under the limit field: it moves if and only
+      // if that field changed height. Read through the Form rather than tapping
+      // Save, because tapping would scroll the page and move it for real.
+      final before = tester.getTopLeft(find.text('Pick an Icon')).dy;
+      final form = tester.state<FormState>(find.byType(Form));
+      expect(form.validate(), isFalse, reason: 'blank limit is still refused');
+      // Settled, not a single pump: Material cross-fades the two lines, so
+      // mid-animation BOTH Texts are in the tree — the replacement is what the
+      // finished frame shows.
+      await tester.pumpAndSettle();
+
+      expect(find.text('Amount is required'), findsOneWidget);
+      expect(find.text(helper), findsNothing,
+          reason: 'one line of guidance at a time — the errorText takes the '
+              'helper\'s slot rather than stacking under it');
+      expect(tester.getTopLeft(find.text('Pick an Icon')).dy, before,
+          reason: 'the line is permanently reserved: danish measured "Save '
+              'Changes" dropping ~20pt when the error appeared');
+    });
+
+    test('the transaction Amount field never gets this string', () {
+      // 0 is invalid there, and the two fields sharing one mental model is
+      // exactly how a user comes to expect ₨0 expenses to be legal (danish).
+      final offenders = Directory('lib')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart'))
+          .where((f) => f.readAsStringSync().contains('for no limit'))
+          .map((f) => f.path)
+          .toList();
+      expect(offenders,
+          ['lib/modules/category_form/category_form_view.dart'.replaceAll('/', Platform.pathSeparator)]);
     });
   });
 

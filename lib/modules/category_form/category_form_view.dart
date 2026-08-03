@@ -193,6 +193,28 @@ class CategoryFormView extends StatelessWidget {
                   // on an empty field; the UI-17 hint that used to do this job
                   // duplicated the symbol once focused ("₨ ₨0.00") — N1.
                   floatingLabelBehavior: FloatingLabelBehavior.always,
+                  // The card side of the app already asserts "No limit set", so
+                  // the authoring side has to name the concept: 0 became
+                  // ACCEPTED in BUG-001 but stayed undiscoverable, which is a
+                  // half-delivered fix (palwasha's ruling, danish's copy).
+                  // "Enter", not "Leave": on the edit form the field arrives
+                  // populated, where "Leave" reads as leave-it-alone.
+                  helperText: 'Enter 0 for no limit',
+                  // `helperText` specifically — it shares its slot with the
+                  // validator's `errorText`, which therefore REPLACES it
+                  // instead of stacking under it. One line of guidance at a
+                  // time.
+                  helperMaxLines: 1,
+                  // Both slots pinned to the same metric so the swap cannot
+                  // move the Save button: the line is permanently reserved,
+                  // which is the jump danish measured at ~20pt when an error
+                  // appeared where nothing had been. `errorMaxLines` is left
+                  // unset on purpose — a long message (JPY's decimals rule) may
+                  // wrap rather than be truncated.
+                  helperStyle: AppFonts.caption
+                      .copyWith(color: context.semanticColors.textMuted),
+                  errorStyle:
+                      AppFonts.caption.copyWith(color: colorScheme.error),
                 ),
                 // Not `Validators.amount`: 0 is F-09's "No limit" state, and
                 // refusing it here was the only reason a user-created category
