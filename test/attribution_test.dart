@@ -352,6 +352,127 @@ void main() {
     });
   });
 
+  /// BUG-120 — FD-1 is a rule about DIRECTION, not about which function does
+  /// the cloning: "forward rollover clones carry limits; backward back-fill
+  /// does not". It shipped on `resolveForMonth`'s single back-fill (T6) and was
+  /// missing from `ensureMonth`'s whole-month clone, so merely tapping '‹' into
+  /// an unvisited past month handed that month a complete budget structure the
+  /// user never set (live: `₨0 / ₨9,000` rows in a month that had never been
+  /// budgeted). The manifest missed it because T3 asserted WHICH rows a
+  /// backward ensure creates, never with WHAT limit.
+  group('FD-1 clone direction (BUG-120)', () {
+    test('a backward whole-month ensure carries names/colours/icons but NOT '
+        'limits', () async {
+      await categories.addCategories([
+        category(id: 'food-aug', name: 'Food', month: august, limitMinor: 900000),
+        category(id: 'rent-aug', name: 'Rent', month: august, limitMinor: 3750000),
+        category(
+            id: 'gym-aug',
+            name: 'Gym',
+            month: august,
+            limitMinor: 500000,
+            colorValue: 0xFFB4471F),
+      ]);
+
+      // What the dashboard's '‹' handler does, with the clock injected.
+      await categories.ensureMonth(july, nowMonthKey: () => august);
+
+      final julyCats = await categories.getCategoriesForMonth(july);
+      expect(julyCats.map((c) => c.name).toSet(), {'Food', 'Rent', 'Gym'});
+      expect(julyCats.map((c) => c.budgetLimitMinor).toSet(), {0},
+          reason: 'FD-1: a month that already happened gains no budget');
+      final gym = julyCats.firstWhere((c) => c.name == 'Gym');
+      expect(gym.colorValue, 0xFFB4471F, reason: 'identity still carried');
+      expect(gym.iconCodePoint, 0xe56c);
+      expect(gym.id, isNot('gym-aug'), reason: 'clones get fresh ids');
+    });
+
+    test('a forward whole-month ensure still carries limits — F-02 untouched',
+        () async {
+      await categories.addCategories([
+        category(id: 'food-jul', name: 'Food', month: july, limitMinor: 900000),
+        category(id: 'rent-jul', name: 'Rent', month: july, limitMinor: 3750000),
+      ]);
+
+      // The current month: the rollover F-02 AC-1 promises.
+      await categories.ensureMonth(august, nowMonthKey: () => august);
+      final augustCats = await categories.getCategoriesForMonth(august);
+      expect(
+          augustCats.map((c) => c.budgetLimitMinor).toList()..sort(),
+          [900000, 3750000],
+          reason: 'forward rollover carries limits (F-02 rule 1)');
+
+      // And ahead of it: still forward, still carried.
+      await categories.ensureMonth(september, nowMonthKey: () => august);
+      final septemberCats = await categories.getCategoriesForMonth(september);
+      expect(
+          septemberCats.map((c) => c.budgetLimitMinor).toList()..sort(),
+          [900000, 3750000],
+          reason: 'a month that has not happened yet is not a back-fill');
+    });
+
+    test('both clone paths agree in one past month: nine rows or one, all 0',
+        () async {
+      // The live BUG-120 shape: an August structure, a Cricket category that
+      // only exists in August, and a ₨100 expense dated into a July nobody has
+      // visited. Path (ii) creates July wholesale; the row the transaction
+      // lands on is one of those clones.
+      await categories.addCategories([
+        for (final name in ['Food', 'Rent', 'Transport'])
+          category(id: '$name-aug', name: name, month: august, limitMinor: 900000),
+        category(
+            id: 'cricket-aug', name: 'Cricket', month: august, limitMinor: 200000),
+      ]);
+      final cricket =
+          store.readCategories().firstWhere((c) => c.id == 'cricket-aug');
+
+      final resolved = await categories.resolveForMonth(cricket, july,
+          nowMonthKey: () => august);
+
+      expect(resolved.category.budgetLimitMinor, 0,
+          reason: 'the row a back-dated expense lands on claims no budget');
+      final julyCats = await categories.getCategoriesForMonth(july);
+      expect(julyCats.length, 4, reason: 'AC-6: the whole structure, not one row');
+      expect(julyCats.map((c) => c.budgetLimitMinor).toSet(), {0});
+
+      // Now the OTHER path in the same month: July is populated, so a category
+      // absent from it takes the single back-fill branch.
+      await categories.addCategory(category(
+          id: 'gym-aug', name: 'Gym', month: august, limitMinor: 500000));
+      final gym = store.readCategories().firstWhere((c) => c.id == 'gym-aug');
+      final backfilled = await categories.resolveForMonth(gym, july,
+          nowMonthKey: () => august);
+      expect(backfilled.category.budgetLimitMinor, 0);
+      expect((await categories.getCategoriesForMonth(july)).length, 5);
+
+      // The point of the whole feature still holds in both months.
+      await transactions.addTransaction(transaction(
+          id: 'bug120',
+          categoryId: resolved.category.id,
+          date: DateTime(2026, 7, 15),
+          amountMinor: 10000));
+      expectInvariant(july, because: 'the back-dated ₨100 must be enumerable');
+      expectInvariant(august);
+      expectStructuralCorollary();
+      expect(dashboardFor(july).totalSpentMinor, 10000);
+      expect(dashboardFor(august).totalSpentMinor, 0);
+    });
+
+    test('August keeps its own limits when July is filled in behind it',
+        () async {
+      await categories.addCategory(category(
+          id: 'cricket-aug', name: 'Cricket', month: august, limitMinor: 200000));
+      final cricket = store.readCategories().single;
+
+      await categories.resolveForMonth(cricket, july, nowMonthKey: () => august);
+
+      final augustCats = await categories.getCategoriesForMonth(august);
+      expect(augustCats.single.id, 'cricket-aug');
+      expect(augustCats.single.budgetLimitMinor, 200000,
+          reason: 'a back-fill must not reach back into the source month');
+    });
+  });
+
   group('the reserved bucket', () {
     test('T7: deleting a category re-points its transactions to the bucket of '
         'each transaction\'s own month, then deletes', () async {

@@ -183,30 +183,50 @@ class CategoryRepository extends GetxService {
   /// The reserved bucket is never cloned forward, and a month holding only the
   /// bucket still counts as empty — otherwise deleting a month's last real
   /// category would freeze that month empty forever.
-  Future<void> ensureMonth(String monthKey) {
+  ///
+  /// Limits follow FD-1's DIRECTION rule, not the caller's identity: a forward
+  /// rollover (the current month, or a month ahead of it) carries limits, while
+  /// filling in a month that has already happened carries 0 — see
+  /// [_isBackwardFill]. Browsing '‹' into an unvisited past month is a backward
+  /// fill, so it must not hand that month a budget structure the user never set
+  /// (BUG-120).
+  ///
+  /// [nowMonthKey] is a test seam, not a clock dependency: the default reads
+  /// the real clock. Threading it through the launch/resume rollover keeps
+  /// simulated-clock tests independent of the machine's actual date.
+  Future<void> ensureMonth(
+    String monthKey, {
+    String Function() nowMonthKey = AppDateUtils.getCurrentMonthKey,
+  }) {
     final existing = _ensureInFlight[monthKey];
+    // De-duplication is by target month only: an in-flight ensure for M wins,
+    // whatever seam the second caller brought. Every production caller reads
+    // the same real clock, so the seam can only differ inside tests.
     if (existing != null) return existing;
     // Block body, not an arrow: `Map.remove` returns the very future this
     // callback belongs to, and a `whenComplete` callback that RETURNS a future
     // waits for it — an instant deadlock.
-    final future = _ensureMonth(monthKey).whenComplete(() {
+    final future = _ensureMonth(monthKey, nowMonthKey).whenComplete(() {
       _ensureInFlight.remove(monthKey);
     });
     _ensureInFlight[monthKey] = future;
     return future;
   }
 
-  Future<void> _ensureMonth(String monthKey) async {
+  Future<void> _ensureMonth(
+      String monthKey, String Function() nowMonthKey) async {
     final byMonth = _groupByMonth(_store.readCategories());
     if (_userCategories(byMonth, monthKey).isNotEmpty) return;
 
     final source = _nearestSource(byMonth, monthKey);
     if (source == null) return; // nothing anywhere to clone yet
 
+    final backward = _isBackwardFill(monthKey, nowMonthKey);
     final now = DateTime.now();
     await _store.putCategories([
       for (final cat in source)
-        _cloneInto(cat, monthKey, now, cat.budgetLimitMinor),
+        _cloneInto(
+            cat, monthKey, now, backward ? 0 : cat.budgetLimitMinor),
     ]);
   }
 
@@ -258,10 +278,11 @@ class CategoryRepository extends GetxService {
   /// 3. **Name match**, trimmed and case-insensitive — name is this app's
   ///    operative category identity, and the oldest `createdAt` wins so the
   ///    answer is stable when duplicates exist.
-  /// 4. **Single back-fill clone.** Limit copied only into the CURRENT month;
-  ///    a clone into a PAST month carries 0 (FD-1: forward rollover carries
-  ///    limits, backward back-fill does not — the app must not invent a budget
-  ///    the user never set for a month that has already happened).
+  /// 4. **Single back-fill clone.** A clone into a PAST month carries 0; the
+  ///    current month (and anything ahead of it) carries the limit — FD-1:
+  ///    forward rollover carries limits, backward back-fill does not, so the
+  ///    app cannot invent a budget the user never set for a month that has
+  ///    already happened. Same test — [_isBackwardFill] — as step 2's ensure.
   ///
   /// [nowMonthKey] is a seam for tests, not a clock dependency: the default is
   /// the real current month.
@@ -292,7 +313,7 @@ class CategoryRepository extends GetxService {
           pickedWasDeleted: false);
     }
 
-    await ensureMonth(monthKey);
+    await ensureMonth(monthKey, nowMonthKey: nowMonthKey);
 
     final match = _oldestByName(_store.readCategories(), monthKey, live.name);
     if (match != null) {
@@ -300,7 +321,7 @@ class CategoryRepository extends GetxService {
     }
 
     final backfillLimitMinor =
-        monthKey == nowMonthKey() ? live.budgetLimitMinor : 0;
+        _isBackwardFill(monthKey, nowMonthKey) ? 0 : live.budgetLimitMinor;
     final clone =
         _cloneInto(live, monthKey, DateTime.now(), backfillLimitMinor);
     await _store.putCategory(clone);
@@ -308,6 +329,22 @@ class CategoryRepository extends GetxService {
   }
 
   // --- Internals ------------------------------------------------------------
+
+  /// FD-1 in one place: is cloning into [monthKey] a BACKWARD fill?
+  ///
+  /// "Forward rollover clones carry limits; backward back-fill does not." The
+  /// rule is about direction, so both clone paths — the whole-month
+  /// [ensureMonth] and the single-category back-fill in [resolveForMonth] —
+  /// must ask the same question, or they drift and only one of them obeys the
+  /// spec (which is exactly what BUG-120 caught).
+  ///
+  /// `"YYYY-MM"` keys are fixed-width and zero-padded, so a lexicographic
+  /// compare IS a chronological compare — no parsing, no timezone, no
+  /// `DateFormat` (which would render non-ASCII digits under fa/ar_EG).
+  /// Strictly *before* the current month: the current month carries limits (the
+  /// budget is live), and so does anything ahead of it (forward rollover).
+  static bool _isBackwardFill(String monthKey, String Function() nowMonthKey) =>
+      monthKey.compareTo(nowMonthKey()) < 0;
 
   void _refuseReservedName(String name) {
     if (isReservedCategoryName(name)) {

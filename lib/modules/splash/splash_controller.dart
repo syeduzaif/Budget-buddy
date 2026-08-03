@@ -30,7 +30,10 @@ class SplashController extends GetxController {
   }) async {
     final now = nowMonthKey();
     await _settings.setCurrentMonth(now);
-    await _categories.ensureMonth(now);
+    // The seam goes down with the call: the ensure now decides limits by
+    // direction (FD-1/BUG-120), so a simulated-clock test must not have its
+    // rollover measured against the machine's real date.
+    await _categories.ensureMonth(now, nowMonthKey: nowMonthKey);
   }
 
   /// Where the app lands once the splash animation has had its minimum run.

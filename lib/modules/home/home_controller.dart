@@ -63,7 +63,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     if (settings.currentMonth.value == now) return;
     try {
       await settings.setCurrentMonth(now);
-      await categoryRepo.ensureMonth(now);
+      // Seam threaded through — see SplashController.prepareForHome.
+      await categoryRepo.ensureMonth(now, nowMonthKey: nowMonthKey);
     } catch (e, stack) {
       // Nothing the user asked for failed, so there is nothing to tell them:
       // the month simply stays where it was and the chevrons still work.
