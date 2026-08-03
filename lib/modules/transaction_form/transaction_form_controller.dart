@@ -526,7 +526,7 @@ class TransactionFormController extends GetxController {
   ///   otherwise hold the second confirmation until the first expired, and
   ///   then show it ~4 s after the save it describes (F-05 AC-5).
   /// * The overlay a snackbar inserts into belongs to the route that
-  ///   [Get.back] has only just returned to, so showing it during that same
+  ///   [_closeSheet] has only just returned to, so showing it during that same
   ///   frame is a race. A post-frame callback is the fix.
   ///
   /// One home for both rules, so the edit confirmation here and F-05's create
