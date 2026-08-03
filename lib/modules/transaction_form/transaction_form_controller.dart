@@ -77,8 +77,20 @@ class TransactionFormController extends GetxController {
     if (edited != null) {
       // Minor units are never shown raw: back to major-unit text, in exactly
       // the shape the field parses again.
-      amountController.text =
+      final amountText =
           CurrencyUtils.formatForInput(edited.amountMinor, settings.currency);
+      // SELECTED, not merely prefilled. The field autofocuses, and
+      // `TextEditingController.text` leaves the selection invalid, which a
+      // focused field resolves to a caret at the END — so digits typed
+      // straight into the sheet APPENDED to the old amount: 100 then "120"
+      // saved ₨100,120 (BUG-081, and the amplifier that turned BUG-080's
+      // swallowed tap into money corruption). Selected means the first
+      // keystroke replaces, which is what "correct this amount" means; a user
+      // who wants to append still taps to place the caret.
+      amountController.value = TextEditingValue(
+        text: amountText,
+        selection: TextSelection(baseOffset: 0, extentOffset: amountText.length),
+      );
       noteController.text = edited.note;
       selectedDate.value = edited.date;
     } else {

@@ -195,6 +195,23 @@ void main() {
       expect(formController().selectedDate.value, lunchDate);
     });
 
+    testWidgets('the prefilled amount arrives selected, so typing replaces it',
+        (tester) async {
+      await pumpHost(tester, editing: lunch());
+
+      final amount = find.widgetWithText(TextFormField, '900');
+      final editable = tester.widget<EditableText>(
+          find.descendant(of: amount, matching: find.byType(EditableText)));
+      expect(editable.focusNode.hasFocus, isTrue,
+          reason: 'the sheet autofocuses the amount, which is what makes the '
+              'selection the thing the keyboard types over');
+      expect(formController().amountController.selection,
+          const TextSelection(baseOffset: 0, extentOffset: 3),
+          reason: 'BUG-081: a focused prefill with the caret at the end '
+              'APPENDS — 900 then "120" saved ₨900,120, and that append is the '
+              "amplifier in BUG-080's corruption chain");
+    });
+
     testWidgets('without a record it is still the Add sheet', (tester) async {
       await pumpHost(tester);
 
@@ -203,6 +220,9 @@ void main() {
       expect(formController().isEditing, isFalse);
       expect(formController().amountController.text, isEmpty,
           reason: 'nothing leaks from a previous edit');
+      expect(formController().amountController.selection.isCollapsed, isTrue,
+          reason: 'nothing to select in an empty field: create mode is '
+              'untouched by the edit-mode select-all');
     });
   });
 
