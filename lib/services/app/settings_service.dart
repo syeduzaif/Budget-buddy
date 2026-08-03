@@ -73,15 +73,35 @@ class SettingsService extends GetxService {
   /// first-run defaults. Controllers must come through here rather than
   /// touching HiveStorage.
   Future<void> resetToDefaults() async {
-    await HiveStorage.clearSettings();
+    await clearStoredSettings();
     _load();
     // Republished, not just reset: [_load] puts `themeMode` back to 'system'
     // but only Get.changeThemeMode makes a theme change take effect in the
     // running app (see [setThemeMode]). Without this, "Erase all data"
     // promises to delete every preference while the erased theme stays on
     // screen for the rest of the session (N3).
+    //
+    // This line is what made BUG-100 reachable — a theme change here animates
+    // while the caller resets the route stack — but the defect was never the
+    // ordering: it was that light's and dark's button text styles disagreed
+    // about `inherit`, so `TextStyle.lerp` asserted. Fixed at that source, in
+    // `AppTheme._buttonTextStyle`. Deferring this republish by a frame was tried
+    // and rejected: it moved the crash from the onboarding button to the dialog's
+    // (both measured in `test/erase_flow_test.dart`), which is how the real cause
+    // was found.
     Get.changeThemeMode(flutterThemeMode);
   }
+
+  /// Just the box wipe inside [resetToDefaults], as its own overridable step.
+  ///
+  /// A seam, and a deliberately narrow one: a Hive write is real disk I/O and
+  /// only completes under `tester.runAsync`, which in a widget test also lets
+  /// `AppFonts`' font downloads fail loudly. Overriding this one method lets
+  /// `test/erase_flow_test.dart` drive the REST of the reset — the reload and the
+  /// theme republish that BUG-100 travelled through — as shipped, instead of
+  /// re-implementing it in the test and pinning nothing.
+  @visibleForTesting
+  Future<void> clearStoredSettings() => HiveStorage.clearSettings();
 
   void _load() {
     currencyCode.value = HiveStorage.getCurrencyCode();

@@ -13,6 +13,33 @@ import 'app_semantic_colors.dart';
 class AppTheme {
   AppTheme._();
 
+  /// A button's text style as a THEME value: the same style with
+  /// `inherit: false`.
+  ///
+  /// Not cosmetic — this is the fix for a crash. `AppFonts` styles come from
+  /// `GoogleFonts.*`, which returns `inherit: true`; the styles in `textTheme`,
+  /// which is what a button falls back to when its brightness defines no button
+  /// theme, are `inherit: false` like all of Material's. So light's
+  /// `FilledButton` text style was `inherit: true` (this theme defines
+  /// `filledButtonTheme`) and dark's was `inherit: false` (it does not, and does
+  /// not need to — see the note there).
+  ///
+  /// Switching brightness animates `ThemeData.lerp`, which calls
+  /// `TextStyle.lerp`, which ASSERTS when the two sides disagree on `inherit`.
+  /// It fired inside the button's own `Material`, so the framework put a
+  /// 100,000 px `ErrorWidget` where the button was: the red panel + "BOTTOM
+  /// OVERFLOWED BY 99,597 PIXELS" that made the first screen after "Erase All
+  /// Data" unusable (BUG-100). The erase flow was simply the first path that
+  /// changed the theme while a button was on screen; Settings → Theme is the
+  /// other one.
+  ///
+  /// Safe to force: the button always overrides the colour with its resolved
+  /// foreground (`button_style_button.dart:601`), and everything else these
+  /// styles need — family, size, weight, height, letter spacing — they specify
+  /// themselves, which is exactly why Material's own theme styles do the same.
+  static TextStyle _buttonTextStyle(TextStyle style) =>
+      style.copyWith(inherit: false);
+
   // ─── Light Theme ──────────────────────────────────────────────
   static ThemeData get light => ThemeData(
         useMaterial3: true,
@@ -67,7 +94,7 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            textStyle: AppFonts.buttonLarge,
+            textStyle: _buttonTextStyle(AppFonts.buttonLarge),
           ),
         ),
 
@@ -90,7 +117,7 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            textStyle: AppFonts.buttonLarge,
+            textStyle: _buttonTextStyle(AppFonts.buttonLarge),
           ),
         ),
 
@@ -103,7 +130,8 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            textStyle: AppFonts.buttonLarge.copyWith(color: AppColors.primary),
+            textStyle: _buttonTextStyle(
+                AppFonts.buttonLarge.copyWith(color: AppColors.primary)),
           ),
         ),
 
@@ -111,7 +139,8 @@ class AppTheme {
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: AppColors.primary,
-            textStyle: AppFonts.buttonMedium.copyWith(color: AppColors.primary),
+            textStyle: _buttonTextStyle(
+                AppFonts.buttonMedium.copyWith(color: AppColors.primary)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -418,7 +447,7 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            textStyle: AppFonts.buttonLarge,
+            textStyle: _buttonTextStyle(AppFonts.buttonLarge),
           ),
         ),
 
