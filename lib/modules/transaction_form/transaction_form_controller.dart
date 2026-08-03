@@ -306,7 +306,7 @@ class TransactionFormController extends GetxController {
     }
     // The sheet closes only once the write is known to have landed —
     // dismissing it first would report a success that never happened.
-    Get.back();
+    _closeSheet();
 
     if (resolution.pickedWasDeleted) {
       // The category was deleted while this sheet was open. The amount is
@@ -314,11 +314,8 @@ class TransactionFormController extends GetxController {
       // than resurrecting a category they deleted. This outranks the plain
       // confirmation below: two snackbars would queue, and the surprising
       // destination is the one worth reading.
-      _afterSheetCloses(() => Get.snackbar(
-            'Saved to $kUncategorisedCategoryName',
-            'That category was deleted.',
-            snackPosition: SnackPosition.BOTTOM,
-          ));
+      _confirm('Saved to $kUncategorisedCategoryName',
+          detail: 'That category was deleted.');
     } else if (edited != null) {
       // No Undo here, unlike a fresh save (F-05): the sheet reopens on a tap,
       // so a wrong correction is corrected the same way it was made. One
@@ -345,6 +342,29 @@ class TransactionFormController extends GetxController {
     }
   }
 
+  /// Pops the sheet, whether or not a confirmation is on screen.
+  ///
+  /// Deliberately NOT `Get.back()`. At get 4.7.3 that method opens with
+  ///
+  /// ```dart
+  /// if (isSnackbarOpen && !closeOverlays) { closeCurrentSnackbar(); return; }
+  /// ```
+  ///
+  /// (`extension_navigation.dart:826`), so while ANY snackbar is up it closes
+  /// the snackbar and pops nothing. The money is already written by the time
+  /// this runs, so the user would be left looking at a filled-in sheet over a
+  /// dashboard that already holds the row — and a second tap on Save would
+  /// write a duplicate. Logging two expenses back to back is F-05 AC-5's own
+  /// scenario, so that is the normal path, not an edge case (BUG-080).
+  ///
+  /// `Get.key` is the navigator `GetMaterialApp` installs when no
+  /// `navigatorKey` is passed — `main.dart` passes none and the app has no
+  /// nested navigators — i.e. exactly the one `Get.back()` would have popped.
+  void _closeSheet() {
+    final navigator = Get.key.currentState;
+    if (navigator != null && navigator.canPop()) navigator.pop();
+  }
+
   /// Deletes the transaction the confirmation is about.
   ///
   /// Dismisses the snackbar with [Get.closeCurrentSnackbar] and never
@@ -361,13 +381,10 @@ class TransactionFormController extends GetxController {
     } catch (e, stack) {
       debugPrint('[TransactionFormController] undo failed: $e\n$stack');
       // The row is back on screen either way, so the message says which
-      // outcome that is (H3: a failed write is never silent).
-      Get.snackbar(
-        'Could not remove it — it is still saved.',
-        '',
-        messageText: const SizedBox.shrink(),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      // outcome that is (H3: a failed write is never silent). Shown with the
+      // sheet already gone, so it takes the same tab-bar-clearing geometry as
+      // a confirmation.
+      _showAboveTabBar('Could not remove it — it is still saved.');
     }
     // A successful undo needs no confirmation of its own: the row disappearing
     // from Recent and the totals dropping back are the message (F-05 rule 2).
@@ -376,22 +393,61 @@ class TransactionFormController extends GetxController {
   String _compact(int amountMinor) =>
       CurrencyUtils.formatAmountCompact(amountMinor, settings.currency);
 
-  /// One line of confirmation, optionally carrying the only action that can
-  /// undo it.
-  ///
-  /// `GetSnackBar` always renders a message slot beneath the title, so the
-  /// single-line copy these confirmations are specced with gets a zero-size
-  /// widget there rather than a blank second row.
-  void _confirm(String line, {TextButton? action}) {
-    _afterSheetCloses(() => Get.snackbar(
-          line,
-          '',
-          messageText: const SizedBox.shrink(),
-          snackPosition: SnackPosition.BOTTOM,
-          duration: confirmationDuration,
-          mainButton: action,
-        ));
+  /// One line of confirmation, optionally a second line of detail, optionally
+  /// carrying the only action that can undo it.
+  void _confirm(String line, {String detail = '', TextButton? action}) {
+    _afterSheetCloses(
+        () => _showAboveTabBar(line, detail: detail, action: action));
   }
+
+  /// Every bar this controller shows AFTER the sheet has closed.
+  ///
+  /// One method, because they all need the same geometry: a bar at the bottom
+  /// of the screen is a bar on top of the tab bar, and the tab bar is where the
+  /// user's next tap is going (BUG-080 / FD-14).
+  ///
+  /// `GetSnackBar` always renders a message slot beneath the title, so
+  /// single-line copy gets a zero-size widget there rather than a blank second
+  /// row; passing `null` lets GetX build the real second line from [detail].
+  void _showAboveTabBar(String line, {String detail = '', TextButton? action}) {
+    Get.snackbar(
+      line,
+      detail,
+      messageText: detail.isEmpty ? const SizedBox.shrink() : null,
+      snackPosition: SnackPosition.BOTTOM,
+      duration: confirmationDuration,
+      mainButton: action,
+      margin: confirmationMargin,
+      // GetX wraps the bar in a `Dismissible`, whose `HitTestBehavior.opaque`
+      // covers the MARGIN as well as the bar — so with the margin alone the tab
+      // bar would still have been dead, just invisibly. Dropping swipe-to-
+      // dismiss costs nothing the spec asked for: the bar leaves on its own in
+      // [confirmationDuration], and its own bounds still absorb (measured in
+      // `save_confirmation_test`), so a tap meant for the bar cannot reach a
+      // row underneath.
+      isDismissible: false,
+    );
+  }
+
+  /// Height of the app's bottom navigation chrome, in logical pixels.
+  ///
+  /// Material 3's `NavigationBar` has no public height constant, so this is its
+  /// default (`_NavigationBarDefaults.height`) written down. It is asserted
+  /// against a real `NavigationBar` in `save_confirmation_test`, so a Material
+  /// change moves the number here and nowhere else. The device's bottom inset
+  /// is NOT included: `GetSnackBar` already puts its body inside a bottom
+  /// `SafeArea`, so adding it here would double-count.
+  static const double navigationBarHeight = 80.0;
+
+  /// Where a post-save bar sits: above the tab bar, with air around it.
+  ///
+  /// BUG-080: with no margin the bar covered the whole tab-bar strip and
+  /// absorbed every touch there for its full ~5 s life. The four tabs were
+  /// dead, an Add tap was silently lost and unreported, and the taps that
+  /// followed landed on the dashboard rows beneath — which is how a ₨100
+  /// transaction became ₨100,120.
+  static const EdgeInsets confirmationMargin =
+      EdgeInsets.only(left: 8, right: 8, bottom: navigationBarHeight + 8);
 
   /// Runs [show] once the sheet's pop has finished, with any confirmation
   /// still on screen cleared first.

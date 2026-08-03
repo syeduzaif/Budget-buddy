@@ -77,11 +77,49 @@ void main() {
     if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
   });
 
+  /// The confirmation bar itself — one place to say which widget renders it.
+  final confirmationBar = find.byType(GetSnackBar);
+
+  /// Destinations the host's tab bar received while a test ran.
+  final navTaps = <int>[];
+
+  /// Taps that reached the page UNDER a confirmation. Must stay empty: the bar
+  /// swallows what lands on it, or a tap meant for the bar edits whatever row
+  /// happens to be beneath it (the BUG-080 corruption chain).
+  var bodyTaps = 0;
+
   /// A navigator with something on it, so `Get.back()` and `Get.snackbar` have
   /// the stack and the overlay they need.
+  ///
+  /// The host carries the app's real bottom chrome — a 4-destination
+  /// `NavigationBar`, same as `HomeView` — because BUG-080 was a question about
+  /// geometry: a confirmation that lands on top of the tab bar absorbs the taps
+  /// meant for it, and nothing about that is visible in a host without one.
   Future<void> pumpHost(WidgetTester tester) async {
-    await tester.pumpWidget(const GetMaterialApp(
-      home: Scaffold(body: Center(child: Text('home'))),
+    navTaps.clear();
+    bodyTaps = 0;
+    await tester.pumpWidget(GetMaterialApp(
+      home: Scaffold(
+        body: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => bodyTaps++,
+          child: const Center(child: Text('home')),
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: 0,
+          onDestinationSelected: navTaps.add,
+          destinations: const [
+            NavigationDestination(
+                icon: Icon(Icons.home_outlined), label: 'Dashboard'),
+            NavigationDestination(
+                icon: Icon(Icons.grid_view_outlined), label: 'Categories'),
+            NavigationDestination(
+                icon: Icon(Icons.add_circle_outline), label: 'Add'),
+            NavigationDestination(
+                icon: Icon(Icons.bar_chart_outlined), label: 'Analytics'),
+          ],
+        ),
+      ),
     ));
   }
 
@@ -219,6 +257,70 @@ void main() {
     expect(find.text('₨800 added to Food'), findsOneWidget);
     expect(find.text('₨2,450 added to Food'), findsNothing,
         reason: 'the stale confirmation is closed, not queued behind');
+    expect(store.readTransactions(), hasLength(2));
+
+    await drainSnackbar(tester);
+  });
+
+  testWidgets('AC-5: the tab bar stays live while a confirmation is up',
+      (tester) async {
+    await pumpHost(tester);
+    await logExpense(tester, '2450', expectedRows: 1);
+    expect(find.text('₨2,450 added to Food'), findsOneWidget);
+
+    // The rhythm BUG-080 was measured in: the next tab tap comes while the
+    // confirmation is still on screen. The bar used to sit ON the tab bar and
+    // absorb every touch across its full width for the whole ~5 s window, so
+    // this tap reached nothing and nothing said so.
+    await tester.tap(find.text('Analytics'));
+    await tester.pump();
+
+    expect(navTaps, [3],
+        reason: 'a confirmation must never eat the tab bar underneath it');
+
+    // And the reason it does not: the bar is drawn clear of the tab bar.
+    final barRect = tester.getRect(confirmationBar);
+    final navRect = tester.getRect(find.byType(NavigationBar));
+    expect(barRect.bottom, lessThanOrEqualTo(navRect.top),
+        reason: 'the confirmation floats above the bottom nav (FD-14)');
+    // The margin is computed from a Material default that has no public
+    // constant. If Material moves it, this fails HERE rather than by quietly
+    // covering the tab bar again on a device.
+    expect(navRect.height, TransactionFormController.navigationBarHeight,
+        reason: 'no bottom inset in a test window, so this is the bare '
+            'NavigationBar height the margin is built from');
+
+    // The other half of FD-14: what lands ON the bar stops there. A bar that
+    // let taps through would hand them to the Recent row underneath, which is
+    // the edit sheet BUG-080's corruption arrived through.
+    final onTheBar = barRect.centerLeft + const Offset(2, 0);
+    await tester.tapAt(onTheBar);
+    await tester.pump();
+    expect(bodyTaps, 0,
+        reason: 'a confirmation absorbs its own bounds, and only those');
+
+    // maryam's A/B, as an assertion: the SAME point once the bar has gone. It
+    // reaches the page, which is what makes the line above mean something.
+    await drainSnackbar(tester);
+    expect(confirmationBar, findsNothing);
+    await tester.tapAt(onTheBar);
+    await tester.pump();
+    expect(bodyTaps, 1);
+  });
+
+  testWidgets('AC-5: a save under a live confirmation still closes the sheet',
+      (tester) async {
+    await pumpHost(tester);
+    await logExpense(tester, '2450', expectedRows: 1);
+    // Second save inside the first confirmation's window — now reachable,
+    // because the tab bar answers taps again.
+    await logExpense(tester, '800', expectedRows: 2);
+
+    expect(find.text('sheet'), findsNothing,
+        reason: 'get 4.7.3 turns Get.back() into closeCurrentSnackbar() while a '
+            'snackbar is open, which would leave the sheet standing over the '
+            'dashboard with the money already written');
+    expect(find.text('home'), findsOneWidget);
     expect(store.readTransactions(), hasLength(2));
 
     await drainSnackbar(tester);
