@@ -153,9 +153,17 @@ class CategoryBudgetList extends StatelessWidget {
                               size: 14, color: status.amountColor(context)),
                         ),
                       Text(
-                        '${CurrencyUtils.formatAmountCompact(spent, currency)}'
-                        ' / '
-                        '${CurrencyUtils.formatAmountCompact(cat.budgetLimitMinor, currency)}',
+                        // The No-limit row prints the spend alone: "₨0 / ₨0"
+                        // is the same nothing twice, and the second half reads
+                        // as a budget of zero rather than no budget (danish,
+                        // BUG-001 verification; BUG-120 requires its absence).
+                        // The caption below still says "No limit set".
+                        status.showsLimit
+                            ? '${CurrencyUtils.formatAmountCompact(spent, currency)}'
+                                ' / '
+                                '${CurrencyUtils.formatAmountCompact(cat.budgetLimitMinor, currency)}'
+                            : CurrencyUtils.formatAmountCompact(
+                                spent, currency),
                         style: AppFonts.labelSmall.copyWith(
                           // labelSmall carries no colour of its own since F-11,
                           // so every state names one — including the quiet one.

@@ -355,6 +355,10 @@ void main() {
           AppSemanticColors.light.textMuted);
       expect(find.byType(LinearProgressIndicator), findsNothing,
           reason: 'zero of zero must not render as a full rail');
+      // The user-reachable case danish saw on the sim: the row must not trail
+      // "of ₨0.00" beside its spend (his BUG-001 rider; BUG-120 requires it).
+      expect(find.text('₨450.00'), findsOneWidget);
+      expect(find.textContaining('of ₨'), findsNothing);
       // Spending against no budget is never "over budget" (F-09).
       expect(
           BudgetStatus.of(spentMinor: 45000, limitMinor: 0).state,

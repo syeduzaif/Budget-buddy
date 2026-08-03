@@ -68,6 +68,16 @@ class BudgetStatus {
   /// False only for [BudgetState.noLimit]: zero of zero is not "full".
   bool get showsBar => state != BudgetState.noLimit;
 
+  /// Whether there is a limit worth printing beside the spend.
+  ///
+  /// False for [BudgetState.noLimit], where the row used to read
+  /// "₨0.00 … of ₨0.00 / No limit set" — the same nothing said twice, and a
+  /// figure that invites the reader to treat 0 as a budget. The caption already
+  /// says what the state is (danish, during his BUG-001 verification;
+  /// BUG-120's frozen expectation names the absence of an "of ₨X" figure
+  /// outright).
+  bool get showsLimit => state != BudgetState.noLimit;
+
   bool get showsOverIcon => state == BudgetState.over;
 
   /// The words under the bar, or null for a normal row.

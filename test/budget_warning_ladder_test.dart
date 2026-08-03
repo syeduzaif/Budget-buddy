@@ -134,6 +134,16 @@ void main() {
       // An overspend fills the bar once rather than overflowing it.
       expect(BudgetStatus.of(spentMinor: 300, limitMinor: 100).barValue, 1.0);
     });
+
+    test('and so is the limit figure — there is none to print', () {
+      expect(BudgetStatus.of(spentMinor: 5000, limitMinor: 0).showsLimit,
+          isFalse,
+          reason: '"of ₨0" reads as a budget of zero, not as no budget');
+      expect(BudgetStatus.of(spentMinor: 0, limitMinor: 1).showsLimit, isTrue);
+      expect(BudgetStatus.of(spentMinor: 300, limitMinor: 100).showsLimit,
+          isTrue,
+          reason: 'an overspend needs the limit it broke');
+    });
   });
 
   // --- Dashboard preview rows --------------------------------------------
@@ -175,7 +185,8 @@ void main() {
           AppTheme.light.colorScheme.error);
     });
 
-    testWidgets('no limit: no bar, muted "No limit set"', (tester) async {
+    testWidgets('no limit: no bar, no "/ ₨0", muted "No limit set"',
+        (tester) async {
       final bucket =
           category(id: 'a', name: 'Uncategorised', limitMinor: 0);
       await pumpPreview(tester, categories: [bucket], spent: {'a': 5000});
@@ -185,6 +196,19 @@ void main() {
           AppSemanticColors.light.textMuted);
       expect(find.byType(LinearProgressIndicator), findsNothing,
           reason: 'zero of zero must not render as a full rail');
+      // The spend still shows; the comparison it had nothing to compare against
+      // does not (BUG-120's frozen expectation).
+      expect(find.text('₨50'), findsOneWidget);
+      expect(find.textContaining(' / '), findsNothing);
+    });
+
+    testWidgets('a limited row still prints the pair', (tester) async {
+      // The other half of the assertion above: the fragment goes at limit 0
+      // and ONLY at limit 0.
+      final food = category(id: 'a', name: 'Food', limitMinor: 100000);
+      await pumpPreview(tester, categories: [food], spent: {'a': 10000});
+
+      expect(find.text('₨100 / ₨1,000'), findsOneWidget);
     });
 
     testWidgets('dark theme resolves the same states to readable colours',
@@ -340,7 +364,8 @@ void main() {
       expect(colorOf(tester, '₨2,500.00'), AppTheme.light.colorScheme.error);
     });
 
-    testWidgets('no limit: no bar, muted caption', (tester) async {
+    testWidgets('no limit: no bar, no "of ₨0.00", muted caption',
+        (tester) async {
       final bucket = category(id: 'a', name: 'Uncategorised', limitMinor: 0);
       await pumpCard(tester, cat: bucket, spentMinor: 5000);
 
@@ -348,6 +373,25 @@ void main() {
       expect(find.byType(LinearProgressIndicator), findsNothing);
       expect(
           colorOf(tester, 'No limit set'), AppSemanticColors.light.textMuted);
+      // "₨50.00 … of ₨0.00 / No limit set" said the same nothing twice, and the
+      // middle figure read as a budget of zero (danish; BUG-120 requires its
+      // absence). The spend itself stays.
+      expect(find.text('₨50.00'), findsOneWidget);
+      expect(find.textContaining('of ₨'), findsNothing);
+    });
+
+    testWidgets('every other state keeps the "of ₨X" it is measured against',
+        (tester) async {
+      final food = category(id: 'a', name: 'Food', limitMinor: 100000);
+
+      await pumpCard(tester, cat: food, spentMinor: 10000); // normal
+      expect(find.text('of ₨1,000.00'), findsOneWidget);
+
+      await pumpCard(tester, cat: food, spentMinor: 84400); // warning
+      expect(find.text('of ₨1,000.00'), findsOneWidget);
+
+      await pumpCard(tester, cat: food, spentMinor: 250000); // over
+      expect(find.text('of ₨1,000.00'), findsOneWidget);
     });
 
     testWidgets('dark theme: the same four states, resolved for dark',

@@ -104,21 +104,28 @@ class CategoryCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Flexible(
-                    child: Text(
-                      'of ${CurrencyUtils.formatAmount(category.budgetLimitMinor, currency)}',
-                      // AppFonts.bodySmall BAKES textSecondary, a light-theme
-                      // token: 2.21:1 on a dark card. Same defect class as
-                      // UI-01, one layer down — there the colour was null,
-                      // here it is baked (N6).
-                      style: AppFonts.bodySmall
-                          .copyWith(color: colorScheme.onSurfaceVariant),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.end,
+                  // Nothing to compare against in the No-limit state: "₨0.00 …
+                  // of ₨0.00" says the same nothing twice, and the "of ₨0"
+                  // half reads as a budget of zero rather than no budget
+                  // (danish, BUG-001 verification; BUG-120 requires its
+                  // absence).
+                  if (status.showsLimit) ...[
+                    const SizedBox(width: AppSpacing.xs),
+                    Flexible(
+                      child: Text(
+                        'of ${CurrencyUtils.formatAmount(category.budgetLimitMinor, currency)}',
+                        // AppFonts.bodySmall BAKES textSecondary, a
+                        // light-theme token: 2.21:1 on a dark card. Same
+                        // defect class as UI-01, one layer down — there the
+                        // colour was null, here it is baked (N6).
+                        style: AppFonts.bodySmall
+                            .copyWith(color: colorScheme.onSurfaceVariant),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
               if (status.showsBar) ...[
