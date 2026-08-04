@@ -6,8 +6,8 @@ import '../../data/predefined_categories.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../services/app/settings_service.dart';
 import '../../routes/app_routes.dart';
+import '../../utils/app_clock.dart';
 import '../../utils/currency_utils.dart';
-import '../../utils/date_utils.dart';
 import '../../utils/validators.dart';
 
 class OnboardingController extends GetxController {
@@ -52,7 +52,7 @@ class OnboardingController extends GetxController {
     }
     final incomeMinor =
         CurrencyUtils.tryParseToMinor(incomeController.text, currency) ?? 0;
-    final month = AppDateUtils.getCurrentMonthKey();
+    final month = AppClock.nowMonthKey();
     try {
       await _settings.setCurrency(currency.code, currency.symbol);
       await _settings.setMonthlyIncomeMinor(incomeMinor);

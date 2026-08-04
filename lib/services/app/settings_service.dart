@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/local/hive_storage.dart';
+import '../../utils/app_clock.dart';
 import '../../utils/currency_utils.dart';
-import '../../utils/date_utils.dart';
 
 /// Reactive wrapper over HiveStorage settings.
 /// All controllers read from this service, never from HiveStorage directly.
@@ -32,7 +32,7 @@ class SettingsService extends GetxService {
   /// month and a derived month can never disagree.
   String get effectiveMonth => currentMonth.value.isNotEmpty
       ? currentMonth.value
-      : AppDateUtils.getCurrentMonthKey();
+      : AppClock.nowMonthKey();
 
   /// The category name the last saved transaction used, or null if none has
   /// been saved yet.
@@ -110,7 +110,7 @@ class SettingsService extends GetxService {
     themeMode.value = HiveStorage.getThemeMode();
     onboardingComplete.value = HiveStorage.isOnboardingComplete();
     final stored = HiveStorage.getCurrentMonth();
-    currentMonth.value = stored.isNotEmpty ? stored : AppDateUtils.getCurrentMonthKey();
+    currentMonth.value = stored.isNotEmpty ? stored : AppClock.nowMonthKey();
   }
 
   ThemeMode get flutterThemeMode {

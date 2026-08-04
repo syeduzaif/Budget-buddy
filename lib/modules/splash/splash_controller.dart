@@ -2,7 +2,7 @@ import 'package:get/get.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../routes/app_routes.dart';
 import '../../services/app/settings_service.dart';
-import '../../utils/date_utils.dart';
+import '../../utils/app_clock.dart';
 
 class SplashController extends GetxController {
   final SettingsService _settings = Get.find<SettingsService>();
@@ -22,11 +22,14 @@ class SplashController extends GetxController {
   /// neighbour, or it stays empty forever (F-02 rule 5); the call is idempotent
   /// and costs one box read when there is nothing to do.
   ///
-  /// [nowMonthKey] is a test seam, not a clock dependency — the default reads
-  /// the real clock, and `CategoryRepository.ensureMonth` reads no clock at all
+  /// [nowMonthKey] is a test seam, not a clock dependency — the default is
+  /// [AppClock.nowMonthKey] (the real clock in any release build; substitutable
+  /// in a debug build via `--dart-define=BB_NOW_MONTH`, which is how F-02's
+  /// AC-1/2/3 are exercised by hand), and `CategoryRepository.ensureMonth`
+  /// reads no clock at all
   /// [PROPOSED convention: inject the clock as a defaulted function parameter].
   Future<void> prepareForHome({
-    String Function() nowMonthKey = AppDateUtils.getCurrentMonthKey,
+    String Function() nowMonthKey = AppClock.nowMonthKey,
   }) async {
     final now = nowMonthKey();
     await _settings.setCurrentMonth(now);

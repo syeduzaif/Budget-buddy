@@ -7,6 +7,7 @@ import '../../data/models/transaction_item.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../../services/app/settings_service.dart';
+import '../../utils/app_clock.dart';
 import '../../utils/date_utils.dart';
 
 class DashboardController extends GetxController {
@@ -57,8 +58,13 @@ class DashboardController extends GetxController {
   /// the month, and whether the second summary card claims money is
   /// "Remaining" (a promise about the future) or merely "Unspent" (a fact
   /// about a month that already ended). Asked once so they cannot disagree.
+  /// Through [AppClock], like every other "what month is it now" read: a debug
+  /// month override that the rollover obeyed but this predicate did not would
+  /// leave the harness showing "September 2026's Budgets" and the BUG-102
+  /// suppression on a month the app had just rolled INTO — a screen no real
+  /// user can ever see, which is the opposite of evidence.
   bool get isViewingCurrentMonth =>
-      settings.currentMonth.value == AppDateUtils.getCurrentMonthKey();
+      settings.currentMonth.value == AppClock.nowMonthKey();
 
   /// True when the month on screen is not the current one AND holds no
   /// transactions at all.

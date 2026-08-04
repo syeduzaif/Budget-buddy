@@ -6,6 +6,7 @@ import '../../data/models/transaction_item.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../../services/app/settings_service.dart';
+import '../../utils/app_clock.dart';
 import '../../utils/date_utils.dart';
 
 class AnalyticsController extends GetxController {
@@ -14,15 +15,15 @@ class AnalyticsController extends GetxController {
   final SettingsService settings;
 
   /// Which month "now" is. A seam for tests, not a clock dependency — the same
-  /// shape `CategoryRepository.resolveForMonth` uses, and the default is the
-  /// real current month.
+  /// shape `CategoryRepository.resolveForMonth` uses, and the default is
+  /// [AppClock.nowMonthKey], the real current month in any release build.
   final String Function() nowMonthKey;
 
   AnalyticsController({
     required this.transactionRepo,
     required this.categoryRepo,
     required this.settings,
-    this.nowMonthKey = AppDateUtils.getCurrentMonthKey,
+    this.nowMonthKey = AppClock.nowMonthKey,
   });
 
   final transactions = <TransactionItem>[].obs;

@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 
 import '../../data/repositories/category_repository.dart';
 import '../../services/app/settings_service.dart';
-import '../../utils/date_utils.dart';
+import '../../utils/app_clock.dart';
 
 /// Owns the bottom-nav selection, and the warm-app half of the month rollover.
 ///
@@ -53,10 +53,10 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   /// (F-02 rule 4). The roll-then-ensure pair is the one the splash and the
   /// month chevrons already run.
   ///
-  /// [nowMonthKey] is a test seam, not a clock dependency — the default reads
-  /// the real clock.
+  /// [nowMonthKey] is a test seam, not a clock dependency — the default is
+  /// [AppClock.nowMonthKey], the real clock in any release build.
   Future<void> handleResume({
-    String Function() nowMonthKey = AppDateUtils.getCurrentMonthKey,
+    String Function() nowMonthKey = AppClock.nowMonthKey,
   }) async {
     if (!settings.onboardingComplete.value) return;
     final now = nowMonthKey();

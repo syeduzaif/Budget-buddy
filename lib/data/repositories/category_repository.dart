@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../services/local/local_store_service.dart';
+import '../../utils/app_clock.dart';
 import '../../utils/date_utils.dart';
 import '../models/category.dart';
 import '../models/transaction_item.dart';
@@ -191,12 +192,13 @@ class CategoryRepository extends GetxService {
   /// fill, so it must not hand that month a budget structure the user never set
   /// (BUG-120).
   ///
-  /// [nowMonthKey] is a test seam, not a clock dependency: the default reads
-  /// the real clock. Threading it through the launch/resume rollover keeps
-  /// simulated-clock tests independent of the machine's actual date.
+  /// [nowMonthKey] is a test seam, not a clock dependency: the default is
+  /// [AppClock.nowMonthKey], i.e. the real clock in every release build.
+  /// Threading it through the launch/resume rollover keeps simulated-clock
+  /// tests independent of the machine's actual date.
   Future<void> ensureMonth(
     String monthKey, {
-    String Function() nowMonthKey = AppDateUtils.getCurrentMonthKey,
+    String Function() nowMonthKey = AppClock.nowMonthKey,
   }) {
     final existing = _ensureInFlight[monthKey];
     // De-duplication is by target month only: an in-flight ensure for M wins,
@@ -285,11 +287,11 @@ class CategoryRepository extends GetxService {
   ///    already happened. Same test — [_isBackwardFill] — as step 2's ensure.
   ///
   /// [nowMonthKey] is a seam for tests, not a clock dependency: the default is
-  /// the real current month.
+  /// [AppClock.nowMonthKey], i.e. the real current month in every release build.
   Future<CategoryResolution> resolveForMonth(
     Category? picked,
     String monthKey, {
-    String Function() nowMonthKey = AppDateUtils.getCurrentMonthKey,
+    String Function() nowMonthKey = AppClock.nowMonthKey,
   }) async {
     if (picked == null) {
       return CategoryResolution(await ensureUncategorised(monthKey),
