@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -75,30 +76,67 @@ class TransactionFormView extends StatelessWidget {
                     context: context,
                     builder: (ctx) => SimpleDialog(
                       title: const Text('Select Category'),
-                      children: ctrl.categories
-                          .map((cat) => SimpleDialogOption(
-                                onPressed: () => Navigator.pop(ctx, cat),
-                                child: Row(
-                                  children: [
-                                    CategoryIcon(category: cat, size: 24),
-                                    const SizedBox(width: AppSpacing.s),
-                                    Expanded(
-                                      child: Text(cat.name,
-                                          style: AppFonts.bodyMedium,
-                                          overflow: TextOverflow.ellipsis),
-                                    ),
-                                    // Says which one is already chosen — the
-                                    // list gave no marker at all (UI-27).
-                                    if (cat.id == selected?.id)
-                                      Icon(Icons.check,
-                                          size: AppSpacing.iconS,
-                                          color: Theme.of(ctx)
-                                              .colorScheme
-                                              .primary),
-                                  ],
+                      children: ctrl.categories.isEmpty
+                          ? [
+                              // Reachable: delete every category in every
+                              // month and `ensureMonth` has nothing to clone
+                              // from. The dialog was a title over blank space
+                              // — a dead end on this app's rank-1 job — while
+                              // the save path beneath it already handles the
+                              // case correctly and says so. This says the same
+                              // thing one step earlier (D-028).
+                              //
+                              // It names the month the LIST is built from
+                              // (`ctrl.categories` is filtered to
+                              // `settings.currentMonth`), not the date's — the
+                              // sentence is about what is on screen. The
+                              // second half stays true either way: with no
+                              // pick, the save files into the reserved bucket
+                              // of the transaction's own date-month (F-01).
+                              //
+                              // No "create one" affordance: this dialog cannot
+                              // create a category, and copy must not invite an
+                              // action the screen cannot honour.
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                    AppSpacing.xl,
+                                    0,
+                                    AppSpacing.xl,
+                                    AppSpacing.m),
+                                child: Text(
+                                  'No categories in '
+                                  '${AppDateUtils.formatMonthName(ctrl.settings.currentMonth.value)}. '
+                                  'Saving will file this under '
+                                  '$kUncategorisedCategoryName.',
+                                  style: AppFonts.bodyMedium.copyWith(
+                                      color: ctx.semanticColors.textMuted),
                                 ),
-                              ))
-                          .toList(),
+                              ),
+                            ]
+                          : ctrl.categories
+                              .map((cat) => SimpleDialogOption(
+                                    onPressed: () => Navigator.pop(ctx, cat),
+                                    child: Row(
+                                      children: [
+                                        CategoryIcon(category: cat, size: 24),
+                                        const SizedBox(width: AppSpacing.s),
+                                        Expanded(
+                                          child: Text(cat.name,
+                                              style: AppFonts.bodyMedium,
+                                              overflow: TextOverflow.ellipsis),
+                                        ),
+                                        // Says which one is already chosen — the
+                                        // list gave no marker at all (UI-27).
+                                        if (cat.id == selected?.id)
+                                          Icon(Icons.check,
+                                              size: AppSpacing.iconS,
+                                              color: Theme.of(ctx)
+                                                  .colorScheme
+                                                  .primary),
+                                      ],
+                                    ),
+                                  ))
+                              .toList(),
                     ),
                   );
                   if (picked != null) ctrl.selectCategory(picked);
@@ -156,9 +194,8 @@ class TransactionFormView extends StatelessWidget {
                               strokeWidth: 2, color: Colors.white))
                       // "Save Changes" is the category form's word for the
                       // same act, and it says the record already exists.
-                      : Text(ctrl.isEditing
-                          ? 'Save Changes'
-                          : 'Save Transaction'),
+                      : Text(
+                          ctrl.isEditing ? 'Save Changes' : 'Save Transaction'),
                 )),
           ],
         ),
