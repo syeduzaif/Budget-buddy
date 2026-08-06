@@ -17,6 +17,14 @@ import 'widgets/month_switcher.dart';
 import 'widgets/recent_transactions_card.dart';
 import 'widgets/spending_donut_chart.dart';
 
+/// Scopes the donut section's header for the block-order test (F-04 AC-A6).
+///
+/// The other two headers sit inside widgets of their own — `CategoryBudgetList`
+/// and `RecentTransactionsCard` — so `find.descendant` can reach them by type.
+/// This one is a bare `Text` in this file's tree, and AC-A6 forbids a
+/// `find.byType(Text)` sweep, so it carries a key instead.
+const Key kDonutHeaderKey = Key('dashboard-donut-header');
+
 class DashboardView extends StatelessWidget {
   const DashboardView({super.key});
 
@@ -198,57 +206,31 @@ class DashboardView extends StatelessWidget {
                     ),
                   ),
                 ],
+                // The ONE unconditional gap on this screen. It separates the
+                // summary block from the budgets card, and both of those always
+                // render — the summary as either the no-records line or the
+                // income + Spent/Remaining pair, the budgets card as either
+                // rows or its own "No categories yet". Every gap BELOW here is
+                // leading and lives inside its own block's spread, so a section
+                // that does not render takes its gap with it (D-001).
                 const SizedBox(height: AppSpacing.l),
 
-                // Recent transactions — absent entirely on a month with none.
-                // No empty shell and no skeleton: the donut's empty state below
-                // already carries that message once (F-04 AC-3).
-                if (recent.isNotEmpty) ...[
-                  FadeSlideItem(
-                    index: 2,
-                    child: RecentTransactionsCard(
-                      transactions: recent,
-                      categories: ctrl.categories,
-                      currency: currency,
-                      onSeeAll: openMonthTransactions,
-                      onTapTransaction: (t) =>
-                          openTransactionSheet(context, editing: t),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.l),
-                ],
-
-                // Spending donut chart
-                if (ctrl.categories.isNotEmpty) ...[
-                  FadeSlideItem(
-                    // Indices are a stagger delay, nothing more, so the gap a
-                    // missing section leaves is harmless — they are NOT
-                    // renumbered at runtime.
-                    index: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Spending Breakdown', style: AppFonts.h6),
-                        const SizedBox(height: AppSpacing.s),
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(AppSpacing.m),
-                            child: SpendingDonutChart(
-                              categories: ctrl.categories,
-                              spentMinorByCategory: spentMinorByCategory,
-                              currency: currency,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.l),
-                ],
-
-                // Category budget list
+                // Category budget list — FIRST of the three blocks since D-001.
+                //
+                // It carries the answer to "am I still inside my budgets?",
+                // which is what the user came for; it used to sit last, ~1,190dp
+                // down a 623dp viewport, behind two charts. Order here is
+                // literal child order and nothing else: `FadeSlideItem.index` is
+                // a stagger DELAY (`animations.dart:42`), so renumbering alone
+                // would have moved nothing on screen.
+                //
+                // The indices below still run 2 → 3 → 4 in visual order, which
+                // is now cosmetic bookkeeping rather than the change: left at
+                // their old values the verdict would have faded in ~240ms after
+                // the blocks beneath it. Gaps in the sequence when a section is
+                // absent stay harmless, because a delay is all they are.
                 FadeSlideItem(
-                  index: 4,
+                  index: 2,
                   child: Card(
                     child: Padding(
                       padding: const EdgeInsets.all(AppSpacing.m),
@@ -267,6 +249,55 @@ class DashboardView extends StatelessWidget {
                     ),
                   ),
                 ),
+
+                // Recent transactions — absent entirely on a month with none.
+                // No empty shell and no skeleton: the donut's empty state below
+                // already carries that message once (F-04 AC-3). The gap is
+                // LEADING now, so an absent card leaves no doubled space above
+                // the donut.
+                if (recent.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.l),
+                  FadeSlideItem(
+                    index: 3,
+                    child: RecentTransactionsCard(
+                      transactions: recent,
+                      categories: ctrl.categories,
+                      currency: currency,
+                      onSeeAll: openMonthTransactions,
+                      onTapTransaction: (t) =>
+                          openTransactionSheet(context, editing: t),
+                    ),
+                  ),
+                ],
+
+                // Spending donut chart — last, and last is where an uncapped
+                // legend costs only scroll length instead of standing between
+                // the user and the verdict (PRD §6 as corrected). Leading gap,
+                // and no trailing one: nothing follows it.
+                if (ctrl.categories.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.l),
+                  FadeSlideItem(
+                    index: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Spending Breakdown',
+                            key: kDonutHeaderKey, style: AppFonts.h6),
+                        const SizedBox(height: AppSpacing.s),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.m),
+                            child: SpendingDonutChart(
+                              categories: ctrl.categories,
+                              spentMinorByCategory: spentMinorByCategory,
+                              currency: currency,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
