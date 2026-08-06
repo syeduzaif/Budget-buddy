@@ -118,6 +118,29 @@ void main() {
           greaterThanOrEqualTo(4.5));
     });
 
+    test('the version line is pinned at its UN-ALPHA\'d ratio (D-019 '
+        'follow-on)', () {
+      // The floor above says "legible". This says WHICH value, because the
+      // edit that undoes D-019 is not a token change — it is a future
+      // contributor re-adding an alpha for "visual hierarchy", which reads as
+      // taste and passes a >= 4.5 floor check nowhere near this file.
+      // 6.03:1 is the whole of what removing the alpha bought, so it is
+      // recorded as a number and any move forces a deliberate decision.
+      expect(contrast(AppColors.textMutedDark, AppColors.backgroundDark),
+          closeTo(6.03, 0.01));
+
+      // What the alpha actually cost, made executable rather than left in a
+      // comment: the old token at 60% over the gradient's dark end. Below AA
+      // by more than a factor of the margin anyone would argue about.
+      final composited = Color.alphaBlend(
+        const Color(0xFF9A9182).withValues(alpha: 0.6),
+        AppColors.backgroundDark,
+      );
+      expect(contrast(composited, AppColors.backgroundDark),
+          closeTo(2.84, 0.01));
+      expect(contrast(composited, AppColors.backgroundDark), lessThan(4.5));
+    });
+
     test('muted clears AA on the PAGE background too, in both themes', () {
       // BUG-102's two-line empty state sits on the scaffold, not on a card, and
       // its AC asks for AA on both. The light background is a shade darker than
