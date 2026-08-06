@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_semantic_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_fonts.dart';
+import '../../core/widgets/themed_system_overlay.dart';
 import '../../utils/currency_utils.dart';
 import 'onboarding_controller.dart';
 
@@ -13,34 +14,41 @@ class OnboardingView extends GetView<OnboardingController> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Progress indicator
-            Obx(() => LinearProgressIndicator(
-                  value: (controller.currentPage.value + 1) / 3,
-                  // The bar read BACKWARDS in dark: the unfilled track was
-                  // AppColors.border (#E3DDD2, 12.7:1) while the filled part
-                  // was 3.9:1 — the empty part 3× brighter than the progress
-                  // (N7).
-                  backgroundColor: colorScheme.onSurface.withValues(alpha: 0.12),
-                  color: colorScheme.primary,
-                  minHeight: 3,
-                )),
-            Expanded(
-              child: PageView(
-                controller: controller.pageController,
-                onPageChanged: controller.onPageChanged,
-                physics: const NeverScrollableScrollPhysics(),
-                children: const [
-                  _WelcomePage(),
-                  _CurrencyPage(),
-                  _IncomePage(),
-                ],
+    // RULE S (D-017): no app bar, so this screen's own scaffold is what
+    // sits behind the status bar and it declares the style itself. The
+    // erase path lands here with the dashboard's light-icon declaration
+    // still in force — invisible clock on cream (UI-32/N12/FD-15/QA-BUG-004).
+    return ThemedSystemOverlay(
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Progress indicator
+              Obx(() => LinearProgressIndicator(
+                    value: (controller.currentPage.value + 1) / 3,
+                    // The bar read BACKWARDS in dark: the unfilled track was
+                    // AppColors.border (#E3DDD2, 12.7:1) while the filled part
+                    // was 3.9:1 — the empty part 3× brighter than the progress
+                    // (N7).
+                    backgroundColor:
+                        colorScheme.onSurface.withValues(alpha: 0.12),
+                    color: colorScheme.primary,
+                    minHeight: 3,
+                  )),
+              Expanded(
+                child: PageView(
+                  controller: controller.pageController,
+                  onPageChanged: controller.onPageChanged,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: const [
+                    _WelcomePage(),
+                    _CurrencyPage(),
+                    _IncomePage(),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -80,8 +88,8 @@ class _WelcomePage extends StatelessWidget {
             'month went.',
             // textSecondary is a light-theme token: 2.79:1 on the dark
             // background (N6).
-            style:
-                AppFonts.bodyLarge.copyWith(color: colorScheme.onSurfaceVariant),
+            style: AppFonts.bodyLarge
+                .copyWith(color: colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.xxxl),
@@ -150,9 +158,8 @@ class _CurrencyPageState extends State<_CurrencyPage> {
     final tileHeight = tileWidth / _childAspectRatio;
     final rowExtent = tileHeight + _spacing;
 
-    final rowCount =
-        (CurrencyUtils.currencies.length + _crossAxisCount - 1) ~/
-            _crossAxisCount;
+    final rowCount = (CurrencyUtils.currencies.length + _crossAxisCount - 1) ~/
+        _crossAxisCount;
     // The grid's scrollable content: every row plus the gaps between them.
     final contentExtent = rowCount * rowExtent - _spacing;
     final maxOffset = (contentExtent - constraints.maxHeight).clamp(
@@ -160,12 +167,11 @@ class _CurrencyPageState extends State<_CurrencyPage> {
       double.infinity,
     );
 
-    final rowBottom = (selectedIndex ~/ _crossAxisCount) * rowExtent +
-        tileHeight;
+    final rowBottom =
+        (selectedIndex ~/ _crossAxisCount) * rowExtent + tileHeight;
     if (rowBottom <= constraints.maxHeight) return 0;
 
-    return (rowBottom - constraints.maxHeight + _spacing)
-        .clamp(0.0, maxOffset);
+    return (rowBottom - constraints.maxHeight + _spacing).clamp(0.0, maxOffset);
   }
 
   @override

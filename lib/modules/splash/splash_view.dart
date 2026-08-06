@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_fonts.dart';
+import '../../core/widgets/themed_system_overlay.dart';
 import 'splash_controller.dart';
 
 class SplashView extends StatefulWidget {
@@ -123,198 +124,204 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Gradient background
-          Container(
-            decoration: BoxDecoration(
-              // Terra Firma tokens. The lavenders that used to be here
-              // (#FAF8FC/#F0EBF7, #1A1525/#221D2E) exist in no palette — the
-              // first impression of the product was in a different colour
-              // family from the product (UI-33).
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [
-                        AppColors.backgroundDark,
-                        AppColors.surfaceDark,
-                      ]
-                    : [
-                        AppColors.background,
-                        AppColors.surface,
-                      ],
+    // RULE S (D-017): this screen paints its own gradient behind the status
+    // bar, so it declares the status bar's style. Without it the clock,
+    // battery and signal keep whatever style the previous screen set.
+    return ThemedSystemOverlay(
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // Gradient background
+            Container(
+              decoration: BoxDecoration(
+                // Terra Firma tokens. The lavenders that used to be here
+                // (#FAF8FC/#F0EBF7, #1A1525/#221D2E) exist in no palette — the
+                // first impression of the product was in a different colour
+                // family from the product (UI-33).
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          AppColors.backgroundDark,
+                          AppColors.surfaceDark,
+                        ]
+                      : [
+                          AppColors.background,
+                          AppColors.surface,
+                        ],
+                ),
               ),
             ),
-          ),
 
-          // Decorative gradient blobs
-          Positioned(
-            top: -80,
-            right: -60,
-            child: _GradientBlob(
-              size: 250,
-              color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.1),
+            // Decorative gradient blobs
+            Positioned(
+              top: -80,
+              right: -60,
+              child: _GradientBlob(
+                size: 250,
+                color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.1),
+              ),
             ),
-          ),
-          Positioned(
-            bottom: -60,
-            left: -80,
-            child: _GradientBlob(
-              size: 300,
-              // Was an off-palette teal (#1ABC9C) (UI-33).
-              color:
-                  AppColors.secondary.withValues(alpha: isDark ? 0.12 : 0.08),
+            Positioned(
+              bottom: -60,
+              left: -80,
+              child: _GradientBlob(
+                size: 300,
+                // Was an off-palette teal (#1ABC9C) (UI-33).
+                color:
+                    AppColors.secondary.withValues(alpha: isDark ? 0.12 : 0.08),
+              ),
             ),
-          ),
-          Positioned(
-            top: MediaQuery.of(context).size.height * 0.35,
-            left: -40,
-            child: _GradientBlob(
-              size: 180,
-              color:
-                  AppColors.secondary.withValues(alpha: isDark ? 0.08 : 0.06),
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.35,
+              left: -40,
+              child: _GradientBlob(
+                size: 180,
+                color:
+                    AppColors.secondary.withValues(alpha: isDark ? 0.08 : 0.06),
+              ),
             ),
-          ),
 
-          // Main content
-          SafeArea(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Spacer(flex: 3),
+            // Main content
+            SafeArea(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Spacer(flex: 3),
 
-                  // Animated logo
-                  AnimatedBuilder(
-                    animation: _logoController,
-                    builder: (_, __) => Transform.scale(
-                      scale: _logoScale.value,
-                      child: Transform.rotate(
-                        angle: _logoRotation.value * pi,
-                        child: Container(
-                          width: 110,
-                          height: 110,
-                          decoration: BoxDecoration(
-                            gradient: AppColors.primaryGradient,
-                            borderRadius: BorderRadius.circular(28),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.4),
-                                blurRadius: 30,
-                                spreadRadius: 2,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.account_balance_wallet_rounded,
-                            size: 56,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // App name
-                  SlideTransition(
-                    position: _textSlide,
-                    child: FadeTransition(
-                      opacity: _textOpacity,
-                      child: Text(
-                        AppConstants.appName,
-                        style: AppFonts.h2.copyWith(
-                          color: isDark
-                              ? AppColors.textDark
-                              : AppColors.textPrimary,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Tagline
-                  FadeTransition(
-                    opacity: _taglineOpacity,
-                    child: Text(
-                      AppConstants.appTagline,
-                      style: AppFonts.bodyLarge.copyWith(
-                        // This screen branches on brightness by hand (it paints
-                        // its own gradient, so it knows its surface better than
-                        // the theme does) — which is why the split shows up
-                        // here as two named tokens rather than the context
-                        // accessor.
-                        color: isDark
-                            ? AppColors.textMutedDark
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 48),
-
-                  // Loading dots
-                  AnimatedBuilder(
-                    animation: _dotsController,
-                    builder: (_, __) => Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(3, (i) {
-                        final delay = i * 0.2;
-                        final t =
-                            (_dotsController.value - delay).clamp(0.0, 1.0);
-                        final scale = 0.5 + 0.5 * sin(t * pi);
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Transform.scale(
-                            scale: scale,
-                            child: Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary
-                                    .withValues(alpha: 0.6 + 0.4 * scale),
-                                shape: BoxShape.circle,
-                              ),
+                    // Animated logo
+                    AnimatedBuilder(
+                      animation: _logoController,
+                      builder: (_, __) => Transform.scale(
+                        scale: _logoScale.value,
+                        child: Transform.rotate(
+                          angle: _logoRotation.value * pi,
+                          child: Container(
+                            width: 110,
+                            height: 110,
+                            decoration: BoxDecoration(
+                              gradient: AppColors.primaryGradient,
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.4),
+                                  blurRadius: 30,
+                                  spreadRadius: 2,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.account_balance_wallet_rounded,
+                              size: 56,
+                              color: Colors.white,
                             ),
                           ),
-                        );
-                      }),
-                    ),
-                  ),
-
-                  const Spacer(flex: 3),
-
-                  // Version
-                  FadeTransition(
-                    opacity: _versionOpacity,
-                    child: Text(
-                      'v${AppConstants.appVersion}',
-                      style: AppFonts.caption.copyWith(
-                        // No alpha on either branch (D-019). The light branch
-                        // never had one, so the 0.6 was copied onto the dark
-                        // half without a contrast check: it composited to
-                        // 2.84:1 on the dark background — below AA for any
-                        // text, on the first screen of the product. Opaque,
-                        // the retuned token is 6.03:1.
-                        color: isDark
-                            ? AppColors.textMutedDark
-                            : AppColors.textMuted,
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 24),
-                ],
+                    const SizedBox(height: 32),
+
+                    // App name
+                    SlideTransition(
+                      position: _textSlide,
+                      child: FadeTransition(
+                        opacity: _textOpacity,
+                        child: Text(
+                          AppConstants.appName,
+                          style: AppFonts.h2.copyWith(
+                            color: isDark
+                                ? AppColors.textDark
+                                : AppColors.textPrimary,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Tagline
+                    FadeTransition(
+                      opacity: _taglineOpacity,
+                      child: Text(
+                        AppConstants.appTagline,
+                        style: AppFonts.bodyLarge.copyWith(
+                          // This screen branches on brightness by hand (it paints
+                          // its own gradient, so it knows its surface better than
+                          // the theme does) — which is why the split shows up
+                          // here as two named tokens rather than the context
+                          // accessor.
+                          color: isDark
+                              ? AppColors.textMutedDark
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 48),
+
+                    // Loading dots
+                    AnimatedBuilder(
+                      animation: _dotsController,
+                      builder: (_, __) => Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(3, (i) {
+                          final delay = i * 0.2;
+                          final t =
+                              (_dotsController.value - delay).clamp(0.0, 1.0);
+                          final scale = 0.5 + 0.5 * sin(t * pi);
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Transform.scale(
+                              scale: scale,
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary
+                                      .withValues(alpha: 0.6 + 0.4 * scale),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+
+                    const Spacer(flex: 3),
+
+                    // Version
+                    FadeTransition(
+                      opacity: _versionOpacity,
+                      child: Text(
+                        'v${AppConstants.appVersion}',
+                        style: AppFonts.caption.copyWith(
+                          // No alpha on either branch (D-019). The light branch
+                          // never had one, so the 0.6 was copied onto the dark
+                          // half without a contrast check: it composited to
+                          // 2.84:1 on the dark background — below AA for any
+                          // text, on the first screen of the product. Opaque,
+                          // the retuned token is 6.03:1.
+                          color: isDark
+                              ? AppColors.textMutedDark
+                              : AppColors.textMuted,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
