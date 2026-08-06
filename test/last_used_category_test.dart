@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:budget_buddy/core/constants/app_constants.dart';
+import 'package:budget_buddy/core/utils/category_order.dart';
 import 'package:budget_buddy/data/local/hive_storage.dart';
 import 'package:budget_buddy/data/models/category.dart';
 import 'package:budget_buddy/data/models/transaction_item.dart';
@@ -318,6 +319,12 @@ void main() {
         () async {
       // The same set in three different input orders must produce one output —
       // this is what the old newest-first list could not promise.
+      //
+      // The comparator itself moved to `core/utils/category_order.dart`
+      // (BUG-R2-main-01): F-09 AC-5 requires the Categories tab to use the same
+      // one, and it was living as a private static on this controller. Its own
+      // rules are covered in `category_order_test.dart`; what this case still
+      // proves is that the PICKER is a caller of it.
       Category cat(String id, String name) => category(id: id, name: name);
       final bucket = cat('bucket', kUncategorisedCategoryName);
       final food = cat('f', 'Food');
@@ -329,10 +336,7 @@ void main() {
         [zoo, apples, food, bucket],
         [food, bucket, zoo, apples],
       ]) {
-        expect(
-            TransactionFormController.orderForPicker(input)
-                .map((c) => c.id)
-                .toList(),
+        expect(CategoryOrder.sortedByName(input).map((c) => c.id).toList(),
             ['a', 'f', 'z', 'bucket']);
       }
     });

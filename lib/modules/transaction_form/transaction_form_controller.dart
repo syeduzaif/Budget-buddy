@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/budget_status.dart';
+import '../../core/utils/category_order.dart';
 import '../../data/models/category.dart';
 import '../../data/models/transaction_item.dart';
 import '../../data/repositories/category_repository.dart';
@@ -101,7 +102,10 @@ class TransactionFormController extends GetxController {
 
     categoryRepo.getCategories().listen(
       (list) {
-        final filtered = orderForPicker(
+        // The one shared comparator (F-09 AC-5): the picker and the Categories
+        // tab list a month's categories in exactly the same order, so a user
+        // who learns one has learned the other.
+        final filtered = CategoryOrder.sortedByName(
             list.where((c) => c.month == settings.currentMonth.value).toList());
         categories.assignAll(filtered);
         if (selectedCategory.value == null) {
@@ -118,44 +122,13 @@ class TransactionFormController extends GetxController {
     );
   }
 
-  /// The month's categories in the order the picker lists them: by name,
-  /// case-insensitively, with the reserved bucket LAST.
-  ///
-  /// The store hands categories back newest-created-first, which for one month's
-  /// clones — written in a single batch, so all carrying the same `createdAt` —
-  /// is an arbitrary order, and `List.sort` is not stable, so it can differ
-  /// month to month and even between runs. Two consequences, both measured:
-  /// the rows moved under the user's thumb, and the "first category" fallback
-  /// below became a lottery that the reserved bucket could win (BUG-020).
-  ///
-  /// Reserved last rather than merely excluded: the bucket has to be pickable —
-  /// it is where a user can deliberately file something they cannot classify —
-  /// but it is the row that REPORTS a data problem, so it belongs at the bottom
-  /// of the list and nowhere near the default (F-01 rule 4, palwasha 8c).
-  ///
-  /// `id` breaks name ties so the answer is total: a month should not hold two
-  /// categories of one name (F-08), but a box written before that rule existed
-  /// can, and an arbitrary order is exactly what this method removes.
-  static List<Category> orderForPicker(List<Category> monthCategories) {
-    final ordered = monthCategories.toList()
-      ..sort((a, b) {
-        final aReserved = isReservedCategoryName(a.name) ? 1 : 0;
-        final bReserved = isReservedCategoryName(b.name) ? 1 : 0;
-        if (aReserved != bReserved) return aReserved - bReserved;
-        final byName =
-            a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
-        return byName != 0 ? byName : a.id.compareTo(b.id);
-      });
-    return ordered;
-  }
-
   /// The category a fallback may land on: the first one the USER manages, and
   /// the reserved bucket only when there is nothing else in the month.
   ///
-  /// [orderForPicker] already sorts the bucket last, so this is belt and braces
-  /// — deliberately, because the rule that matters is "never default to the
-  /// bucket", and that must not depend on a comparator somewhere else staying
-  /// the way it is (BUG-020).
+  /// [CategoryOrder.sortedByName] already sorts the bucket last, so this is
+  /// belt and braces — deliberately, because the rule that matters is "never
+  /// default to the bucket", and that must not depend on a comparator somewhere
+  /// else staying the way it is (BUG-020).
   static Category? _firstPickable(List<Category> monthCategories) {
     for (final c in monthCategories) {
       if (!isReservedCategoryName(c.name)) return c;
@@ -179,7 +152,7 @@ class TransactionFormController extends GetxController {
   /// 3. **The category the last save used**, matched by name in the VIEWED
   ///    month. Nine categories meant the old "first category" default was wrong
   ///    about eight times in nine, at two taps and a modal each time.
-  /// 4. **The month's first category** in [orderForPicker]'s order, skipping the
+  /// 4. **The month's first category** in [CategoryOrder]'s order, skipping the
   ///    reserved bucket. Uncategorised exists to say "this spend lost its
   ///    category"; a sheet that opens on it files NEW spend into the row that
   ///    reports a problem, which is the mis-attribution the bucket exists to

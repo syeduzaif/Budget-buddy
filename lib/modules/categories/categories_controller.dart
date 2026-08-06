@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/utils/category_order.dart';
 import '../../data/models/category.dart';
 import '../../data/models/transaction_item.dart';
 import '../../data/repositories/category_repository.dart';
@@ -69,14 +70,25 @@ class CategoriesController extends GetxController {
               settings.currentMonth.value)
       .fold(0, (sum, t) => sum + t.amountMinor);
 
+  /// The viewed month's categories, in the order the tab lists them.
+  ///
+  /// Both entry points below go through here so the rule cannot hold on one
+  /// path and not the other: the stream fires when the data changes, the `ever`
+  /// re-read fires when the MONTH changes, and before this method existed only
+  /// a sort written twice would have covered both.
+  ///
+  /// [CategoryOrder.sortedByName] returns a new list, so nothing sorts the
+  /// RxList in place — `assignAll` is the only writer (F-09 §5).
+  void _publishMonth(List<Category> all) {
+    categories.assignAll(CategoryOrder.sortedByName(
+        all.where((c) => c.month == settings.currentMonth.value).toList()));
+  }
+
   @override
   void onInit() {
     super.onInit();
     categoryRepo.getCategories().listen(
-      (list) {
-        categories.assignAll(
-            list.where((c) => c.month == settings.currentMonth.value).toList());
-      },
+      _publishMonth,
       onError: (Object e, StackTrace s) {
         // The local store swallows read failures and re-emits the last
         // good snapshot, so this should never fire — but every listener
@@ -99,11 +111,7 @@ class CategoriesController extends GetxController {
     // Re-filter categories when month changes from the dashboard
     ever(settings.currentMonth, (_) {
       categoryRepo.getCategories().first.then(
-        (list) {
-          categories.assignAll(list
-              .where((c) => c.month == settings.currentMonth.value)
-              .toList());
-        },
+        _publishMonth,
         // A `then` without this is an unhandled async error (H2).
         onError: (Object e, StackTrace s) {
           debugPrint('[CategoriesController] month re-filter failed: $e\n$s');
