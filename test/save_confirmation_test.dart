@@ -1,10 +1,17 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:budget_buddy/core/theme/app_theme.dart';
 import 'package:budget_buddy/data/local/hive_storage.dart';
 import 'package:budget_buddy/data/models/category.dart';
 import 'package:budget_buddy/data/models/transaction_item.dart';
 import 'package:budget_buddy/data/repositories/category_repository.dart';
 import 'package:budget_buddy/data/repositories/transaction_repository.dart';
+import 'package:budget_buddy/modules/dashboard/dashboard_controller.dart';
+import 'package:budget_buddy/modules/dashboard/dashboard_view.dart';
+import 'package:budget_buddy/modules/dashboard/widgets/category_budget_list.dart';
+import 'package:budget_buddy/modules/dashboard/widgets/recent_transactions_card.dart';
+import 'package:budget_buddy/modules/dashboard/widgets/summary_card.dart';
 import 'package:budget_buddy/modules/transaction_form/transaction_form_controller.dart';
 import 'package:budget_buddy/services/app/settings_service.dart';
 import 'package:budget_buddy/services/local/local_store_service.dart';
@@ -13,6 +20,146 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+
+/// [LocalStoreService] with the disk taken out, and the reason it has to exist.
+///
+/// The rest of this file drives real Hive, which means every write must run
+/// inside `tester.runAsync` — and `runAsync` is exactly what lets `AppFonts`'
+/// google_fonts requests reach the test binding's canned 400 and fail the test
+/// (the trap the header describes). The GAP-014 (ii) test has to render the
+/// real dashboard, so it cannot avoid `AppFonts`; it therefore avoids
+/// `runAsync` instead, and the only way to do that is to take the real I/O out.
+/// Measured before choosing this: with real Hive the test failed on font
+/// exceptions at every timing tried, including zero-length waits and a bounded
+/// poll — the two constraints are structurally incompatible, not a matter of
+/// tuning.
+///
+/// Both REPOSITORIES stay real, which is where the behaviour under test lives
+/// (`resolveForMonth`, `ensureUncategorised`, month scoping, sorting). Only the
+/// thirteen box calls are re-pointed at two maps, with the same ordering
+/// contracts the shipped service documents: categories newest-first by
+/// `createdAt`, transactions newest-first by `date`, and every watcher gets the
+/// current contents immediately and again after each mutation.
+class _InMemoryStore extends LocalStoreService {
+  final Map<String, Category> _cats = {};
+  final Map<String, TransactionItem> _txns = {};
+  final _catStreams = <StreamController<List<Category>>>[];
+  final _txnStreams = <StreamController<List<TransactionItem>>>[];
+
+  @override
+  Future<LocalStoreService> init() async => this;
+
+  void _publish() {
+    for (final c in _catStreams) {
+      if (!c.isClosed) c.add(readCategories());
+    }
+    for (final t in _txnStreams) {
+      if (!t.isClosed) t.add(readTransactions());
+    }
+  }
+
+  @override
+  List<Category> readCategories() {
+    final list = _cats.values.toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
+
+  @override
+  Stream<List<Category>> watchCategories() {
+    late final StreamController<List<Category>> c;
+    c = StreamController<List<Category>>(
+      onListen: () => c.add(readCategories()),
+      onCancel: () => _catStreams.remove(c),
+    );
+    _catStreams.add(c);
+    return c.stream;
+  }
+
+  @override
+  Future<void> putCategory(Category category) async {
+    _cats[category.id] = category;
+    _publish();
+  }
+
+  @override
+  Future<void> putCategories(List<Category> categories) async {
+    for (final c in categories) {
+      _cats[c.id] = c;
+    }
+    _publish();
+  }
+
+  @override
+  Future<void> deleteCategory(String id) async {
+    _cats.remove(id);
+    _publish();
+  }
+
+  @override
+  Future<void> clearCategories() async {
+    _cats.clear();
+    _publish();
+  }
+
+  @override
+  List<Category> readCategoriesForMonth(String month) =>
+      readCategories().where((c) => c.month == month).toList();
+
+  @override
+  List<TransactionItem> readTransactions() {
+    final list = _txns.values.toList();
+    list.sort((a, b) => b.date.compareTo(a.date));
+    return list;
+  }
+
+  @override
+  Stream<List<TransactionItem>> watchTransactions() {
+    late final StreamController<List<TransactionItem>> c;
+    c = StreamController<List<TransactionItem>>(
+      onListen: () => c.add(readTransactions()),
+      onCancel: () => _txnStreams.remove(c),
+    );
+    _txnStreams.add(c);
+    return c.stream;
+  }
+
+  @override
+  Future<void> putTransaction(TransactionItem transaction) async {
+    _txns[transaction.id] = transaction;
+    _publish();
+  }
+
+  @override
+  Future<void> putTransactions(Iterable<TransactionItem> transactions) async {
+    for (final t in transactions) {
+      _txns[t.id] = t;
+    }
+    _publish();
+  }
+
+  @override
+  Future<void> deleteTransaction(String id) async {
+    _txns.remove(id);
+    _publish();
+  }
+
+  @override
+  Future<void> clearTransactions() async {
+    _txns.clear();
+    _publish();
+  }
+}
+
+/// The one settings write `save()` makes (`rememberLastUsedCategory`, F-06) is
+/// real disk I/O on the settings box, and would reintroduce the `runAsync` the
+/// store seam exists to remove. Everything else about the service is shipped
+/// code — same narrow-seam approach as `erase_flow_test`'s
+/// `clearStoredSettings` override.
+class _NoDiskSettingsService extends SettingsService {
+  @override
+  Future<void> rememberLastUsedCategory(String name) async {}
+}
 
 /// F-05 — proof the log landed, and four seconds to take it back.
 ///
@@ -34,6 +181,11 @@ import 'package:hive/hive.dart';
 /// running, which `tester.runAsync` (unavoidable here, see [logExpense]) makes
 /// reachable. Nothing in this file is about glyphs; the sheet's own rendering is
 /// covered in `transaction_edit_test.dart`.
+///
+/// ONE exception, added 2026-08-05: the GAP-014 test pumps the real
+/// `DashboardView`, because its whole subject is what the user is looking at.
+/// "The record is gone from the box" and "the screen stopped showing the money"
+/// are different claims, and the second was the one nobody had asserted.
 void main() {
   late Directory tempDir;
   late LocalStoreService store;
@@ -170,11 +322,39 @@ void main() {
   }
 
   /// Presses Undo and waits for the delete.
-  Future<void> pressUndo(WidgetTester tester, {required int expectedRows}) async {
-    final undo =
-        tester.widget<TextButton>(find.widgetWithText(TextButton, 'Undo'));
+  ///
+  /// A real `tester.tap` on the RENDERED button, not `onPressed!()` — GAP-014
+  /// condition (i). Firing the callback proves the callback; it says nothing
+  /// about whether the button can be hit where it is actually drawn, which is
+  /// the half that changed under it.
+  ///
+  /// **The diff fact** (GAP-014 condition (iii)), read off `git diff 57cc309..HEAD`
+  /// rather than assumed. Since T-12 `57cc309` — the commit that introduced
+  /// Undo, and the build maryam's one successful live tap was made against —
+  /// the CALLBACK wiring is unchanged: `_undoCreate`'s body, and the
+  /// `TextButton(onPressed: () => _undoCreate(undoId), minimumSize (64,48),
+  /// Text('Undo'))` it hangs on, are byte-identical. `mainButton: action` moved
+  /// verbatim out of `_confirm` and into `_showAboveTabBar` in BUG-080
+  /// (`abc3ee0`) and was not otherwise touched.
+  ///
+  /// What that same commit DID change is the geometry the button is rendered
+  /// at: `margin: confirmationMargin` (bottom = `navigationBarHeight + 8`) and
+  /// `isDismissible: false`. So the live evidence was gathered at coordinates
+  /// that no longer exist, and it is exactly the reachability half that no
+  /// callback-level test can carry. Hence the tap.
+  /// The tap happens INSIDE `runAsync`, which is the only arrangement that
+  /// works and took three attempts to find. `_undoCreate` awaits a Hive
+  /// delete, and a Hive write begun on the fake clock never finishes — it
+  /// leaves `tearDown`'s `Hive.close()` blocked past a ten-minute timeout,
+  /// measured twice here (once waiting only in `runAsync`, once alternating
+  /// `pump` and `runAsync` 200 times). [logExpense] hit the same wall from the
+  /// other side and solved it the same way: start the write in the real zone.
+  /// `tester.tap` dispatches a pointer without pumping, so it is legal there;
+  /// `pumpAndSettle` would not be.
+  Future<void> pressUndo(WidgetTester tester,
+      {required int expectedRows}) async {
     await tester.runAsync(() async {
-      undo.onPressed!();
+      await tester.tap(find.widgetWithText(TextButton, 'Undo'));
       for (var attempt = 0;
           attempt < 400 && store.readTransactions().length != expectedRows;
           attempt++) {
@@ -432,6 +612,137 @@ void main() {
       expect(store.readTransactions().single.id, 'grip',
           reason: 'the row that broke the budget is the row that goes');
       expect(find.textContaining('Over by'), findsNothing);
+    });
+  });
+  // ─── GAP-014 (ii) ─────────────────────────────────────────────────────────
+  //
+  // The test above proves the record leaves the store. This one covers the
+  // failure mode palwasha named the weakest evidence in the feature: the record
+  // is deleted and the screen keeps showing the money. Until now that claim
+  // lived in a `reason:` string — "the row, the Spent total and the category
+  // bar all revert" — and in nothing that could fail.
+  group('AC-2 (GAP-014 ii): Undo reverts the SCREEN, not just the box', () {
+    late _InMemoryStore memory;
+
+    setUp(() async {
+      // `Get.put` does NOT overwrite a type that is already registered — it
+      // returns the existing instance, which is why [logExpense] deletes the
+      // form controller before putting one. So the outer setUp's real,
+      // Hive-backed registrations have to be cleared, not shadowed: without
+      // this the whole test runs against real disk, `save()` never completes on
+      // the fake clock, and the in-memory store stays empty while the screen
+      // shows nothing. Store first — a repository captures
+      // `Get.find<LocalStoreService>()` at construction.
+      Get.reset();
+      memory = _InMemoryStore();
+      Get.put<LocalStoreService>(memory);
+      Get.put(CategoryRepository());
+      Get.put(TransactionRepository());
+      final settings = Get.put<SettingsService>(_NoDiskSettingsService());
+      // Still on the real settings box, but written here in the real zone —
+      // nothing during the test touches it.
+      await settings.setCurrency('PKR', '₨');
+      await settings.setCurrentMonth(thisMonth);
+      await Get.find<CategoryRepository>().addCategory(Category(
+        id: 'food-now',
+        name: 'Food',
+        budgetLimitMinor: 5000000,
+        colorValue: 0xFF2D8B8B,
+        iconCodePoint: Icons.restaurant.codePoint,
+        month: thisMonth,
+        createdAt: DateTime(2026, 1, 1, 9),
+        updatedAt: DateTime(2026, 1, 1, 9),
+      ));
+    });
+
+    testWidgets('the Spent total and the category row both go back',
+        (tester) async {
+      Get.put(DashboardController(
+        categoryRepo: Get.find<CategoryRepository>(),
+        transactionRepo: Get.find<TransactionRepository>(),
+        settings: Get.find<SettingsService>(),
+      ));
+      await tester.pumpWidget(GetMaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: const DashboardView(),
+          // The same bottom chrome as [pumpHost]: `confirmationMargin` is
+          // computed from it, and Undo has to be tappable clear of it.
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: 0,
+            onDestinationSelected: (_) {},
+            destinations: const [
+              NavigationDestination(
+                  icon: Icon(Icons.home_outlined), label: 'Dashboard'),
+              NavigationDestination(
+                  icon: Icon(Icons.grid_view_outlined), label: 'Categories'),
+              NavigationDestination(
+                  icon: Icon(Icons.add_circle_outline), label: 'Add'),
+              NavigationDestination(
+                  icon: Icon(Icons.bar_chart_outlined), label: 'Analytics'),
+            ],
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      // Both figures are read where the user reads them. Scoped, because the
+      // Recent row renders the same amount string and would satisfy a loose
+      // finder without the dashboard's totals having moved at all.
+      Finder spentCard(String amount) => find.descendant(
+            of: find.widgetWithText(SummaryCard, 'Spent'),
+            matching: find.text(amount),
+          );
+      // The budgets card prints whole major units (`formatAmountCompact`).
+      Finder budgetRow(String spendOverLimit) => find.descendant(
+            of: find.byType(CategoryBudgetList),
+            matching: find.text(spendOverLimit),
+          );
+
+      expect(spentCard('₨0.00'), findsOneWidget);
+      expect(budgetRow('₨0 / ₨50,000'), findsOneWidget);
+
+      // The shipped save path, on the fake clock throughout.
+      Get.to(() => const Scaffold(body: Center(child: Text('sheet'))));
+      await tester.pumpAndSettle();
+      final form = Get.put(TransactionFormController(
+        categoryRepo: Get.find<CategoryRepository>(),
+        transactionRepo: Get.find<TransactionRepository>(),
+        settings: Get.find<SettingsService>(),
+      ));
+      await tester.pump();
+      form.amountController.text = '2450';
+      form.save();
+      for (var frame = 0; frame < 12; frame++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+
+      expect(memory.readTransactions(), hasLength(1));
+      expect(find.text('₨2,450.00 added to Food'), findsOneWidget);
+      expect(spentCard('₨2,450.00'), findsOneWidget,
+          reason: 'the money is on the screen BEFORE Undo — without this the '
+              'assertions after it would pass on a dashboard that never moved');
+      expect(budgetRow('₨2,450 / ₨50,000'), findsOneWidget);
+
+      // GAP-014 (i) again, and here it is the whole point: the rendered
+      // button, hit at the shipped margin, over a real dashboard.
+      await tester.tap(find.widgetWithText(TextButton, 'Undo'));
+      for (var frame = 0; frame < 12; frame++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+
+      expect(memory.readTransactions(), isEmpty);
+      expect(spentCard('₨0.00'), findsOneWidget,
+          reason: 'GAP-014 (ii): the Spent total reverts ON SCREEN. A delete '
+              'the dashboard does not notice spends the money twice in the '
+              "user's head");
+      expect(budgetRow('₨0 / ₨50,000'), findsOneWidget,
+          reason: "GAP-014 (ii): and so does the category's row");
+      expect(spentCard('₨2,450.00'), findsNothing);
+      expect(find.byType(RecentTransactionsCard), findsNothing,
+          reason: 'the row it named is gone from Recent too — F-05 rule 2 is '
+              'that the disappearance IS the message, so there is no second '
+              'snackbar to look for');
     });
   });
 }
