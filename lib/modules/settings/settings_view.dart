@@ -178,7 +178,22 @@ class SettingsView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.l),
-            FilledButton(onPressed: ctrl.saveIncome, child: const Text('Save')),
+            // Dead while the write runs, with the spinner in the button itself
+            // (AC-D026-2). Same shape as onboarding's primary and the two
+            // forms' submits — the sheet's ONLY control must not sit inert
+            // through an awaited write, because the only thing a user can do
+            // with an unresponsive button is press it again.
+            Obx(() => FilledButton(
+                  onPressed: ctrl.isSavingIncome.value ? null : ctrl.saveIncome,
+                  child: ctrl.isSavingIncome.value
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Save'),
+                )),
           ],
         ),
       ),

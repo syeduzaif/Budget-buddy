@@ -21,6 +21,11 @@ class SettingsController extends GetxController {
   /// row look busy, and vice versa.
   final isExporting = false.obs;
 
+  /// True while [saveIncome] is writing. A third flag for the same reason the
+  /// second one exists: sharing [isLoading] would spin the erase row while the
+  /// income sheet saves.
+  final isSavingIncome = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -35,32 +40,57 @@ class SettingsController extends GetxController {
     super.onClose();
   }
 
+  /// D-026, second half (AC-D026-2). The Save button used to sit inert through
+  /// an awaited Hive write with no feedback of any kind — the same shape as the
+  /// onboarding defect, in a sheet whose only control it is.
+  ///
+  /// The consequence here is far smaller than onboarding's: a second tap
+  /// re-writes the same parsed value, which is idempotent. It is fixed anyway
+  /// because leaving one of two identical defects fixed is how a codebase
+  /// acquires "why is this one different" archaeology.
+  ///
+  /// Both mechanisms, like [eraseAllData] and onboarding's `finish`: the latch
+  /// is the guarantee and holds for any future caller, the disabled button is
+  /// what stops the second tap being made. The whole method is inside it —
+  /// validation is synchronous, so a rejected amount releases the latch before
+  /// any frame is built.
   Future<void> saveIncome() async {
-    final currency = settings.currency;
-    // Text → minor units directly (C4). A value we cannot read is reported,
-    // never silently stored as zero.
-    final problem = Validators.amountOrZero(currency)(incomeInputController.text);
-    if (problem != null) {
-      Get.snackbar('Check the amount', problem,
-          snackPosition: SnackPosition.BOTTOM);
-      return;
-    }
-    final incomeMinor =
-        CurrencyUtils.tryParseToMinor(incomeInputController.text, currency) ?? 0;
+    if (isSavingIncome.value) return;
+    isSavingIncome.value = true;
     try {
-      await settings.setMonthlyIncomeMinor(incomeMinor);
-    } catch (e, stack) {
-      // Owner-approved mobile convention (2026-07-28): user-visible
-      // failures surface via Get.snackbar. A write that threw must
-      // never be followed by a success message (H3).
-      debugPrint('[SettingsController] saveIncome failed: $e\n$stack');
-      Get.snackbar('Could not save', 'Your income was not changed.',
+      final currency = settings.currency;
+      // Text → minor units directly (C4). A value we cannot read is reported,
+      // never silently stored as zero.
+      final problem =
+          Validators.amountOrZero(currency)(incomeInputController.text);
+      if (problem != null) {
+        Get.snackbar('Check the amount', problem,
+            snackPosition: SnackPosition.BOTTOM);
+        return;
+      }
+      final incomeMinor =
+          CurrencyUtils.tryParseToMinor(incomeInputController.text, currency) ??
+              0;
+      try {
+        await settings.setMonthlyIncomeMinor(incomeMinor);
+      } catch (e, stack) {
+        // Owner-approved mobile convention (2026-07-28): user-visible
+        // failures surface via Get.snackbar. A write that threw must
+        // never be followed by a success message (H3).
+        debugPrint('[SettingsController] saveIncome failed: $e\n$stack');
+        Get.snackbar('Could not save', 'Your income was not changed.',
+            snackPosition: SnackPosition.BOTTOM);
+        return;
+      }
+      Get.back();
+      Get.snackbar('Saved', 'Monthly income updated',
           snackPosition: SnackPosition.BOTTOM);
-      return;
+    } finally {
+      // One release for every exit — the rejected amount, the failed write and
+      // the success all leave the sheet's button usable again. `Get.back()` is
+      // synchronous, so nothing can be tapped between the pop and this line.
+      isSavingIncome.value = false;
     }
-    Get.back();
-    Get.snackbar('Saved', 'Monthly income updated',
-        snackPosition: SnackPosition.BOTTOM);
   }
 
   Future<void> selectCurrency(Currency currency) async {
