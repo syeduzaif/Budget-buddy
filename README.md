@@ -6,26 +6,32 @@ server and no network call anywhere in the app.
 
 ## Features
 
-- **Onboarding** — pick one of 23 currencies and set a monthly income.
+- **Onboarding** — pick one of 23 currencies and set a monthly income (which you
+  may skip). Nine starter categories are created, with limits sized to that
+  income, or to the presets' own figures if you skipped it.
 - **Categories** — create, edit and delete spending categories with a name,
   colour, icon and monthly budget limit. Each month gets its own set; the
-  previous month's categories are cloned forward on first use.
+  previous month's categories are cloned forward on first use. Deleting one
+  keeps its transactions — they move to a reserved "Uncategorised" category.
 - **Transactions** — add an amount, note, date and category; browse the full
-  list or drill into a single category's, and delete. (There is no
-  edit-in-place yet: delete and re-add.)
-- **Dashboard** — monthly income, spent and remaining, a spending donut, and a
-  per-category progress list. Categories turn red once they go over budget.
+  list or drill into a single category's; tap any row to edit it, or delete it
+  after a confirmation that names the amount.
+- **Dashboard** — your monthly income, with spent and remaining for the month on
+  screen, a budgets card, the most recent transactions and a spending donut;
+  chevrons at the top browse earlier months. A category warns at 75% of its limit and again once it
+  is over, and each state says so in words as well as colour — how much is
+  left, or how much it is over.
 - **Analytics** — monthly spending bars, a per-category pie, and a savings rate,
   over "This Month", "Last 3M" or "Last 6M".
-- **Settings** — change income, currency or theme (light/dark/system), or erase
-  all data.
+- **Settings** — change income, currency or theme (light/dark/system), export
+  every transaction as a CSV file, or erase all data.
 
 ## Run it
 
 ```bash
 flutter pub get
 flutter run
-flutter test          # 58 tests
+flutter test          # 423 tests, all green as of 2026-08-06
 flutter analyze       # expected: no issues
 ```
 
