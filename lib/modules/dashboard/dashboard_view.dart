@@ -172,9 +172,10 @@ class DashboardView extends StatelessWidget {
                           amount: CurrencyUtils.formatAmount(
                               ctrl.totalSpentMinor, currency),
                           icon: Icons.trending_up,
-                          // int vs int — an exact comparison now.
-                          color: ctrl.totalSpentMinor >
-                                  ctrl.settings.monthlyIncomeMinor.value
+                          // The overspend verdict is the controller's call, and
+                          // it is withheld when income is 0 — an unanswered
+                          // question is not a budget of nothing (D-020).
+                          color: ctrl.spendExceedsKnownIncome
                               ? colorScheme.error
                               : AppColors.warning,
                           // Scoped to the viewed month, because that is what
