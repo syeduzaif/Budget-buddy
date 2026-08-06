@@ -1,5 +1,24 @@
 import 'package:flutter/material.dart';
 
+// Shared animation widgets. Both of the two that remain have live callers:
+// [FadeSlideItem] staggers the dashboard, categories and analytics blocks;
+// [AnimatedProgressBar] draws every budget bar.
+//
+// Three were deleted 2026-08-05 (D-016) and must not come back by copy-paste —
+// each taught a pattern this app has since decided against:
+//   * `ShimmerBox`      — a loading placeholder, against D-015's ruling that
+//                         this app shows no screen-level loading state.
+//   * `TapScale`        — a second tap-feedback vocabulary, competing with the
+//                         ripple the theme already gives every tappable.
+//   * `AnimatedCounter` — money-unsafe by its own doc: a `double` end with
+//                         `decimals: 2` renders "1234.00" for a zero-decimal
+//                         currency such as JPY, i.e. it re-introduces C4 the
+//                         moment anyone wires it to an amount.
+//
+// The rule that separates this from D-024's kept "No data" branch: delete dead
+// code that teaches a wrong pattern; keep dead code that is a correct
+// defensive branch behind a live caller.
+
 /// Staggered fade + slide-up animation for list items.
 /// Wrap each list child in this widget with an incrementing [index].
 class FadeSlideItem extends StatefulWidget {
@@ -63,85 +82,6 @@ class _FadeSlideItemState extends State<FadeSlideItem>
   }
 }
 
-/// Animates a value from 0 to [end] with a counting effect.
-///
-/// NOT money-safe as written, and currently unused: [end] is a `double` and
-/// [decimals] defaults to 2, so wiring it to an amount would re-introduce C4
-/// (and show "1234.00" for a zero-decimal currency like JPY). To animate an
-/// amount, drive it from minor units and format each frame through
-/// `CurrencyUtils.formatAmount`.
-class AnimatedCounter extends StatefulWidget {
-  final double end;
-  final TextStyle? style;
-  final String prefix;
-  final String suffix;
-  final Duration duration;
-  final int decimals;
-
-  const AnimatedCounter({
-    super.key,
-    required this.end,
-    this.style,
-    this.prefix = '',
-    this.suffix = '',
-    this.duration = const Duration(milliseconds: 800),
-    this.decimals = 2,
-  });
-
-  @override
-  State<AnimatedCounter> createState() => _AnimatedCounterState();
-}
-
-class _AnimatedCounterState extends State<AnimatedCounter>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _animation;
-  double _prevEnd = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(vsync: this, duration: widget.duration);
-    _animation = Tween<double>(begin: 0, end: widget.end)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutExpo));
-    _ctrl.forward();
-  }
-
-  @override
-  void didUpdateWidget(covariant AnimatedCounter oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.end != widget.end) {
-      _prevEnd = oldWidget.end;
-      _animation = Tween<double>(begin: _prevEnd, end: widget.end)
-          .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutExpo));
-      _ctrl
-        ..reset()
-        ..forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (_, __) {
-        final value = _animation.value.toStringAsFixed(widget.decimals);
-        return Text(
-          '${widget.prefix}$value${widget.suffix}',
-          style: widget.style,
-          overflow: TextOverflow.ellipsis,
-        );
-      },
-    );
-  }
-}
-
 /// Animated linear progress bar that fills from 0 to [value].
 class AnimatedProgressBar extends StatelessWidget {
   final double value;
@@ -180,128 +120,6 @@ class AnimatedProgressBar extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Tap scale feedback — wraps a child in a scale-down-on-press effect.
-class TapScale extends StatefulWidget {
-  final Widget child;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-  final double scaleDown;
-
-  const TapScale({
-    super.key,
-    required this.child,
-    this.onTap,
-    this.onLongPress,
-    this.scaleDown = 0.96,
-  });
-
-  @override
-  State<TapScale> createState() => _TapScaleState();
-}
-
-class _TapScaleState extends State<TapScale>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-      reverseDuration: const Duration(milliseconds: 200),
-    );
-    _scale = Tween<double>(begin: 1.0, end: widget.scaleDown)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        _ctrl.reverse();
-        widget.onTap?.call();
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      onLongPress: widget.onLongPress,
-      child: ScaleTransition(scale: _scale, child: widget.child),
-    );
-  }
-}
-
-/// Shimmer loading placeholder.
-class ShimmerBox extends StatefulWidget {
-  final double width;
-  final double height;
-  final BorderRadius? borderRadius;
-
-  const ShimmerBox({
-    super.key,
-    required this.width,
-    required this.height,
-    this.borderRadius,
-  });
-
-  @override
-  State<ShimmerBox> createState() => _ShimmerBoxState();
-}
-
-class _ShimmerBoxState extends State<ShimmerBox>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, __) {
-        return Container(
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            borderRadius: widget.borderRadius ?? BorderRadius.circular(8),
-            gradient: LinearGradient(
-              begin: Alignment(-1.0 + 2.0 * _ctrl.value, 0),
-              end: Alignment(1.0 + 2.0 * _ctrl.value, 0),
-              colors: [
-                Theme.of(context).colorScheme.surfaceContainerHighest,
-                Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: 0.5),
-                Theme.of(context).colorScheme.surfaceContainerHighest,
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }
