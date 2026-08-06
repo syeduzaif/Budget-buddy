@@ -95,8 +95,78 @@ class _WelcomePage extends StatelessWidget {
   }
 }
 
-class _CurrencyPage extends StatelessWidget {
+class _CurrencyPage extends StatefulWidget {
   const _CurrencyPage();
+
+  @override
+  State<_CurrencyPage> createState() => _CurrencyPageState();
+}
+
+class _CurrencyPageState extends State<_CurrencyPage> {
+  /// The grid's shape, in one place, because [_revealOffset] does arithmetic
+  /// with the same three numbers the delegate does.
+  static const int _crossAxisCount = 2;
+  static const double _childAspectRatio = 2.5;
+  static const double _spacing = AppSpacing.s;
+
+  /// Created once, on the first build that knows the viewport, and never
+  /// rebuilt: `initialScrollOffset` only applies when the controller attaches,
+  /// and re-creating it on every selection change would yank the grid back
+  /// under the user's finger.
+  ScrollController? _gridController;
+
+  @override
+  void dispose() {
+    _gridController?.dispose();
+    super.dispose();
+  }
+
+  /// How far the grid must start scrolled for the preselected currency to be
+  /// on screen (AC-D009-2).
+  ///
+  /// D-009 made PKR the default, and PKR is entry 13 of 23 in a 2-across grid
+  /// — row 7, ~490dp down. A default nobody can see is not a default: a
+  /// first-run user who sees nothing highlighted picks the top-left cell,
+  /// which is the currency D-009 moved away from. Reordering
+  /// `CurrencyUtils.currencies` was refused — the ISO-4217 `decimalDigits`
+  /// table lives on that list, so a picker's layout must never get a vote in
+  /// it — so the picker moves instead of the data.
+  ///
+  /// MINIMAL scroll, not centred: the selection is brought just inside the
+  /// fold with one gap of headroom, so the rows above it stay visible and the
+  /// grid still reads as a list that starts at the top. On a tall enough
+  /// device the answer is 0 and nothing moves at all.
+  ///
+  /// This duplicates the delegate's row arithmetic, which is the one fragile
+  /// thing here — so `onboarding_currency_default_test.dart` asserts the tile's
+  /// rect against the real viewport. Change the delegate without changing this
+  /// and the test says so.
+  double _revealOffset(BoxConstraints constraints, int selectedIndex) {
+    if (!constraints.hasBoundedHeight || selectedIndex <= 0) return 0;
+
+    final tileWidth =
+        (constraints.maxWidth - _spacing * (_crossAxisCount - 1)) /
+            _crossAxisCount;
+    final tileHeight = tileWidth / _childAspectRatio;
+    final rowExtent = tileHeight + _spacing;
+
+    final rowCount =
+        (CurrencyUtils.currencies.length + _crossAxisCount - 1) ~/
+            _crossAxisCount;
+    // The grid's scrollable content: every row plus the gaps between them.
+    final contentExtent = rowCount * rowExtent - _spacing;
+    final maxOffset = (contentExtent - constraints.maxHeight).clamp(
+      0.0,
+      double.infinity,
+    );
+
+    final rowBottom = (selectedIndex ~/ _crossAxisCount) * rowExtent +
+        tileHeight;
+    if (rowBottom <= constraints.maxHeight) return 0;
+
+    return (rowBottom - constraints.maxHeight + _spacing)
+        .clamp(0.0, maxOffset);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,65 +188,77 @@ class _CurrencyPage extends StatelessWidget {
             child: Obx(() {
               // Read the observable directly in the Obx scope so GetX can track it
               final selectedCode = ctrl.selectedCurrency.value.code;
-              return GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 2.5,
-                  crossAxisSpacing: AppSpacing.s,
-                  mainAxisSpacing: AppSpacing.s,
-                ),
-                itemCount: CurrencyUtils.currencies.length,
-                itemBuilder: (context, i) {
-                  final currency = CurrencyUtils.currencies[i];
-                  final selected = selectedCode == currency.code;
-                  return InkWell(
-                    onTap: () => ctrl.selectCurrency(currency),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusM),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        // primaryDark, not primary: white on #4E5E38 is 6.9:1,
-                        // where white70 on #6B7F4E was 3.04:1 — below AA for
-                        // 14px text (UI-13).
-                        color: selected
-                            ? AppColors.primaryDark
-                            : Colors.transparent,
-                        border: Border.all(
+              return LayoutBuilder(builder: (context, constraints) {
+                _gridController ??= ScrollController(
+                  initialScrollOffset: _revealOffset(
+                    constraints,
+                    CurrencyUtils.currencies
+                        .indexWhere((c) => c.code == selectedCode),
+                  ),
+                );
+                return GridView.builder(
+                  controller: _gridController,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: _crossAxisCount,
+                    childAspectRatio: _childAspectRatio,
+                    crossAxisSpacing: _spacing,
+                    mainAxisSpacing: _spacing,
+                  ),
+                  itemCount: CurrencyUtils.currencies.length,
+                  itemBuilder: (context, i) {
+                    final currency = CurrencyUtils.currencies[i];
+                    final selected = selectedCode == currency.code;
+                    return InkWell(
+                      onTap: () => ctrl.selectCurrency(currency),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusM),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          // primaryDark, not primary: white on #4E5E38 is
+                          // 6.9:1, where white70 on #6B7F4E was 3.04:1 — below
+                          // AA for 14px text (UI-13).
                           color: selected
                               ? AppColors.primaryDark
-                              : AppColors.border,
-                          width: selected ? 2 : 1,
+                              : Colors.transparent,
+                          border: Border.all(
+                            color: selected
+                                ? AppColors.primaryDark
+                                : AppColors.border,
+                            width: selected ? 2 : 1,
+                          ),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusM),
                         ),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusM),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.s, vertical: AppSpacing.xs),
-                      child: Row(
-                        children: [
-                          // Unselected cards sit on the page background, so
-                          // their text must come from the scheme: textPrimary
-                          // (#2C2518) on backgroundDark was 1.13:1 —
-                          // invisible — and the code beside it 2.79:1 (N2).
-                          // Selected keeps white on primaryDark, 6.9:1.
-                          Text(currency.symbol,
-                              style: AppFonts.labelLarge.copyWith(
-                                  color: selected
-                                      ? Colors.white
-                                      : colorScheme.onSurface)),
-                          const SizedBox(width: AppSpacing.xs),
-                          Expanded(
-                            child: Text(currency.code,
-                                style: AppFonts.labelMedium.copyWith(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.s, vertical: AppSpacing.xs),
+                        child: Row(
+                          children: [
+                            // Unselected cards sit on the page background, so
+                            // their text must come from the scheme:
+                            // textPrimary (#2C2518) on backgroundDark was
+                            // 1.13:1 — invisible — and the code beside it
+                            // 2.79:1 (N2). Selected keeps white on
+                            // primaryDark, 6.9:1.
+                            Text(currency.symbol,
+                                style: AppFonts.labelLarge.copyWith(
                                     color: selected
                                         ? Colors.white
-                                        : colorScheme.onSurfaceVariant),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                        ],
+                                        : colorScheme.onSurface)),
+                            const SizedBox(width: AppSpacing.xs),
+                            Expanded(
+                              child: Text(currency.code,
+                                  style: AppFonts.labelMedium.copyWith(
+                                      color: selected
+                                          ? Colors.white
+                                          : colorScheme.onSurfaceVariant),
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
+                    );
+                  },
+                );
+              });
             }),
           ),
           const SizedBox(height: AppSpacing.l),

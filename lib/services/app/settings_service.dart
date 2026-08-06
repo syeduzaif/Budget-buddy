@@ -8,11 +8,18 @@ import '../../utils/currency_utils.dart';
 /// Reactive wrapper over HiveStorage settings.
 /// All controllers read from this service, never from HiveStorage directly.
 class SettingsService extends GetxService {
-  final RxString currencyCode = 'USD'.obs;
+  /// Field initialisers only, and short-lived ones: [onInit] runs `_load()`
+  /// immediately, which overwrites both from the settings box — falling back to
+  /// USD/`$` when the box has no answer (`hive_storage.dart:92`, the resolver
+  /// rule that D-009 deliberately left alone). Carrying D-009's PKR here keeps
+  /// the pair reading as one currency rather than as `PKR`/`$`; nothing
+  /// pre-onboarding renders either value.
+  final RxString currencyCode = 'PKR'.obs;
+
   /// Persisted copy of the selected currency's symbol. [currency] is the
   /// display source of truth — read `currency.symbol`, not this — but the
   /// stored value is kept so the settings box stays self-describing.
-  final RxString currencySymbol = '\$'.obs;
+  final RxString currencySymbol = '₨'.obs;
 
   /// Monthly income in integer MINOR UNITS of [currency].
   final RxInt monthlyIncomeMinor = 0.obs;

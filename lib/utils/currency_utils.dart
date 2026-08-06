@@ -18,10 +18,28 @@ library;
 class CurrencyUtils {
   CurrencyUtils._();
 
-  /// Fallback for an unknown/missing currency code, and the onboarding
-  /// default. Also the first entry of [currencies].
+  /// Fallback for an unknown/missing currency code. Also the first entry of
+  /// [currencies].
+  ///
+  /// A data-interpretation rule, NOT a market choice: this is what an absent,
+  /// corrupt or wrong-typed stored code reads back as ([resolve],
+  /// `hive_storage.dart:92`), and it must stay USD. The onboarding default
+  /// moved to [pkr] in D-009 — the two answer different questions and are
+  /// deliberately no longer the same constant.
   static const Currency usd =
       Currency(code: 'USD', name: 'US Dollar', symbol: '\$', decimalDigits: 2);
+
+  /// The currency onboarding starts on (D-009).
+  ///
+  /// A market choice and nothing else: it decides which tile the picker
+  /// preselects. It has no bearing on how a stored value is interpreted —
+  /// that is [usd]'s job, and flipping this one must never move that one.
+  ///
+  /// Declared here and REFERENCED from [currencies] rather than written out
+  /// twice, so PKR has exactly one record and its `decimalDigits` cannot drift
+  /// from the ISO-4217 table below.
+  static const Currency pkr = Currency(
+      code: 'PKR', name: 'Pakistani Rupee', symbol: '₨', decimalDigits: 2);
 
   /// The 23 currencies the app offers.
   ///
@@ -46,8 +64,12 @@ class CurrencyUtils {
     Currency(
         code: 'MYR', name: 'Malaysian Ringgit', symbol: 'RM', decimalDigits: 2),
     Currency(code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', decimalDigits: 2),
-    Currency(
-        code: 'PKR', name: 'Pakistani Rupee', symbol: '₨', decimalDigits: 2),
+    // Position 13 of 23, unchanged. The list's ORDER is not a display
+    // preference to tune — the ISO-4217 `decimalDigits` table lives on these
+    // same entries, so reordering to make a default easier to see would couple
+    // money formatting to a picker's layout. The picker scrolls to its
+    // selection instead (AC-D009-2).
+    pkr,
     Currency(
         code: 'BDT', name: 'Bangladeshi Taka', symbol: '৳', decimalDigits: 2),
     Currency(

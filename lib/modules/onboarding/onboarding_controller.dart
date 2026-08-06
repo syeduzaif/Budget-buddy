@@ -16,7 +16,12 @@ class OnboardingController extends GetxController {
   final pageController = PageController();
   final currentPage = 0.obs;
 
-  final selectedCurrency = CurrencyUtils.usd.obs;
+  /// D-009. The whole of the decision: the picker opens on PKR instead of USD,
+  /// because that is the market this app is being built for. The resolver
+  /// fallback for an absent or corrupt stored code stays USD
+  /// (`hive_storage.dart:92`) — that is a data-interpretation rule, not a
+  /// market choice, and the two must not be confused for one setting.
+  final selectedCurrency = CurrencyUtils.pkr.obs;
   final incomeController = TextEditingController();
 
   /// True while [finish] is running. Drives the primary button's spinner and
