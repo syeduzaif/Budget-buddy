@@ -246,6 +246,9 @@ class TransactionFormController extends GetxController {
 
     isLoading.value = true;
     final edited = editing;
+    // The month attribution follows — the transaction's own, not the viewed
+    // one. Hoisted because the confirmation has to name it (CR-1).
+    final attributedMonth = AppDateUtils.getMonthKeyFromDate(selectedDate.value);
     CategoryResolution resolution;
     String? createdId;
     try {
@@ -256,7 +259,7 @@ class TransactionFormController extends GetxController {
       // re-points it at that month's category of the same name.
       resolution = await categoryRepo.resolveForMonth(
         selectedCategory.value,
-        AppDateUtils.getMonthKeyFromDate(selectedDate.value),
+        attributedMonth,
       );
 
       if (edited != null) {
@@ -321,14 +324,23 @@ class TransactionFormController extends GetxController {
     // dismissing it first would report a success that never happened.
     _closeSheet();
 
+    // Said on every path below, because every path can move money out of the
+    // month on screen (CR-1).
+    final elsewhere = _otherMonthNote(attributedMonth);
+
     if (resolution.pickedWasDeleted) {
       // The category was deleted while this sheet was open. The amount is
       // saved and visible, but not where the user aimed it — say so rather
       // than resurrecting a category they deleted. This outranks the plain
       // confirmation below: two snackbars would queue, and the surprising
       // destination is the one worth reading.
+      //
+      // Both facts or neither: this branch returns, so the month has to be
+      // carried here explicitly or a back-dated save whose category was ALSO
+      // deleted would disclose only half of what happened.
+      const deleted = 'That category was deleted.';
       _confirm('Saved to $kUncategorisedCategoryName',
-          detail: 'That category was deleted.');
+          detail: elsewhere.isEmpty ? deleted : '$deleted $elsewhere');
       return;
     }
 
@@ -339,8 +351,10 @@ class TransactionFormController extends GetxController {
       // No Undo here, unlike a fresh save (F-05): the sheet reopens on a tap,
       // so a wrong correction is corrected the same way it was made. One
       // safety mechanism per action.
-      _confirm('Updated — '
-          '${_exact(amountMinor)} in ${resolution.category.name}$overspend');
+      _confirm(
+          'Updated — '
+          '${_exact(amountMinor)} in ${resolution.category.name}$overspend',
+          detail: elsewhere);
     } else if (createdId != null) {
       // The proof the log landed, and the only chance to take it back — the
       // sheet is closed and the row is one tap deep, so this is the moment an
@@ -349,6 +363,7 @@ class TransactionFormController extends GetxController {
       _confirm(
         '${_exact(amountMinor)} added to '
         '${resolution.category.name}$overspend',
+        detail: elsewhere,
         action: TextButton(
           onPressed: () => _undoCreate(undoId),
           style: TextButton.styleFrom(
@@ -360,6 +375,53 @@ class TransactionFormController extends GetxController {
         ),
       );
     }
+  }
+
+  /// `Counted in July 2026 — the month it is dated.` when the money landed in
+  /// a month other than the one on screen, or an empty string when it did not.
+  ///
+  /// CR-1. The picker is filtered to the VIEWED month, the date field accepts
+  /// any day back to 2020, and attribution correctly follows the DATE (F-01
+  /// rule 2, `resolveForMonth`). That resolver is not touched here and the
+  /// money still lands exactly where it did — what was missing is that the
+  /// user was never told. The confirmation named the category by NAME, and a
+  /// name is the one thing every month's clone of a category shares: "₨2,450
+  /// added to Food" was equally true of the Food row the picker had just shown
+  /// them, with its limit and its progress bar, and of the different Food row
+  /// in another month that actually got charged. Two consequences, both
+  /// reachable in one tap on the date field:
+  ///
+  /// * The budget pressure the user read off the picker is not the budget the
+  ///   money went against — and [_overBudgetNote] is (correctly) computed
+  ///   against the OTHER month, so ` · Over by ₨300` could appear over a
+  ///   dashboard that shows the category comfortably inside its limit.
+  /// * If that month had no category of the name, one is minted there (0 limit
+  ///   when the month has already happened, FD-1) — a row appearing in a month
+  ///   the user is not looking at.
+  ///
+  /// Naming the month covers both, in one sentence, without inventing a second
+  /// signal: the fix for "the user cannot see where this went" is to say where
+  /// it went. Deliberately NOT reported: whether the resolver matched an
+  /// existing category or minted one. That distinction is invisible to the
+  /// user, unactionable, and would require [CategoryResolution] to grow a
+  /// field — a contract change for information nobody can use.
+  ///
+  /// The full `MMMM yyyy` label, not the bare month name the picker's empty
+  /// state uses: this bar floats over whatever screen the user is on rather
+  /// than under the month header, and the date picker reaches back to 2020, so
+  /// "July" alone is ambiguous by five years.
+  ///
+  /// Compared against [SettingsService.effectiveMonth] rather than the raw
+  /// `currentMonth`, which is empty until the settings box loads — an empty
+  /// key matches no month, and this line would then fire on every save.
+  ///
+  /// States a fact and stops. No instruction, and no remedy: the save has
+  /// already landed, correctly, and there is nothing here for the user to
+  /// retry.
+  String _otherMonthNote(String attributedMonth) {
+    if (attributedMonth == settings.effectiveMonth) return '';
+    return 'Counted in ${AppDateUtils.formatMonthKey(attributedMonth)} — '
+        'the month it is dated.';
   }
 
   /// ` · Over by ₨300` when the save has pushed [category] past its limit, or

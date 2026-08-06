@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:budget_buddy/core/constants/app_constants.dart';
 import 'package:budget_buddy/core/theme/app_theme.dart';
 import 'package:budget_buddy/data/local/hive_storage.dart';
 import 'package:budget_buddy/data/models/category.dart';
@@ -191,6 +192,11 @@ void main() {
   late LocalStoreService store;
 
   final thisMonth = AppDateUtils.getCurrentMonthKey();
+  final lastMonth = AppDateUtils.getPreviousMonthKey(thisMonth);
+  final lastMonthStart = AppDateUtils.parseMonthKey(lastMonth)!;
+  // Mid-month, so no timezone edge can drag the date into a neighbouring key.
+  final lastMonthDate =
+      DateTime(lastMonthStart.year, lastMonthStart.month, 14);
 
   setUpAll(() {
     if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(CategoryAdapter());
@@ -281,8 +287,15 @@ void main() {
   /// `save()` runs inside `runAsync` because a Hive write started on the test's
   /// fake clock only advances while frames are pumped, and one left unfinished
   /// deadlocks `tearDown`'s `Hive.close()` (measured: a ten-minute timeout).
+  ///
+  /// [date] sets the sheet's date field, i.e. the month attribution follows
+  /// (CR-1). [beforeSave] runs in the real zone immediately before the save, for
+  /// the one scenario that needs the store mutated while the sheet is open.
   Future<void> logExpense(WidgetTester tester, String amount,
-      {required int expectedRows, String? categoryId}) async {
+      {required int expectedRows,
+      String? categoryId,
+      DateTime? date,
+      Future<void> Function()? beforeSave}) async {
     // The stand-in for the sheet, so the pop `save()` performs pops something.
     Get.to(() => const Scaffold(body: Center(child: Text('sheet'))));
     await tester.pumpAndSettle();
@@ -303,8 +316,10 @@ void main() {
       ctrl.selectCategory(picked.first);
     }
     ctrl.amountController.text = amount;
+    if (date != null) ctrl.selectDate(date);
 
     await tester.runAsync(() async {
+      if (beforeSave != null) await beforeSave();
       ctrl.save();
       for (var attempt = 0;
           attempt < 400 && store.readTransactions().length != expectedRows;
@@ -368,6 +383,23 @@ void main() {
   }
 
   /// Lets the confirmation expire, so no `Timer` outlives the test.
+  ///
+  /// **This must run even when an expectation fails**, which is why the CR-1
+  /// tests below wrap their assertions in `try/finally`. GetX's
+  /// `_SnackBarQueue` is a STATIC field on `SnackbarController` and strictly
+  /// serial: a bar left up blocks every LATER test in the file from ever
+  /// showing one, so a single genuinely-red test reports as four (measured
+  /// while landing CR-1 — the shipped GAP-014 test went red too, for no reason
+  /// of its own). It is a false RED, never a false green, but it buries the
+  /// cause.
+  ///
+  /// `Get.closeAllSnackbars()` in `tearDown` does NOT cure it, measured: it
+  /// awaits `close()`, which calls `_controller.reverse()` and waits for the
+  /// animation to reach `dismissed` before `_removeOverlay()` completes the
+  /// transition future — and by `tearDown` the widget tree is gone, so that
+  /// controller's ticker never advances again and the queue stays blocked
+  /// forever (get 4.7.3 `snackbar_controller.dart:49-56,302-327,362-366`).
+  /// The drain has to happen inside the test body, while the tree is alive.
   Future<void> drainSnackbar(WidgetTester tester) async {
     await tester.pump(TransactionFormController.confirmationDuration);
     for (var frame = 0; frame < 12; frame++) {
@@ -614,6 +646,107 @@ void main() {
       expect(find.textContaining('Over by'), findsNothing);
     });
   });
+  /// CR-1 — money that lands in a month the user is not looking at says so.
+  ///
+  /// The picker is filtered to the VIEWED month while the date field accepts
+  /// any day back to 2020, and attribution correctly follows the DATE (F-01
+  /// rule 2). Nothing here changes that: `resolveForMonth` is untouched, and
+  /// the first assertion in each test re-checks that the money still lands on a
+  /// category stamped with the transaction's own month.
+  ///
+  /// What was missing was the disclosure. The confirmation named the category
+  /// by string only — "₨2,450.00 added to Food" — while the row actually
+  /// charged was a DIFFERENT Food, in a month the user could not see, with its
+  /// own limit and its own history. Worse, `_overBudgetNote` is (correctly)
+  /// computed against that other month, so the bar could read "Over by ₨300"
+  /// about a month the dashboard behind it says nothing about.
+  group('money filed in another month (CR-1)', () {
+    /// The line the app is obliged to add, built from the same formatter the
+    /// app uses, so the two cannot drift.
+    final elsewhere = 'Counted in ${AppDateUtils.formatMonthKey(lastMonth)} — '
+        'the month it is dated.';
+
+    testWidgets('a back-dated save names the month the money landed in',
+        (tester) async {
+      await pumpHost(tester);
+      await logExpense(tester, '2450',
+          expectedRows: 1, categoryId: 'food-now', date: lastMonthDate);
+
+      // try/finally so the bar is drained even when an expectation throws —
+      // see [drainSnackbar]. Without it this one red test reports as four.
+      try {
+        // F-01 still governs attribution, and still gets it right: the row is
+        // charged to a category stamped with the DATE's month, not to the
+        // viewed month's "Food" that the picker displayed.
+        final saved = store.readTransactions().single;
+        final charged =
+            store.readCategories().firstWhere((c) => c.id == saved.categoryId);
+        expect(charged.month, lastMonth);
+        expect(charged.name, 'Food');
+        expect(charged.id, isNot('food-now'),
+            reason: 'a different row of the same name — which is exactly why '
+                'naming the category alone was not enough');
+
+        // The disclosure. Without it the user is told the money went to "Food"
+        // and left looking at a month whose Spent will not move.
+        expect(find.text('₨2,450.00 added to Food'), findsOneWidget);
+        expect(find.text(elsewhere), findsOneWidget);
+        // Saying more does not cost the affordance F-05 AC-2 depends on.
+        expect(find.text('Undo'), findsOneWidget);
+      } finally {
+        await drainSnackbar(tester);
+      }
+    });
+
+    testWidgets('a save inside the month on screen stays silent',
+        (tester) async {
+      await pumpHost(tester);
+      await logExpense(tester, '2450', expectedRows: 1, categoryId: 'food-now');
+
+      try {
+        expect(find.text('₨2,450.00 added to Food'), findsOneWidget);
+        expect(find.textContaining('Counted in'), findsNothing,
+            reason: 'nothing moved out of view, so there is nothing to '
+                'disclose — a line on every save is noise, and noise is unread');
+      } finally {
+        await drainSnackbar(tester);
+      }
+    });
+
+    testWidgets('a deleted category and a back-date are BOTH disclosed',
+        (tester) async {
+      await pumpHost(tester);
+      await logExpense(tester, '2450',
+          expectedRows: 1,
+          categoryId: 'food-now',
+          date: lastMonthDate,
+          beforeSave: () =>
+              Get.find<CategoryRepository>().deleteCategory('food-now'));
+
+      try {
+        // Two surprises, two sentences: the established stale-category message
+        // (F-01 rule 5) must not swallow the month, and the month must not
+        // swallow it — the deleted branch returns early, so composing them is
+        // a deliberate act, not something that falls out.
+        expect(
+            find.text('Saved to $kUncategorisedCategoryName'), findsOneWidget);
+        expect(
+            find.text('That category was deleted. $elsewhere'), findsOneWidget);
+        expect(
+            store.readTransactions().single.categoryId,
+            store
+                .readCategories()
+                .firstWhere((c) =>
+                    c.month == lastMonth && isReservedCategoryName(c.name))
+                .id,
+            reason: "the bucket it landed in is the DATE-month's, not the "
+                "viewed month's (F-01 AC-3b)");
+      } finally {
+        await drainSnackbar(tester);
+      }
+    });
+  });
+
   // ─── GAP-014 (ii) ─────────────────────────────────────────────────────────
   //
   // The test above proves the record leaves the store. This one covers the
