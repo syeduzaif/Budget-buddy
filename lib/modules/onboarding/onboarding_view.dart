@@ -248,15 +248,35 @@ class _IncomePage extends StatelessWidget {
               ],
             ),
           ),
-          FilledButton(
-            onPressed: ctrl.finish,
-            child: const Text('Start Budgeting'),
-          ),
+          // BOTH controls finish onboarding, and both are disabled while it
+          // runs. That pairing is the whole point: the primary used to sit
+          // inert-looking through five awaited Hive writes with "Skip for now"
+          // directly beneath it, so the natural next move — tap the thing
+          // under the button that did nothing — ran the seeder a second time
+          // and left the install with eighteen categories (D-026/5(b)). The
+          // controller's latch is the guarantee; this is what stops the second
+          // tap being made.
+          //
+          // The spinner is on the primary only. Two spinners would read as two
+          // operations, and the greyed-out secondary already says it is not
+          // available. Same shape as the category and transaction forms
+          // (`category_form_view.dart:321`, `transaction_form_view.dart:146`).
+          Obx(() => FilledButton(
+                onPressed: ctrl.isLoading.value ? null : ctrl.finish,
+                child: ctrl.isLoading.value
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Text('Start Budgeting'),
+              )),
           const SizedBox(height: AppSpacing.m),
-          TextButton(
-            onPressed: ctrl.finish,
-            child: const Text('Skip for now'),
-          ),
+          Obx(() => TextButton(
+                onPressed: ctrl.isLoading.value ? null : ctrl.finish,
+                child: const Text('Skip for now'),
+              )),
         ],
       ),
     );
