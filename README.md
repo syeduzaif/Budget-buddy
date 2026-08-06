@@ -4,6 +4,9 @@ A local-only personal budgeting app for Android, built with Flutter and GetX.
 Everything you enter stays on your device: there is no account, no sign-in, no
 server and no network call anywhere in the app.
 
+**Status:** pre-release. Features are verified on the iOS simulator; the Android
+APK builds, but the app has not yet been run on an Android device.
+
 ## Features
 
 - **Onboarding** — pick one of 23 currencies and set a monthly income (which you
