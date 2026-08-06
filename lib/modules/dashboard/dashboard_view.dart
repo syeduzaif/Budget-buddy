@@ -75,6 +75,14 @@ class DashboardView extends StatelessWidget {
         final currency = ctrl.settings.currency;
         final atCurrentMonth = ctrl.isViewingCurrentMonth;
         final viewedMonth = ctrl.settings.currentMonth.value;
+        // Named once: the summary pair's second card uses this word twice —
+        // as its label and inside the screen-reader announcement it needs when
+        // there is no figure to read (D-010). Two literals would be one rename
+        // away from announcing "Remaining" on a card that says "Unspent".
+        final remainingLabel = atCurrentMonth ? 'Remaining' : 'Unspent';
+        // The shipped muted token, used for both halves of a withheld figure —
+        // the dash and the label/icon above it.
+        final mutedForeground = context.semanticColors.textMuted;
         final spentMinorByCategory = {
           for (final cat in ctrl.categories)
             cat.id: ctrl.spentForCategoryMinor(cat.id)
@@ -153,9 +161,24 @@ class DashboardView extends StatelessWidget {
                   index: 0,
                   child: SummaryCard(
                     label: 'Monthly Income',
-                    amount: CurrencyUtils.formatAmount(
-                        ctrl.settings.monthlyIncomeMinor.value, currency),
+                    // "Not set", never ₨0.00 (D-010, §6 row 1). Zero is not a
+                    // small income, it is the absence of one — and the user
+                    // reached it by tapping "Skip for now", so the card states
+                    // that rather than a figure they declined to give.
+                    //
+                    // This card and Remaining move TOGETHER or not at all:
+                    // "Income ₨0.00, Remaining —" reads as a broken app,
+                    // because ₨0 − ₨50 is perfectly computable and the app
+                    // would be declining to compute it. One unknown makes one
+                    // underivable; that pair is coherent, either half alone is
+                    // not.
+                    amount: ctrl.incomeIsKnown
+                        ? CurrencyUtils.formatAmount(
+                            ctrl.settings.monthlyIncomeMinor.value, currency)
+                        : 'Not set',
                     icon: Icons.account_balance_wallet_outlined,
+                    // Card colour unchanged: a missing value is not a warning
+                    // about one.
                     color: colorScheme.primary,
                     isLarge: true,
                   ),
@@ -199,13 +222,37 @@ class DashboardView extends StatelessWidget {
                           // fixed, and a month that renders one card instead
                           // of two reads as data loss. The whole block goes
                           // or none of it does.
-                          label: atCurrentMonth ? 'Remaining' : 'Unspent',
-                          amount: CurrencyUtils.formatAmount(
-                              ctrl.remainingMinor, currency),
+                          //
+                          // That last rule is why an unknown income withholds
+                          // the FIGURE and not the card (D-010, palwasha's
+                          // explicit refusal). F-10 §10.3(d)'s whole-block
+                          // suppression is for a month the app knows nothing
+                          // about; here it knows the spend exactly. An em dash
+                          // says "not derivable" where −₨50.00 in red asserted
+                          // a deficit computed from a zero the user skipped.
+                          label: remainingLabel,
+                          amount: ctrl.incomeIsKnown
+                              ? CurrencyUtils.formatAmount(
+                                  ctrl.remainingMinor, currency)
+                              : '—',
+                          // Read aloud, "Remaining, —" is either silence or the
+                          // word "dash". The card says what it means instead.
+                          amountSemanticsLabel: ctrl.incomeIsKnown
+                              ? null
+                              : '$remainingLabel, not available',
+                          amountColor:
+                              ctrl.incomeIsKnown ? null : mutedForeground,
                           icon: Icons.savings_outlined,
-                          color: ctrl.remainingMinor >= 0
-                              ? colorScheme.tertiary
-                              : colorScheme.error,
+                          // Muted throughout when there is nothing to derive:
+                          // `tertiary` would claim things are fine and `error`
+                          // would claim a deficit, and this card is entitled to
+                          // neither claim. `textMuted` is the shipped token —
+                          // no new colour (4.79:1 light, 4.783:1 dark, T-3).
+                          color: !ctrl.incomeIsKnown
+                              ? mutedForeground
+                              : (ctrl.remainingMinor >= 0
+                                  ? colorScheme.tertiary
+                                  : colorScheme.error),
                         ),
                       ),
                     ],

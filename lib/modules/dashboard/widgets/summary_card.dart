@@ -14,6 +14,22 @@ class SummaryCard extends StatelessWidget {
   /// splash, no ripple — so a card that looks tappable always is (UI-19).
   final VoidCallback? onTap;
 
+  /// What a screen reader says instead of reading [amount] literally.
+  ///
+  /// Exists for one case (D-010): when income is unknown the Remaining card
+  /// shows an em dash, and "Remaining, —" is either silence or the word "dash"
+  /// depending on the reader. Null everywhere else, which leaves the amount to
+  /// be announced exactly as it is written.
+  final String? amountSemanticsLabel;
+
+  /// Overrides the amount's colour. Null keeps the default `onSurface`.
+  ///
+  /// Additive and defaulted for the same D-010 case: the withheld figure is
+  /// muted, and [color] cannot carry it — that one paints the icon and the
+  /// label, not the number. Kept as a colour rather than a "withheld" flag so
+  /// this shared component stays ignorant of income.
+  final Color? amountColor;
+
   const SummaryCard({
     super.key,
     required this.label,
@@ -22,6 +38,8 @@ class SummaryCard extends StatelessWidget {
     required this.color,
     this.isLarge = false,
     this.onTap,
+    this.amountSemanticsLabel,
+    this.amountColor,
   });
 
   @override
@@ -55,9 +73,10 @@ class SummaryCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.s),
           Text(
             amount,
+            semanticsLabel: amountSemanticsLabel,
             style: isLarge
-                ? AppFonts.h3.copyWith(color: onSurface)
-                : AppFonts.h5.copyWith(color: onSurface),
+                ? AppFonts.h3.copyWith(color: amountColor ?? onSurface)
+                : AppFonts.h5.copyWith(color: amountColor ?? onSurface),
             overflow: TextOverflow.ellipsis,
           ),
         ],
