@@ -129,17 +129,55 @@ class DashboardController extends GetxController {
     );
   }
 
-  void goToPreviousMonth() async {
-    final prev = AppDateUtils.getPreviousMonthKey(settings.currentMonth.value);
-    await settings.setCurrentMonth(prev);
-    await categoryRepo.ensureMonth(prev);
-    _refreshCategories();
-  }
+  /// `Future<void>`, not `void`, although both chevrons are wired straight to a
+  /// `VoidCallback` (`dashboard_view.dart:37,40` — a `Future<void> Function()`
+  /// satisfies it). Returning the future is what lets a test await the switch
+  /// instead of guessing how many frames it takes, and it stops the work being
+  /// a fire-and-forget whose failure has nowhere to land.
+  Future<void> goToPreviousMonth() =>
+      _switchMonth(AppDateUtils.getPreviousMonthKey(settings.currentMonth.value));
 
-  void goToNextMonth() async {
-    final next = AppDateUtils.getNextMonthKey(settings.currentMonth.value);
-    await settings.setCurrentMonth(next);
-    await categoryRepo.ensureMonth(next);
+  Future<void> goToNextMonth() =>
+      _switchMonth(AppDateUtils.getNextMonthKey(settings.currentMonth.value));
+
+  /// The dashboard half of D-025 — the same roll-then-ensure pair the splash
+  /// and the resume hook run, and until now the only one of the three that was
+  /// still unguarded on a path a user can reach by tapping.
+  ///
+  /// Unguarded, a Hive write failure here produced a header naming a month
+  /// whose categories were never cloned, with nothing said. That is the one
+  /// outcome AC-D025-3 forbids: the header and the body must never disagree
+  /// about which month the app is actually in.
+  ///
+  /// Both halves are inside the guard, and both are reported, because BOTH are
+  /// visible on the next frame — a failed `setCurrentMonth` leaves the header
+  /// on the month the user just tapped away from (a chevron that did nothing),
+  /// and a failed `ensureMonth` moves the header onto a month showing "No
+  /// categories yet" on a populated app. This is a user action, unlike
+  /// `HomeController.handleResume`, which stays deliberately silent because
+  /// nothing the user asked for failed.
+  ///
+  /// [_refreshCategories] runs either way, outside the catch: whatever month
+  /// actually got persisted is the month the list must show. Skipping it after
+  /// a failure is what would leave last month's categories under this month's
+  /// header.
+  Future<void> _switchMonth(String month) async {
+    try {
+      await settings.setCurrentMonth(month);
+      await categoryRepo.ensureMonth(month);
+    } catch (e, stack) {
+      debugPrint('[DashboardController] month switch to $month failed: '
+          '$e\n$stack');
+      // Owner-approved mobile convention (2026-07-28): user-visible failures
+      // surface via Get.snackbar. Copy states what is true now, never "try
+      // again later" (L2).
+      Get.snackbar(
+        'Could not switch months',
+        'Your data is safe. This month may be missing its categories — the '
+            'header shows the month you are actually in.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
     _refreshCategories();
   }
 
