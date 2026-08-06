@@ -296,8 +296,14 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                     child: Text(
                       'v${AppConstants.appVersion}',
                       style: AppFonts.caption.copyWith(
+                        // No alpha on either branch (D-019). The light branch
+                        // never had one, so the 0.6 was copied onto the dark
+                        // half without a contrast check: it composited to
+                        // 2.84:1 on the dark background — below AA for any
+                        // text, on the first screen of the product. Opaque,
+                        // the retuned token is 6.03:1.
                         color: isDark
-                            ? AppColors.textMutedDark.withValues(alpha: 0.6)
+                            ? AppColors.textMutedDark
                             : AppColors.textMuted,
                       ),
                     ),

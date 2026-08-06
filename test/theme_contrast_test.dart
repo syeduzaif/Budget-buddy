@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:budget_buddy/core/constants/app_constants.dart';
 import 'package:budget_buddy/core/theme/app_colors.dart';
 import 'package:budget_buddy/core/theme/app_semantic_colors.dart';
 import 'package:budget_buddy/core/theme/app_theme.dart';
@@ -8,12 +9,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// F-11 — the muted-text split, measured rather than eyeballed.
+/// D-018 / D-019 — the dark half of it, closed.
 ///
 /// Muted text had ONE token (#9A9182) and TWO surfaces to live on. It measured
 /// 3.06:1 on the light card — the last light-theme AA failure in the register —
 /// and a naive retune to the readable #7A705F would have dropped the DARK card
 /// from 4.38:1 to 2.80:1. Hence two tokens plus an extension that resolves the
 /// theme's brightness.
+///
+/// F-11 closed the light half and pinned the dark one at 4.38:1 — 0.12 short of
+/// AA — so the deferred decision would have to be taken consciously rather than
+/// drifted past. D-018 takes it: the dark token moves to #A19889 (4.78:1 on the
+/// card), and `darkScheme.onSurfaceVariant` moves with it, because that is the
+/// token colouring the "of ₨45,000" limit caption and it had zero assertions
+/// anywhere in the suite. D-019 removes the 60% alpha the splash's version
+/// label wore on its dark branch alone.
+///
+/// TWO of the four `#9A9182` literals in `lib/` moved. The other two are pinned
+/// against exactly that, below: `kUncategorisedColorValue` is persisted user
+/// data, and `lightScheme.outline` is a light token that lightening would make
+/// worse.
 ///
 /// The contrast maths below is the WCAG 2.x definition transcribed directly
 /// (sRGB → linear → relative luminance → ratio), so this file can be read
@@ -67,26 +82,39 @@ void main() {
           closeTo(3.06, 0.01));
     });
 
-    test('dark: unchanged at 4.38:1 — the documented F-11 AC-4 conflict', () {
-      // ⚠️ SPEC CONFLICT, deliberately encoded rather than hidden.
-      // F-11 AC-4 asks this test to assert >= 4.5:1 in BOTH themes. F-11 spec
-      // 1a freezes the dark token at #9A9182 ("byte-identical rendering") and
-      // its Out-of-scope section explicitly excludes a dark-theme retune. On
-      // #332D23 that token measures 4.38:1, so the two halves of the frozen
-      // doc cannot both hold. Asserting 4.5 here would fail the build; quietly
-      // asserting 4.3 would bury it. So the exact number is PINNED: any change
-      // to either token or to the dark card trips this test and forces the
-      // decision the doc deferred (retune textMutedDark, or accept 4.38:1 as
-      // shipped).
+    test('dark: the retuned token clears AA — this is what D-018 bought', () {
+      // The F-11 AC-4 conflict this line used to encode is resolved, not
+      // deleted: that ticket asked for >= 4.5:1 in BOTH themes while its own
+      // spec froze the dark token at #9A9182, and the two halves could not
+      // both hold. Rather than assert 4.3 and bury it, F-11 pinned the exact
+      // 4.38 so the deferred decision had to be taken deliberately. This is
+      // that decision, taken.
       final ratio = contrast(AppColors.textMutedDark, AppColors.cardDark);
-      expect(ratio, closeTo(4.38, 0.01),
-          reason: 'dark muted-on-card is a known 0.12 short of AA; the freeze '
-              'chose no-change over a mid-cycle retune');
+      expect(ratio, greaterThanOrEqualTo(4.5),
+          reason: 'F-11 AC-4 now holds in both themes');
+      expect(ratio, closeTo(4.78, 0.01));
+      // The value it replaced, kept on the record so "it was already fine"
+      // can never be argued from memory.
+      expect(contrast(const Color(0xFF9A9182), AppColors.cardDark),
+          closeTo(4.38, 0.01));
     });
 
-    test('dark: the split changed nothing about how dark renders', () {
-      expect(AppColors.textMutedDark, const Color(0xFF9A9182));
+    test('dark: the retune moved the token, and it is still readable on the '
+        'page background', () {
+      expect(AppColors.textMutedDark, const Color(0xFFA19889));
       expect(contrast(AppColors.textMutedDark, AppColors.backgroundDark),
+          greaterThanOrEqualTo(4.5));
+    });
+
+    test('muted clears AA on BOTH ends of the splash gradient (D-019)', () {
+      // The splash paints its own backgroundDark -> surfaceDark gradient and
+      // the version label sits at the bottom of it, so the darker end is not
+      // the worst case. Before D-019 that label wore `alpha: 0.6` on the dark
+      // branch only — the light branch never had one, so the value was copied
+      // across without a contrast check — and composited to 2.84:1.
+      expect(contrast(AppColors.textMutedDark, AppColors.backgroundDark),
+          greaterThanOrEqualTo(4.5));
+      expect(contrast(AppColors.textMutedDark, AppColors.surfaceDark),
           greaterThanOrEqualTo(4.5));
     });
 
@@ -105,6 +133,66 @@ void main() {
       // The single-token retune everyone reaches for first.
       expect(contrast(AppColors.textMuted, AppColors.cardDark),
           lessThan(3.0));
+    });
+  });
+
+  group('the scheme token nothing was asserting', () {
+    test('dark onSurfaceVariant clears AA on the card it captions money on',
+        () {
+      // JF-1, and the reason D-018 is three lines rather than one.
+      // `darkScheme.onSurfaceVariant` carries the "of ₨45,000" limit caption
+      // (`category_card.dart:122`) and had ZERO hits across all 30 test files.
+      // Retune `textMutedDark` alone and the suite goes green with a MONEY
+      // figure still rendering at 4.38:1 — a clean suite measures what was
+      // asserted, and nothing was asserting this.
+      final ratio =
+          contrast(AppColors.darkScheme.onSurfaceVariant, AppColors.cardDark);
+      expect(ratio, greaterThanOrEqualTo(4.5));
+      expect(ratio, closeTo(4.78, 0.01));
+    });
+
+    test('the two dark muted tokens hold the same value', () {
+      // One meaning, two definition sites, kept in step by hand. Asserted so a
+      // future retune of one alone fails here rather than on a user's screen.
+      expect(AppColors.darkScheme.onSurfaceVariant, AppColors.textMutedDark);
+    });
+
+    test('the LIGHT scheme was not dragged along', () {
+      // `lightScheme.outline` is the third `#9A9182` literal and it must not
+      // move: it is a LIGHT token, where lightening reduces contrast. M3 also
+      // reads `outline` implicitly, so "nothing uses it" is not provable by
+      // grep and is not an argument for touching it.
+      expect(AppColors.lightScheme.outline, const Color(0xFF9A9182));
+      expect(AppColors.lightScheme.onSurfaceVariant, AppColors.textSecondary,
+          reason: 'the light half of this pair is textSecondary, not muted');
+    });
+  });
+
+  group('source guard — the persisted colour is not a theme token', () {
+    test('kUncategorisedColorValue keeps its own literal', () {
+      // JF-2 — the highest-consequence mis-implementation available in this
+      // change, and the only one that would pass every other gate we have.
+      //
+      // This int is written into `Category.colorValue`
+      // (`category_repository.dart:260`), a persisted `@HiveField`
+      // (`category.dart:27`). Find-and-replace the hex and only the buckets
+      // minted AFTER the change get the new colour: a permanently mixed store,
+      // one reserved bucket per month, forever, with no migration. No other
+      // test would fail, and the Hive schema discipline would not catch it
+      // either — that governs field indices and typeIds, not values.
+      //
+      // Pinned by LITERAL on purpose. Expressing it as "equals
+      // AppColors.textMutedDark" would say the same thing and would be
+      // satisfied by the very edit this exists to stop.
+      expect(kUncategorisedColorValue, 0xFF9A9182);
+    });
+
+    test('the stored colour has deliberately diverged from the text token', () {
+      // It was seeded from `textMutedDark`'s old value and still looks like a
+      // copy of it. After D-018 it is not one, and that divergence is the
+      // feature — not an inconsistency for a later tidy-up to close.
+      expect(const Color(kUncategorisedColorValue),
+          isNot(AppColors.textMutedDark));
     });
   });
 
@@ -166,7 +254,7 @@ void main() {
 
     testWidgets('dark theme resolves the dark half', (tester) async {
       final colors = await resolve(tester, AppTheme.dark);
-      expect(colors.textMuted, const Color(0xFF9A9182));
+      expect(colors.textMuted, const Color(0xFFA19889));
       expect(colors.warning, AppColors.accentLight);
     });
 
@@ -243,6 +331,17 @@ void main() {
       expect(splash, contains('_holdBeforeRoute'));
       expect(splash, contains('Duration(milliseconds: 800)'));
       expect(splash.contains('milliseconds: 1800'), isFalse);
+    });
+
+    test('the splash version label carries no alpha (D-019)', () {
+      // A contrast assertion cannot see this: the composite only exists in the
+      // widget's `copyWith`. The token itself measures fine, which is exactly
+      // how a 2.84:1 label survived a suite that asserts the token.
+      final splash =
+          File('lib/modules/splash/splash_view.dart').readAsStringSync();
+      expect(splash.contains('textMutedDark.withValues(alpha:'), isFalse,
+          reason: 'the light branch has no alpha; the dark branch must not '
+              'either');
     });
   });
 }

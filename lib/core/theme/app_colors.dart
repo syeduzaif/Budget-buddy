@@ -49,12 +49,22 @@ class AppColors {
   /// unreadably in the other theme — which is the defect this pair replaced.
   static const Color textMuted = Color(0xFF7A705F); // Dark driftwood
 
-  /// Third-rank text ON DARK SURFACES — unchanged (#9A9182, "warm stone"), so
-  /// the dark theme renders byte-identically to before the split.
+  /// Third-rank text ON DARK SURFACES. Retuned from #9A9182, which measured
+  /// 4.38:1 on the dark card — the AA shortfall F-11 pinned rather than closed,
+  /// because closing it was out of that ticket's scope. #A19889 is 4.78:1
+  /// there and 6.03:1 on the dark background (D-018).
   ///
   /// Also the value the two light-theme component blocks whose surface is dark
   /// (bottom-nav and tab-bar unselected) must use.
-  static const Color textMutedDark = Color(0xFF9A9182); // Warm stone
+  ///
+  /// ⚠️ `kUncategorisedColorValue` (`app_constants.dart:58`) still holds this
+  /// token's OLD value, deliberately. It is written into every reserved-bucket
+  /// record, so it must not follow a text retune — a stored colour that drifts
+  /// with the theme repaints history, per month, forever, with no migration.
+  /// Never find-and-replace the two together; `theme_contrast_test.dart` pins
+  /// the constant by literal for exactly this reason.
+  static const Color textMutedDark =
+      Color(0xFFA19889); // Warm stone, lightened
   static const Color textWhite = Color(0xFFF8F4ED); // Warm cream
   static const Color textDark = Color(0xFFEDE8DF); // On dark surfaces
 
@@ -147,7 +157,10 @@ class AppColors {
     surface: Color(0xFF1E1B15),
     onSurface: Color(0xFFEDE8DF),
     surfaceContainerHighest: Color(0xFF332D23),
-    onSurfaceVariant: Color(0xFF9A9182),
+    // Kept in step with [textMutedDark] by hand — same meaning, same value,
+    // and it carries the "of ₨45,000" limit caption on the dark card
+    // (`category_card.dart:122`), which is a money figure (D-018).
+    onSurfaceVariant: Color(0xFFA19889),
     outline: Color(0xFF6B604E),
     outlineVariant: Color(0xFF4A4235),
     shadow: Color(0xFF0F0D0A),
