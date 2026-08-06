@@ -301,13 +301,38 @@ void main() {
       await launch(tester);
 
       final copy = snackbarCopy(tester);
-      expect(copy, contains('your data is safe'),
+      expect(copy, contains('your records are still saved'),
           reason: 'the first thing a user needs to know is what they still '
-              'have');
+              'have, in the vocabulary the rest of the app already uses');
       expect(copy.contains('try again'), isFalse,
           reason: 'L2: the user cannot retry a launch, and nothing about the '
               'state will change by waiting — say what is true now');
       expect(copy.contains('later'), isFalse, reason: 'L2');
+
+      await drainSnackbar(tester);
+    });
+
+    testWidgets('the copy promises no remedy — it names what the control does',
+        (tester) async {
+      // The amendment (PM, 2026-08-05): the first shipped string said the
+      // chevrons "rebuilds it". A full disk is exactly this failure's trigger,
+      // and switching months re-runs the same write, so that sentence is a
+      // remedy that only holds when the failure was transient — L2's ban in
+      // disguise. Pinned by word, because the tempting edit is to put an
+      // outcome back in.
+      await pumpHost(tester);
+      settings.failWrites = true;
+
+      await launch(tester);
+
+      final copy = snackbarCopy(tester);
+      expect(copy, contains('tries again'),
+          reason: 'state what the month chevrons DO');
+      expect(copy.contains('rebuild'), isFalse,
+          reason: 'a promised outcome the app cannot keep when the disk is '
+              'full — the exact trigger');
+      expect(copy.contains('will fix'), isFalse, reason: 'same class');
+      expect(copy.contains('restore'), isFalse, reason: 'same class');
 
       await drainSnackbar(tester);
     });

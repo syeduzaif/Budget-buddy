@@ -71,6 +71,14 @@ class SplashController extends GetxController {
   /// `ensureMonth` opens the current month showing "No categories yet" on a
   /// populated app. The copy therefore states what is true NOW and never asks
   /// the user to try again later (L2).
+  ///
+  /// The copy first shipped saying the month chevrons "rebuilds it", and that
+  /// was rejected (PM, 2026-08-05): a full disk is exactly the trigger here,
+  /// and switching months re-runs the same failing write. Promising a remedy
+  /// that only works when the failure was transient is L2's ban in disguise —
+  /// not time-based, but implying a condition the user's action will change.
+  /// The shipped form names what the control DOES ("tries again"), never what
+  /// it will achieve.
   Future<void> routeToNextScreen() async {
     if (!_settings.onboardingComplete.value) {
       Get.offAllNamed(AppRoutes.onboarding);
@@ -86,8 +94,9 @@ class SplashController extends GetxController {
       // must not be presented as if it were prepared (H3).
       Get.snackbar(
         'Could not finish loading',
-        'Your data is safe. The dashboard may open on the wrong month, or '
-            'show no categories — switching months at the top rebuilds it.',
+        'Your records are still saved. The dashboard may open on the wrong '
+            'month or show no categories — switching months at the top tries '
+            'again.',
         snackPosition: SnackPosition.BOTTOM,
       );
     }
