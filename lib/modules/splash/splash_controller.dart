@@ -1,3 +1,6 @@
+// `show debugPrint` only: foundation also exports a `Category` annotation,
+// which would collide with the model this controller's repository deals in.
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:get/get.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../routes/app_routes.dart';
@@ -43,14 +46,51 @@ class SplashController extends GetxController {
   ///
   /// There are no accounts, so onboarding is the only gate — and a first-ever
   /// launch returns here BEFORE any rollover work, so onboarding remains the
-  /// only thing that seeds categories.
+  /// only thing that seeds categories. That `return` is why a first-ever launch
+  /// cannot hang: nothing is awaited on that branch (D-025).
+  ///
+  /// **The routing is not conditional on the preparation succeeding.** On every
+  /// launch after onboarding, for the life of the install, a failing Hive write
+  /// inside [prepareForHome] used to leave the app on the splash forever —
+  /// dots animating, no route out, and no in-app recovery of any kind. The
+  /// identical roll-then-ensure pair is already guarded on the path where
+  /// failure is harmless (`HomeController.handleResume`), which makes the
+  /// unguarded fatal path an omission rather than a decision.
+  ///
+  /// Two shapes were considered and refused (CTO × PM, 2026-08-05):
+  /// a watchdog timer — a second mechanism with a timing dependency doing a job
+  /// try/catch does deterministically, and it masks the failure so the user is
+  /// never told; and a fallback to onboarding — it shows a fresh-install
+  /// experience to a user whose data is intact, and `finish()` would then
+  /// overwrite their currency and income and seed nine more categories, i.e.
+  /// the fallback for a data-access failure would itself corrupt the data.
+  ///
+  /// The snackbar is owed here (unlike on resume, which stays silent) because
+  /// the consequence is visible on the very next frame: a failed
+  /// `setCurrentMonth` opens the dashboard on last month, and a failed
+  /// `ensureMonth` opens the current month showing "No categories yet" on a
+  /// populated app. The copy therefore states what is true NOW and never asks
+  /// the user to try again later (L2).
   Future<void> routeToNextScreen() async {
     if (!_settings.onboardingComplete.value) {
       Get.offAllNamed(AppRoutes.onboarding);
       return;
     }
 
-    await prepareForHome();
+    try {
+      await prepareForHome();
+    } catch (e, stack) {
+      debugPrint('[SplashController] prepareForHome failed: $e\n$stack');
+      // Owner-approved mobile convention (2026-07-28): user-visible failures
+      // surface via Get.snackbar. A screen the app could not finish preparing
+      // must not be presented as if it were prepared (H3).
+      Get.snackbar(
+        'Could not finish loading',
+        'Your data is safe. The dashboard may open on the wrong month, or '
+            'show no categories — switching months at the top rebuilds it.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
     Get.offAllNamed(AppRoutes.home);
   }
 }
