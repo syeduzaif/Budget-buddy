@@ -5,7 +5,7 @@ import 'app_colors.dart';
 ///
 /// `AppColors` is a flat list of paint. This is the small set where naming the
 /// paint directly is a bug: "muted text" is #7A705F on a cream card and
-/// #9A9182 on a dark one, and a widget that renders in both themes cannot
+/// #A19889 on a dark one, and a widget that renders in both themes cannot
 /// hardcode either. Widgets ask for the meaning —
 /// `context.semanticColors.textMuted` — and get the value that reads on the
 /// surface they are painting on.
