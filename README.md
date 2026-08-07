@@ -34,7 +34,7 @@ APK builds, but the app has not yet been run on an Android device.
 ```bash
 flutter pub get
 flutter run
-flutter test          # 423 tests, all green as of 2026-08-06
+flutter test          # 433 tests, all green as of 2026-08-07
 flutter analyze       # expected: no issues
 ```
 
